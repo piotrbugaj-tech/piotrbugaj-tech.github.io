@@ -90,6 +90,8 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 export interface RegonClientOptions {
   apiKey: string;
   env?: "prod" | "test";
+  /** Overrides the endpoint (local smoke tests, proxies). */
+  url?: string;
   fetch?: typeof fetch;
   timeoutMs?: number;
 }
@@ -104,7 +106,7 @@ export class RegonClient {
   private sidAt = 0;
 
   constructor(private readonly opts: RegonClientOptions) {
-    this.url = REGON_ENDPOINTS[opts.env ?? "prod"];
+    this.url = opts.url ?? REGON_ENDPOINTS[opts.env ?? "prod"];
     this.fetchFn = opts.fetch ?? ((...a) => fetch(...a));
   }
 

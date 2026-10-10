@@ -24,6 +24,8 @@ export interface Env {
   REGON_API_KEY?: string;
   /** "prod" | "test" — selects the BIR1.1 endpoint. */
   REGON_ENV?: string;
+  /** Optional endpoint override (local smoke tests). */
+  REGON_URL?: string;
   /** CEIDG API v3 JWT (secret). Optional — without it CEIDG enrichment is skipped. */
   CEIDG_API_TOKEN?: string;
   /** "prod" | "test" */

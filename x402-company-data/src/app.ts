@@ -4,7 +4,10 @@ import type { FacilitatorClient } from "@x402/core/server";
 import type { Env } from "./env";
 import { parseIdFromQuery, type ParsedId } from "./lib/ids";
 import { parseBatch, type ParsedBatch } from "./lib/batch";
-import { createPaymentMiddleware } from "./payments";
+import { createPaymentMiddleware, DEFAULT_NETWORK } from "./payments";
+import { llmsTxt, openApiDocument, SERVICE_DESCRIPTION, type DiscoveryContext } from "./discovery/openapi";
+import { landingHtml } from "./discovery/landing";
+import { PRODUCTS, SERVICE_NAME } from "./products";
 import { RegonClient, REGON_TEST_KEY } from "./sources/regon/client";
 import { RegonService } from "./services/regon";
 import { UpstreamError } from "./sources/errors";
@@ -38,6 +41,7 @@ export function createApp(deps: Deps = {}) {
       const regon = new RegonClient({
         apiKey: env.REGON_API_KEY ?? (regonEnv === "test" ? REGON_TEST_KEY : ""),
         env: regonEnv,
+        url: env.REGON_URL || undefined,
         fetch: deps.fetch,
       });
       services = { regon: new RegonService(regon, env.CACHE) };
@@ -100,6 +104,26 @@ export function createApp(deps: Deps = {}) {
   app.use("*", cors({ origin: "*", exposeHeaders: ["PAYMENT-REQUIRED", "PAYMENT-RESPONSE", "X-PAYMENT-RESPONSE"] }));
 
   app.get("/health", (c) => c.json({ ok: true }));
+
+  // ---- free discovery documents ----
+  const discoveryCtx = (c: Context<AppEnv>): DiscoveryContext => ({
+    baseUrl: (c.env.PUBLIC_BASE_URL || new URL(c.req.url).origin).replace(/\/+$/, ""),
+    network: c.env.NETWORK ?? DEFAULT_NETWORK,
+    payTo: c.env.PAY_TO ?? "",
+  });
+  app.get("/openapi.json", (c) => c.json(openApiDocument(discoveryCtx(c))));
+  app.get("/llms.txt", (c) => c.text(llmsTxt(discoveryCtx(c))));
+  app.get("/", (c) => {
+    const ctx = discoveryCtx(c);
+    if ((c.req.header("accept") ?? "").includes("text/html")) return c.html(landingHtml(ctx));
+    return c.json({
+      name: SERVICE_NAME,
+      description: SERVICE_DESCRIPTION,
+      payment: { protocol: "x402", network: ctx.network, asset: "USDC" },
+      endpoints: PRODUCTS.map((p) => ({ method: p.method, path: p.path, price: p.price, summary: p.summary })),
+      docs: { openapi: `${ctx.baseUrl}/openapi.json`, llms: `${ctx.baseUrl}/llms.txt`, legal: `${ctx.baseUrl}/legal` },
+    });
+  });
 
   app.get("/pl/company/verify", rateLimit, requireId, payment, async (c) => {
     const id = c.get("id");
