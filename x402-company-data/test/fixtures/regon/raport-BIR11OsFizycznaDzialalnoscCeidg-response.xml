@@ -1,0 +1,56 @@
+
+--uuid:7e5c2a19-3d84-4b60-95fa-c01d8e4b6a23+id=15
+Content-ID: <http://tempuri.org/0>
+Content-Transfer-Encoding: 8bit
+Content-Type: application/xop+xml;charset=utf-8;type="application/soap+xml"
+
+<!-- RECONSTRUCTED from GUS BIR1.1 documentation sample for BIR11OsFizycznaDzialalnoscCeidg (orkanap/regonapi gusdoc/Responses.txt). Element names/order as documented; values synthetic (REGON 123456785). The key fiz_nazwa is the trading name ("firma") of the CEIDG activity; the activity end/deregistration dates are fiz_dataZakonczeniaDzialalnosci and fiz_dataSkresleniaDzialalnosciZRegon; suspension/resumption: fiz_dataZawieszeniaDzialalnosci / fiz_dataWznowieniaDzialalnosci. fizC_NiePodjetoDzialalnosci = "true" for entities registered in CEIDG that never started. -->
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://www.w3.org/2005/08/addressing"><s:Header><a:Action s:mustUnderstand="1">http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/DanePobierzPelnyRaportResponse</a:Action></s:Header><s:Body><DanePobierzPelnyRaportResponse xmlns="http://CIS/BIR/PUBL/2014/07"><DanePobierzPelnyRaportResult>&lt;root&gt;
+  &lt;dane&gt;
+    &lt;fiz_regon9&gt;123456785&lt;/fiz_regon9&gt;
+    &lt;fiz_nazwa&gt;JAN TESTOWY USŁUGI TRANSPORTOWE "MELISSA"&lt;/fiz_nazwa&gt;
+    &lt;fiz_nazwaSkrocona&gt;JAN TESTOWY&lt;/fiz_nazwaSkrocona&gt;
+    &lt;fiz_dataPowstania&gt;2001-10-16&lt;/fiz_dataPowstania&gt;
+    &lt;fiz_dataRozpoczeciaDzialalnosci&gt;2001-11-15&lt;/fiz_dataRozpoczeciaDzialalnosci&gt;
+    &lt;fiz_dataWpisuDzialalnosciDoRegon /&gt;
+    &lt;fiz_dataZawieszeniaDzialalnosci /&gt;
+    &lt;fiz_dataWznowieniaDzialalnosci /&gt;
+    &lt;fiz_dataZaistnieniaZmianyDzialalnosci&gt;2012-12-11&lt;/fiz_dataZaistnieniaZmianyDzialalnosci&gt;
+    &lt;fiz_dataZakonczeniaDzialalnosci /&gt;
+    &lt;fiz_dataSkresleniaDzialalnosciZRegon /&gt;
+    &lt;fiz_dataOrzeczeniaOUpadlosci /&gt;
+    &lt;fiz_dataZakonczeniaPostepowaniaUpadlosciowego /&gt;
+    &lt;fiz_adSiedzKraj_Symbol /&gt;
+    &lt;fiz_adSiedzWojewodztwo_Symbol&gt;10&lt;/fiz_adSiedzWojewodztwo_Symbol&gt;
+    &lt;fiz_adSiedzPowiat_Symbol&gt;61&lt;/fiz_adSiedzPowiat_Symbol&gt;
+    &lt;fiz_adSiedzGmina_Symbol&gt;059&lt;/fiz_adSiedzGmina_Symbol&gt;
+    &lt;fiz_adSiedzKodPocztowy&gt;91409&lt;/fiz_adSiedzKodPocztowy&gt;
+    &lt;fiz_adSiedzMiejscowoscPoczty_Symbol&gt;0958430&lt;/fiz_adSiedzMiejscowoscPoczty_Symbol&gt;
+    &lt;fiz_adSiedzMiejscowosc_Symbol&gt;0958430&lt;/fiz_adSiedzMiejscowosc_Symbol&gt;
+    &lt;fiz_adSiedzUlica_Symbol&gt;24261&lt;/fiz_adSiedzUlica_Symbol&gt;
+    &lt;fiz_adSiedzNumerNieruchomosci&gt;80&lt;/fiz_adSiedzNumerNieruchomosci&gt;
+    &lt;fiz_adSiedzNumerLokalu /&gt;
+    &lt;fiz_adSiedzNietypoweMiejsceLokalizacji /&gt;
+    &lt;fiz_numerTelefonu /&gt;
+    &lt;fiz_numerWewnetrznyTelefonu /&gt;
+    &lt;fiz_numerFaksu /&gt;
+    &lt;fiz_adresEmail /&gt;
+    &lt;fiz_adresStronyinternetowej /&gt;
+    &lt;fiz_adSiedzKraj_Nazwa /&gt;
+    &lt;fiz_adSiedzWojewodztwo_Nazwa&gt;ŁÓDZKIE&lt;/fiz_adSiedzWojewodztwo_Nazwa&gt;
+    &lt;fiz_adSiedzPowiat_Nazwa&gt;m. Łódź&lt;/fiz_adSiedzPowiat_Nazwa&gt;
+    &lt;fiz_adSiedzGmina_Nazwa&gt;Łódź-Śródmieście&lt;/fiz_adSiedzGmina_Nazwa&gt;
+    &lt;fiz_adSiedzMiejscowosc_Nazwa&gt;Łódź&lt;/fiz_adSiedzMiejscowosc_Nazwa&gt;
+    &lt;fiz_adSiedzMiejscowoscPoczty_Nazwa&gt;Łódź&lt;/fiz_adSiedzMiejscowoscPoczty_Nazwa&gt;
+    &lt;fiz_adSiedzUlica_Nazwa&gt;ul. Test-Wilcza&lt;/fiz_adSiedzUlica_Nazwa&gt;
+    &lt;fizC_dataWpisuDoRejestruEwidencji&gt;2011-12-22&lt;/fizC_dataWpisuDoRejestruEwidencji&gt;
+    &lt;fizC_dataSkresleniaZRejestruEwidencji /&gt;
+    &lt;fizC_numerWRejestrzeEwidencji&gt;011509413/2011&lt;/fizC_numerWRejestrzeEwidencji&gt;
+    &lt;fizC_OrganRejestrowy_Symbol&gt;032000000&lt;/fizC_OrganRejestrowy_Symbol&gt;
+    &lt;fizC_OrganRejestrowy_Nazwa&gt;MINISTER GOSPODARKI&lt;/fizC_OrganRejestrowy_Nazwa&gt;
+    &lt;fizC_RodzajRejestru_Symbol&gt;151&lt;/fizC_RodzajRejestru_Symbol&gt;
+    &lt;fizC_RodzajRejestru_Nazwa&gt;CENTRALNA EWIDENCJA I INFORMACJA O DZIAŁALNOŚCI GOSPODARCZEJ&lt;/fizC_RodzajRejestru_Nazwa&gt;
+    &lt;fizC_NiePodjetoDzialalnosci&gt;false&lt;/fizC_NiePodjetoDzialalnosci&gt;
+  &lt;/dane&gt;
+&lt;/root&gt;</DanePobierzPelnyRaportResult></DanePobierzPelnyRaportResponse></s:Body></s:Envelope>
+--uuid:7e5c2a19-3d84-4b60-95fa-c01d8e4b6a23+id=15--

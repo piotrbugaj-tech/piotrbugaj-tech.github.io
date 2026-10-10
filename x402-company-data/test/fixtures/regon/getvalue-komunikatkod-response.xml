@@ -1,0 +1,9 @@
+
+--uuid:c2b8d4f1-6a3e-47c9-9e05-1d7f8a2b3c60+id=9
+Content-ID: <http://tempuri.org/0>
+Content-Transfer-Encoding: 8bit
+Content-Type: application/xop+xml;charset=utf-8;type="application/soap+xml"
+
+<!-- RECONSTRUCTED. Response to GetValue(pNazwaParametru=KomunikatKod) issued right after a search that found nothing: KomunikatKod = 4. NOTE the different namespace for GetValue: http://CIS/BIR/2014/07 (no /PUBL/) and Action http://CIS/BIR/2014/07/IUslugaBIR/GetValueResponse. Result is a plain string. Other GetValue params: KomunikatTresc, StatusSesji (1 = session alive, 0 = none), StatusUslugi (0 unavailable, 1 available, 2 technical break), KomunikatUslugi, StanDanych (e.g. 09-10-2026). KomunikatKod values: ""/7 = no/expired session or bad sid header, 0 = previous op OK, 1 = captcha required (obsolete), 2 = too many identifiers passed to DaneSzukaj*, 4 = no entities found, 5 = no privileges / bad or empty report name. -->
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://www.w3.org/2005/08/addressing"><s:Header><a:Action s:mustUnderstand="1">http://CIS/BIR/2014/07/IUslugaBIR/GetValueResponse</a:Action></s:Header><s:Body><GetValueResponse xmlns="http://CIS/BIR/2014/07"><GetValueResult>4</GetValueResult></GetValueResponse></s:Body></s:Envelope>
+--uuid:c2b8d4f1-6a3e-47c9-9e05-1d7f8a2b3c60+id=9--

@@ -1,0 +1,21 @@
+KRS Open API - "not found" behaviour (DESCRIPTION, not a captured response)
+
+Request:   GET https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/0000000001?rejestr=P&format=json
+Response:  HTTP/1.1 404 Not Found
+           (no KRS payload; body is an empty/ProblemDetails-style error that clients ignore)
+
+Evidence:
+  - Official docs (prs.ms.gov.pl/krs/openApi, via search snippets): statuses 200 OK, 404 entity not found,
+    5xx service error.
+  - soba-labs/krs-mcp krs-api.ts: HTTP 404 -> returns null ("not found"), any other non-OK -> throws.
+  - apiotrowski-afk/krs-verify core.py: tries rejestr=P then rejestr=S; 404 and 400 on both -> "not found".
+  - tadek24/firmy-crm: HTTP 204 handled as "no body" -> treated as incomplete/not found.
+
+Quirks to handle in the Worker:
+  1. A KRS number that exists only in the OTHER register (associations "S" vs entrepreneurs "P") returns 404
+     for the wrong `rejestr` -> retry with the other register before declaring "not found".
+  2. Malformed number (not 1-10 digits) -> 400 (clients also validate locally; pad to 10 digits with zeros).
+  3. After 200, verify odpis.naglowekA.numerKRS === requested number (tadek24 does this).
+  4. Body of the 404 is NOT documented/verified here - rely on the status code only, never parse it.
+  5. The API is keyless, CORS-enabled; no documented rate limit. Be polite (clients pace ~500 ms) and retry
+     only on 429 / >=500 with short backoff.

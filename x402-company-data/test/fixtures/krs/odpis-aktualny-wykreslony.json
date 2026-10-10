@@ -1,0 +1,76 @@
+{
+  "_note": "RECONSTRUCTED AND PARTLY UNVERIFIED. No real extract of a struck-off (wykreslony) entity could be fetched. What IS evidenced: OdpisAktualny still answers HTTP 200 for a struck-off KRS number, and apiotrowski-afk/krs-verify reads a 'dataWykreslenia' key from odpis.naglowekA. What is a GUESS: the exact placement of other wind-up information (dzial6.rozwiazanieUniewaznienie / likwidacja, 'wykreslenie' wording) - treat dzial6 here as illustrative and detect 'struck off' primarily via naglowekA.dataWykreslenia being present. All data is SYNTHETIC (KRS number 0000999999 does not refer to a real entity).",
+  "odpis": {
+    "rodzaj": "Aktualny",
+    "naglowekA": {
+      "rejestr": "RejP",
+      "numerKRS": "0000999999",
+      "dataCzasOdpisu": "10.10.2026 09:20:02",
+      "stanZDnia": "09.10.2026",
+      "dataRejestracjiWKRS": "15.03.2005",
+      "dataWykreslenia": "21.06.2019",
+      "numerOstatniegoWpisu": 12,
+      "dataOstatniegoWpisu": "21.06.2019",
+      "sygnaturaAktSprawyDotyczacejOstatniegoWpisu": "KR.XII NS-REJ.KRS/021111/19/111",
+      "oznaczenieSaduDokonujacegoOstatniegoWpisu": "SĄD REJONOWY DLA M.ST. WARSZAWY W WARSZAWIE, XIII WYDZIAŁ GOSPODARCZY KRAJOWEGO REJESTRU SĄDOWEGO",
+      "stanPozycji": 12
+    },
+    "dane": {
+      "dzial1": {
+        "danePodmiotu": {
+          "formaPrawna": "SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ",
+          "identyfikatory": {
+            "regon": "123456785",
+            "nip": "1234563218"
+          },
+          "nazwa": "TESTOWA SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ W LIKWIDACJI",
+          "czyProwadziDzialalnoscZInnymiPodmiotami": false
+        },
+        "siedzibaIAdres": {
+          "siedziba": {
+            "kraj": "POLSKA",
+            "wojewodztwo": "MAZOWIECKIE",
+            "powiat": "M. ST. WARSZAWA",
+            "gmina": "M. ST. WARSZAWA",
+            "miejscowosc": "WARSZAWA"
+          },
+          "adres": {
+            "ulica": "UL. TESTOWA",
+            "nrDomu": "1",
+            "nrLokalu": "2",
+            "miejscowosc": "WARSZAWA",
+            "kodPocztowy": "00-001",
+            "poczta": "WARSZAWA",
+            "kraj": "POLSKA"
+          }
+        },
+        "kapital": {
+          "wysokoscKapitaluZakladowego": { "waluta": "PLN", "wartosc": "5000,00" }
+        }
+      },
+      "dzial2": {
+        "reprezentacja": {
+          "nazwaOrganu": "ZARZĄD",
+          "sposobReprezentacji": "KAŻDY CZŁONEK ZARZĄDU UPRAWNIONY JEST DO SAMODZIELNEJ REPREZENTACJI SPÓŁKI.",
+          "sklad": []
+        }
+      },
+      "dzial3": {
+        "przedmiotDzialalnosci": {
+          "przedmiotPrzewazajacejDzialalnosci": [
+            { "opis": "POZOSTAŁE DORADZTWO W ZAKRESIE PROWADZENIA DZIAŁALNOŚCI GOSPODARCZEJ", "kodDzial": "70", "kodKlasa": "22", "kodPodklasa": "Z" }
+          ],
+          "przedmiotPozostalejDzialalnosci": []
+        }
+      },
+      "dzial4": {},
+      "dzial5": {},
+      "dzial6": {
+        "rozwiazanieUniewaznienie": {
+          "okreslenieOkolicznosci": "ZAKOŃCZENIE LIKWIDACJI",
+          "dataZakonczeniaLikwidacji": "21.06.2019"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "_note": "RECONSTRUCTED (api-krs.ms.gov.pl is unreachable from the research sandbox). Structure/key names follow the real OdpisAktualny schema as evidenced by clients (soba-labs/krs-mcp, apiotrowski-afk/krs-verify, tadek24/firmy-crm normalizeKrs) and by a real committed OdpisPelny snapshot (kordybordy/KRS data/latest/0000078664.json); in OdpisAktualny every Dzial-1..6 property is a plain object/scalar/array of objects (NO nrWpisuWprow/nrWpisuWykr history wrappers, those exist only in OdpisPelny). Identifiers for ORLEN S.A. (KRS 0000028860, NIP 7740001454, REGON 610188201) are real/public; capital figure, header numbers/dates, signatures, free-text and all natural-person data are ILLUSTRATIVE. The open API masks natural persons (first letter + asterisks; PESEL only first digit). Dates are dd.MM.yyyy strings; money is a Polish-formatted string (comma decimal).",
+  "odpis": {
+    "rodzaj": "Aktualny",
+    "naglowekA": {
+      "rejestr": "RejP",
+      "numerKRS": "0000028860",
+      "dataCzasOdpisu": "10.10.2026 09:14:31",
+      "stanZDnia": "09.10.2026",
+      "dataRejestracjiWKRS": "29.11.2001",
+      "numerOstatniegoWpisu": 287,
+      "dataOstatniegoWpisu": "02.09.2026",
+      "sygnaturaAktSprawyDotyczacejOstatniegoWpisu": "WA.XIV NS-REJ.KRS/012345/26/000",
+      "oznaczenieSaduDokonujacegoOstatniegoWpisu": "SĄD REJONOWY DLA M.ST. WARSZAWY W WARSZAWIE, XIV WYDZIAŁ GOSPODARCZY KRAJOWEGO REJESTRU SĄDOWEGO",
+      "stanPozycji": 287
+    },
+    "dane": {
+      "dzial1": {
+        "danePodmiotu": {
+          "formaPrawna": "SPÓŁKA AKCYJNA",
+          "identyfikatory": {
+            "regon": "61018820100000",
+            "nip": "7740001454"
+          },
+          "nazwa": "POLSKI KONCERN NAFTOWY ORLEN SPÓŁKA AKCYJNA",
+          "czyProwadziDzialalnoscZInnymiPodmiotami": false,
+          "czyPosiadaStatusOPP": false
+        },
+        "siedzibaIAdres": {
+          "siedziba": {
+            "kraj": "POLSKA",
+            "wojewodztwo": "MAZOWIECKIE",
+            "powiat": "PŁOCKI",
+            "gmina": "M. PŁOCK",
+            "miejscowosc": "PŁOCK"
+          },
+          "adres": {
+            "ulica": "UL. CHEMIKÓW",
+            "nrDomu": "7",
+            "miejscowosc": "PŁOCK",
+            "kodPocztowy": "09-411",
+            "poczta": "PŁOCK",
+            "kraj": "POLSKA"
+          },
+          "adresPocztyElektronicznej": "orlen@orlen.pl",
+          "adresStronyInternetowej": "WWW.ORLEN.PL"
+        },
+        "kapital": {
+          "wysokoscKapitaluZakladowego": {
+            "waluta": "PLN",
+            "wartosc": "1565420000,00"
+          },
+          "czescKapitaluWplaconegoPokrytego": {
+            "waluta": "PLN",
+            "wartosc": "1565420000,00"
+          }
+        }
+      },
+      "dzial2": {
+        "organNadzoru": [
+          {
+            "nazwaOrganu": "RADA NADZORCZA",
+            "sklad": [
+              {
+                "nazwisko": { "nazwiskoICzlon": "N*****" },
+                "imiona": { "imie": "A****" },
+                "identyfikator": { "pesel": "7**********" },
+                "funkcjaWOrganie": "PRZEWODNICZĄCY RADY NADZORCZEJ",
+                "czyZawieszona": false
+              }
+            ]
+          }
+        ],
+        "reprezentacja": {
+          "nazwaOrganu": "ZARZĄD",
+          "sposobReprezentacji": "DO SKŁADANIA OŚWIADCZEŃ WOLI W IMIENIU SPÓŁKI UPRAWNIONYCH JEST DWÓCH CZŁONKÓW ZARZĄDU DZIAŁAJĄCYCH ŁĄCZNIE ALBO CZŁONEK ZARZĄDU DZIAŁAJĄCY ŁĄCZNIE Z PROKURENTEM.",
+          "sklad": [
+            {
+              "nazwisko": { "nazwiskoICzlon": "O*****" },
+              "imiona": { "imie": "D****", "imieDrugie": "M*****" },
+              "identyfikator": { "pesel": "6**********" },
+              "funkcjaWOrganie": "PREZES ZARZĄDU",
+              "czyZawieszona": false
+            },
+            {
+              "nazwisko": { "nazwiskoICzlon": "K******" },
+              "imiona": { "imie": "M*****" },
+              "identyfikator": { "pesel": "7**********" },
+              "funkcjaWOrganie": "CZŁONEK ZARZĄDU",
+              "czyZawieszona": false
+            }
+          ]
+        },
+        "prokurenci": [
+          {
+            "nazwisko": { "nazwiskoICzlon": "W******" },
+            "imiona": { "imie": "J***" },
+            "identyfikator": { "pesel": "8**********" },
+            "rodzajProkury": "PROKURA ŁĄCZNA"
+          }
+        ]
+      },
+      "dzial3": {
+        "przedmiotDzialalnosci": {
+          "przedmiotPrzewazajacejDzialalnosci": [
+            {
+              "opis": "PRODUKCJA WYROBÓW RAFINACJI ROPY NAFTOWEJ",
+              "kodDzial": "19",
+              "kodKlasa": "20",
+              "kodPodklasa": "Z"
+            }
+          ],
+          "przedmiotPozostalejDzialalnosci": [
+            {
+              "opis": "SPRZEDAŻ HURTOWA PALIW I PRODUKTÓW POKREWNYCH",
+              "kodDzial": "46",
+              "kodKlasa": "71",
+              "kodPodklasa": "Z"
+            },
+            {
+              "opis": "SPRZEDAŻ DETALICZNA PALIW DO POJAZDÓW SILNIKOWYCH NA STACJACH PALIW",
+              "kodDzial": "47",
+              "kodKlasa": "30",
+              "kodPodklasa": "Z"
+            },
+            {
+              "opis": "PRODUKCJA ENERGII ELEKTRYCZNEJ",
+              "kodDzial": "35",
+              "kodKlasa": "11",
+              "kodPodklasa": "Z"
+            }
+          ]
+        },
+        "wzmiankiOZlozonychDokumentach": {
+          "wzmiankaOZlozeniuRocznegoSprawozdaniaFinansowego": [
+            { "dataZlozenia": "29.04.2026", "zaOkresOdDo": "OD 01.01.2025 DO 31.12.2025" }
+          ]
+        }
+      },
+      "dzial4": {},
+      "dzial5": {},
+      "dzial6": {}
+    }
+  }
+}

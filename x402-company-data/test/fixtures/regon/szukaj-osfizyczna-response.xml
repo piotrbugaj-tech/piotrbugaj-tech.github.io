@@ -1,0 +1,45 @@
+
+--uuid:5d1e7b90-2c4f-43a8-b6d3-0e9a1f7c2b44+id=5
+Content-ID: <http://tempuri.org/0>
+Content-Transfer-Encoding: 8bit
+Content-Type: application/xop+xml;charset=utf-8;type="application/soap+xml"
+
+<!-- RECONSTRUCTED from the GUS BIR1.1 documentation example "entity with two activities" (orkanap/regonapi gusdoc/Responses.txt, johnzuk/GusApi searchDataReponseResultMulti.xsd): a sole trader (Typ F) returns ONE <dane> PER SILOS (SilosID 1 = CEIDG, 2 = rolnicza). Identifiers are SYNTHETIC but checksum-valid (REGON 123456785, NIP 1234563218). Note: no <Ulica> element in the 2nd record (rural address) - elements without a value/street may be omitted. -->
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://www.w3.org/2005/08/addressing"><s:Header><a:Action s:mustUnderstand="1">http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/DaneSzukajPodmiotyResponse</a:Action></s:Header><s:Body><DaneSzukajPodmiotyResponse xmlns="http://CIS/BIR/PUBL/2014/07"><DaneSzukajPodmiotyResult>&lt;root&gt;
+  &lt;dane&gt;
+    &lt;Regon&gt;123456785&lt;/Regon&gt;
+    &lt;Nip&gt;1234563218&lt;/Nip&gt;
+    &lt;StatusNip /&gt;
+    &lt;Nazwa&gt;JAN TESTOWY USŁUGI TRANSPORTOWE&lt;/Nazwa&gt;
+    &lt;Wojewodztwo&gt;LUBELSKIE&lt;/Wojewodztwo&gt;
+    &lt;Powiat&gt;kraśnicki&lt;/Powiat&gt;
+    &lt;Gmina&gt;Kraśnik&lt;/Gmina&gt;
+    &lt;Miejscowosc&gt;Kraśnik&lt;/Miejscowosc&gt;
+    &lt;KodPocztowy&gt;23-200&lt;/KodPocztowy&gt;
+    &lt;Ulica&gt;ul. Test-Wilcza&lt;/Ulica&gt;
+    &lt;NrNieruchomosci&gt;12&lt;/NrNieruchomosci&gt;
+    &lt;NrLokalu /&gt;
+    &lt;Typ&gt;F&lt;/Typ&gt;
+    &lt;SilosID&gt;1&lt;/SilosID&gt;
+    &lt;DataZakonczeniaDzialalnosci /&gt;
+    &lt;MiejscowoscPoczty&gt;Kraśnik&lt;/MiejscowoscPoczty&gt;
+  &lt;/dane&gt;
+  &lt;dane&gt;
+    &lt;Regon&gt;123456785&lt;/Regon&gt;
+    &lt;Nip&gt;1234563218&lt;/Nip&gt;
+    &lt;StatusNip /&gt;
+    &lt;Nazwa&gt;GOSPODARSTWO ROLNE&lt;/Nazwa&gt;
+    &lt;Wojewodztwo&gt;LUBELSKIE&lt;/Wojewodztwo&gt;
+    &lt;Powiat&gt;kraśnicki&lt;/Powiat&gt;
+    &lt;Gmina&gt;Zakrzówek&lt;/Gmina&gt;
+    &lt;Miejscowosc&gt;Sulów&lt;/Miejscowosc&gt;
+    &lt;KodPocztowy&gt;23-213&lt;/KodPocztowy&gt;
+    &lt;NrNieruchomosci&gt;33&lt;/NrNieruchomosci&gt;
+    &lt;NrLokalu /&gt;
+    &lt;Typ&gt;F&lt;/Typ&gt;
+    &lt;SilosID&gt;2&lt;/SilosID&gt;
+    &lt;DataZakonczeniaDzialalnosci /&gt;
+    &lt;MiejscowoscPoczty&gt;Zakrzówek&lt;/MiejscowoscPoczty&gt;
+  &lt;/dane&gt;
+&lt;/root&gt;</DaneSzukajPodmiotyResult></DaneSzukajPodmiotyResponse></s:Body></s:Envelope>
+--uuid:5d1e7b90-2c4f-43a8-b6d3-0e9a1f7c2b44+id=5--

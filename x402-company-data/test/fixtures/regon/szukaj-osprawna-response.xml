@@ -1,0 +1,28 @@
+
+--uuid:3f8a2c5e-91b4-4d07-8c1e-6a2b7d4f90aa+id=3
+Content-ID: <http://tempuri.org/0>
+Content-Transfer-Encoding: 8bit
+Content-Type: application/xop+xml;charset=utf-8;type="application/soap+xml"
+
+<!-- RECONSTRUCTED from the GUS BIR1.1 documentation example (DaneSzukajPodmioty, Typ P, SilosID 6; entity = GLOWNY URZAD STATYSTYCZNY, REGON 000331501, as published in the GUS test database docs / orkanap/regonapi gusdoc/Responses.txt). Framing (multipart/XOP, entity-escaped Result payload) copied from the shape of real responses (johnzuk/GusApi fixtures). Uuid/boundary values are synthetic. -->
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://www.w3.org/2005/08/addressing"><s:Header><a:Action s:mustUnderstand="1">http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/DaneSzukajPodmiotyResponse</a:Action></s:Header><s:Body><DaneSzukajPodmiotyResponse xmlns="http://CIS/BIR/PUBL/2014/07"><DaneSzukajPodmiotyResult>&lt;root&gt;
+  &lt;dane&gt;
+    &lt;Regon&gt;000331501&lt;/Regon&gt;
+    &lt;Nip&gt;5261040828&lt;/Nip&gt;
+    &lt;StatusNip /&gt;
+    &lt;Nazwa&gt;GŁÓWNY URZĄD STATYSTYCZNY&lt;/Nazwa&gt;
+    &lt;Wojewodztwo&gt;MAZOWIECKIE&lt;/Wojewodztwo&gt;
+    &lt;Powiat&gt;m. st. Warszawa&lt;/Powiat&gt;
+    &lt;Gmina&gt;Śródmieście&lt;/Gmina&gt;
+    &lt;Miejscowosc&gt;Warszawa&lt;/Miejscowosc&gt;
+    &lt;KodPocztowy&gt;00-925&lt;/KodPocztowy&gt;
+    &lt;Ulica&gt;ul. Test-Krucza&lt;/Ulica&gt;
+    &lt;NrNieruchomosci&gt;208&lt;/NrNieruchomosci&gt;
+    &lt;NrLokalu /&gt;
+    &lt;Typ&gt;P&lt;/Typ&gt;
+    &lt;SilosID&gt;6&lt;/SilosID&gt;
+    &lt;DataZakonczeniaDzialalnosci /&gt;
+    &lt;MiejscowoscPoczty&gt;Warszawa&lt;/MiejscowoscPoczty&gt;
+  &lt;/dane&gt;
+&lt;/root&gt;</DaneSzukajPodmiotyResult></DaneSzukajPodmiotyResponse></s:Body></s:Envelope>
+--uuid:3f8a2c5e-91b4-4d07-8c1e-6a2b7d4f90aa+id=3--

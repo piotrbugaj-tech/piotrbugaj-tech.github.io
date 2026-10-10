@@ -1,0 +1,67 @@
+
+--uuid:e41d9a37-0b5c-4f62-8a1d-72c3b9e0d118+id=11
+Content-ID: <http://tempuri.org/0>
+Content-Transfer-Encoding: 8bit
+Content-Type: application/xop+xml;charset=utf-8;type="application/soap+xml"
+
+<!-- RECONSTRUCTED from GUS BIR1.1 documentation sample for DanePobierzPelnyRaport / BIR11OsPrawna (orkanap/regonapi gusdoc/Responses.txt; element names and order are as documented; entity is an anonymised GUS test-database record). Request: pRegon=276592498 (9-digit REGON, required for this report), pNazwaRaportu=BIR11OsPrawna. Empty elements are returned as <x /> and must be treated as null. -->
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://www.w3.org/2005/08/addressing"><s:Header><a:Action s:mustUnderstand="1">http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/DanePobierzPelnyRaportResponse</a:Action></s:Header><s:Body><DanePobierzPelnyRaportResponse xmlns="http://CIS/BIR/PUBL/2014/07"><DanePobierzPelnyRaportResult>&lt;root&gt;
+  &lt;dane&gt;
+    &lt;praw_regon9&gt;276592498&lt;/praw_regon9&gt;
+    &lt;praw_nip&gt;9542300619&lt;/praw_nip&gt;
+    &lt;praw_statusNip /&gt;
+    &lt;praw_nazwa&gt;"EUROPEJSKA" SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ&lt;/praw_nazwa&gt;
+    &lt;praw_nazwaSkrocona /&gt;
+    &lt;praw_numerWRejestrzeEwidencji&gt;0000135115&lt;/praw_numerWRejestrzeEwidencji&gt;
+    &lt;praw_dataWpisuDoRejestruEwidencji&gt;2009-03-24&lt;/praw_dataWpisuDoRejestruEwidencji&gt;
+    &lt;praw_dataPowstania&gt;1999-07-19&lt;/praw_dataPowstania&gt;
+    &lt;praw_dataRozpoczeciaDzialalnosci&gt;1999-08-29&lt;/praw_dataRozpoczeciaDzialalnosci&gt;
+    &lt;praw_dataWpisuDoRegon /&gt;
+    &lt;praw_dataZawieszeniaDzialalnosci /&gt;
+    &lt;praw_dataWznowieniaDzialalnosci /&gt;
+    &lt;praw_dataZaistnieniaZmiany&gt;2010-02-19&lt;/praw_dataZaistnieniaZmiany&gt;
+    &lt;praw_dataZakonczeniaDzialalnosci /&gt;
+    &lt;praw_dataSkresleniaZRegon /&gt;
+    &lt;praw_dataOrzeczeniaOUpadlosci /&gt;
+    &lt;praw_dataZakonczeniaPostepowaniaUpadlosciowego /&gt;
+    &lt;praw_adSiedzKraj_Symbol&gt;PL&lt;/praw_adSiedzKraj_Symbol&gt;
+    &lt;praw_adSiedzWojewodztwo_Symbol&gt;14&lt;/praw_adSiedzWojewodztwo_Symbol&gt;
+    &lt;praw_adSiedzPowiat_Symbol&gt;65&lt;/praw_adSiedzPowiat_Symbol&gt;
+    &lt;praw_adSiedzGmina_Symbol&gt;058&lt;/praw_adSiedzGmina_Symbol&gt;
+    &lt;praw_adSiedzKodPocztowy&gt;02672&lt;/praw_adSiedzKodPocztowy&gt;
+    &lt;praw_adSiedzMiejscowoscPoczty_Symbol&gt;0918130&lt;/praw_adSiedzMiejscowoscPoczty_Symbol&gt;
+    &lt;praw_adSiedzMiejscowosc_Symbol&gt;0918130&lt;/praw_adSiedzMiejscowosc_Symbol&gt;
+    &lt;praw_adSiedzUlica_Symbol&gt;10013&lt;/praw_adSiedzUlica_Symbol&gt;
+    &lt;praw_adSiedzNumerNieruchomosci&gt;50&lt;/praw_adSiedzNumerNieruchomosci&gt;
+    &lt;praw_adSiedzNumerLokalu /&gt;
+    &lt;praw_adSiedzNietypoweMiejsceLokalizacji /&gt;
+    &lt;praw_numerTelefonu /&gt;
+    &lt;praw_numerWewnetrznyTelefonu /&gt;
+    &lt;praw_numerFaksu /&gt;
+    &lt;praw_adresEmail /&gt;
+    &lt;praw_adresStronyinternetowej /&gt;
+    &lt;praw_adSiedzKraj_Nazwa&gt;POLSKA&lt;/praw_adSiedzKraj_Nazwa&gt;
+    &lt;praw_adSiedzWojewodztwo_Nazwa&gt;MAZOWIECKIE&lt;/praw_adSiedzWojewodztwo_Nazwa&gt;
+    &lt;praw_adSiedzPowiat_Nazwa&gt;m. st. Warszawa&lt;/praw_adSiedzPowiat_Nazwa&gt;
+    &lt;praw_adSiedzGmina_Nazwa&gt;Mokotów&lt;/praw_adSiedzGmina_Nazwa&gt;
+    &lt;praw_adSiedzMiejscowosc_Nazwa&gt;Warszawa&lt;/praw_adSiedzMiejscowosc_Nazwa&gt;
+    &lt;praw_adSiedzMiejscowoscPoczty_Nazwa&gt;Warszawa&lt;/praw_adSiedzMiejscowoscPoczty_Nazwa&gt;
+    &lt;praw_adSiedzUlica_Nazwa&gt;ul. Test-Krucza&lt;/praw_adSiedzUlica_Nazwa&gt;
+    &lt;praw_podstawowaFormaPrawna_Symbol&gt;1&lt;/praw_podstawowaFormaPrawna_Symbol&gt;
+    &lt;praw_szczegolnaFormaPrawna_Symbol&gt;17&lt;/praw_szczegolnaFormaPrawna_Symbol&gt;
+    &lt;praw_formaFinansowania_Symbol&gt;1&lt;/praw_formaFinansowania_Symbol&gt;
+    &lt;praw_formaWlasnosci_Symbol&gt;215&lt;/praw_formaWlasnosci_Symbol&gt;
+    &lt;praw_organZalozycielski_Symbol /&gt;
+    &lt;praw_organRejestrowy_Symbol&gt;071010050&lt;/praw_organRejestrowy_Symbol&gt;
+    &lt;praw_rodzajRejestruEwidencji_Symbol&gt;138&lt;/praw_rodzajRejestruEwidencji_Symbol&gt;
+    &lt;praw_podstawowaFormaPrawna_Nazwa&gt;OSOBA PRAWNA&lt;/praw_podstawowaFormaPrawna_Nazwa&gt;
+    &lt;praw_szczegolnaFormaPrawna_Nazwa&gt;SPÓŁKI Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ&lt;/praw_szczegolnaFormaPrawna_Nazwa&gt;
+    &lt;praw_formaFinansowania_Nazwa&gt;JEDNOSTKA SAMOFINANSUJĄCA NIE BĘDĄCA JEDNOSTKĄ BUDŻETOWĄ LUB SAMORZĄDOWYM ZAKŁADEM BUDŻETOWYM&lt;/praw_formaFinansowania_Nazwa&gt;
+    &lt;praw_formaWlasnosci_Nazwa&gt;WŁASNOŚĆ PRYWATNA KRAJOWA POZOSTAŁA&lt;/praw_formaWlasnosci_Nazwa&gt;
+    &lt;praw_organZalozycielski_Nazwa /&gt;
+    &lt;praw_organRejestrowy_Nazwa&gt;SĄD REJONOWY DLA M.ST.WARSZAWY W WARSZAWIE, XIII WYDZIAŁ GOSPODARCZY KRAJOWEGO REJESTRU SĄDOWEGO&lt;/praw_organRejestrowy_Nazwa&gt;
+    &lt;praw_rodzajRejestruEwidencji_Nazwa&gt;REJESTR PRZEDSIĘBIORCÓW&lt;/praw_rodzajRejestruEwidencji_Nazwa&gt;
+    &lt;praw_liczbaJednLokalnych&gt;2&lt;/praw_liczbaJednLokalnych&gt;
+  &lt;/dane&gt;
+&lt;/root&gt;</DanePobierzPelnyRaportResult></DanePobierzPelnyRaportResponse></s:Body></s:Envelope>
+--uuid:e41d9a37-0b5c-4f62-8a1d-72c3b9e0d118+id=11--

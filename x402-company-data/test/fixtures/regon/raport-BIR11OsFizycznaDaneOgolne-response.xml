@@ -1,0 +1,34 @@
+
+--uuid:0b7a3f55-8d2e-4c19-b4a6-9f1e5d3c7a82+id=13
+Content-ID: <http://tempuri.org/0>
+Content-Transfer-Encoding: 8bit
+Content-Type: application/xop+xml;charset=utf-8;type="application/soap+xml"
+
+<!-- RECONSTRUCTED from GUS BIR1.1 documentation sample for BIR11OsFizycznaDaneOgolne (orkanap/regonapi gusdoc/Responses.txt). Element names/order as documented. Identifiers and surname are SYNTHETIC (REGON 123456785, NIP 1234563218). This report holds person-level data common to all activities; business name/address/dates are in the per-silos reports (DzialalnoscCeidg / Rolnicza / Pozostala / SkreslonaDo20141108). fiz_dzialalnosc* flags (0/1) tell which silos reports contain data. NOTE: key spelling differs by report - here it is fiz_dataWpisuPodmiotuDoRegon / fiz_dataSkresleniaPodmiotuZRegon; in other reports fiz_dataWpisuDzialalnosciDoRegon / fiz_dataSkresleniaDzialalnosciZRegon (and one doc typo fiz_dataSkresleniaDzialalanosciZRegon in the Rolnicza sample). Match keys case-insensitively/by suffix. -->
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://www.w3.org/2005/08/addressing"><s:Header><a:Action s:mustUnderstand="1">http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/DanePobierzPelnyRaportResponse</a:Action></s:Header><s:Body><DanePobierzPelnyRaportResponse xmlns="http://CIS/BIR/PUBL/2014/07"><DanePobierzPelnyRaportResult>&lt;root&gt;
+  &lt;dane&gt;
+    &lt;fiz_regon9&gt;123456785&lt;/fiz_regon9&gt;
+    &lt;fiz_nip&gt;1234563218&lt;/fiz_nip&gt;
+    &lt;fiz_statusNip /&gt;
+    &lt;fiz_nazwisko&gt;TEST-ZIELIŃSKI&lt;/fiz_nazwisko&gt;
+    &lt;fiz_imie1&gt;ZBIGNIEW&lt;/fiz_imie1&gt;
+    &lt;fiz_imie2 /&gt;
+    &lt;fiz_dataWpisuPodmiotuDoRegon /&gt;
+    &lt;fiz_dataZaistnieniaZmiany&gt;2011-08-08&lt;/fiz_dataZaistnieniaZmiany&gt;
+    &lt;fiz_dataSkresleniaPodmiotuZRegon /&gt;
+    &lt;fiz_podstawowaFormaPrawna_Symbol&gt;9&lt;/fiz_podstawowaFormaPrawna_Symbol&gt;
+    &lt;fiz_szczegolnaFormaPrawna_Symbol&gt;99&lt;/fiz_szczegolnaFormaPrawna_Symbol&gt;
+    &lt;fiz_formaFinansowania_Symbol&gt;1&lt;/fiz_formaFinansowania_Symbol&gt;
+    &lt;fiz_formaWlasnosci_Symbol&gt;214&lt;/fiz_formaWlasnosci_Symbol&gt;
+    &lt;fiz_podstawowaFormaPrawna_Nazwa&gt;OSOBA FIZYCZNA PROWADZĄCA DZIAŁALNOŚĆ GOSPODARCZĄ&lt;/fiz_podstawowaFormaPrawna_Nazwa&gt;
+    &lt;fiz_szczegolnaFormaPrawna_Nazwa&gt;BEZ SZCZEGÓLNEJ FORMY PRAWNEJ&lt;/fiz_szczegolnaFormaPrawna_Nazwa&gt;
+    &lt;fiz_formaFinansowania_Nazwa&gt;JEDNOSTKA SAMOFINANSUJĄCA NIE BĘDĄCA JEDNOSTKĄ BUDŻETOWĄ LUB SAMORZĄDOWYM ZAKŁADEM BUDŻETOWYM&lt;/fiz_formaFinansowania_Nazwa&gt;
+    &lt;fiz_formaWlasnosci_Nazwa&gt;WŁASNOŚĆ KRAJOWYCH OSÓB FIZYCZNYCH&lt;/fiz_formaWlasnosci_Nazwa&gt;
+    &lt;fiz_dzialalnoscCeidg&gt;1&lt;/fiz_dzialalnoscCeidg&gt;
+    &lt;fiz_dzialalnoscRolnicza&gt;1&lt;/fiz_dzialalnoscRolnicza&gt;
+    &lt;fiz_dzialalnoscPozostala&gt;0&lt;/fiz_dzialalnoscPozostala&gt;
+    &lt;fiz_dzialalnoscSkreslonaDo20141108&gt;0&lt;/fiz_dzialalnoscSkreslonaDo20141108&gt;
+    &lt;fiz_liczbaJednLokalnych&gt;2&lt;/fiz_liczbaJednLokalnych&gt;
+  &lt;/dane&gt;
+&lt;/root&gt;</DanePobierzPelnyRaportResult></DanePobierzPelnyRaportResponse></s:Body></s:Envelope>
+--uuid:0b7a3f55-8d2e-4c19-b4a6-9f1e5d3c7a82+id=13--

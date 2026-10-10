@@ -13,6 +13,8 @@ import { RegonService } from "./services/regon";
 import { UpstreamError } from "./sources/errors";
 import { toVerifyResult } from "./views/verify";
 import { mapLimit } from "./lib/pool";
+import { optOutKey, policyFrom } from "./policy";
+import { legalHtml } from "./discovery/legal";
 
 export interface Deps {
   /** Upstream fetch (tests inject a fake registry). */
@@ -77,6 +79,20 @@ export function createApp(deps: Deps = {}) {
     await next();
   };
 
+  // Art. 21 GDPR objections: identifiers on the exclusion list are not disclosed (free 451).
+  const optOut: MiddlewareHandler<AppEnv> = async (c, next) => {
+    const id = c.get("id");
+    if (c.env.CACHE && (await c.env.CACHE.get(optOutKey(id.kind, id.value)))) {
+      return c.json({ error: "unavailable_for_legal_reasons", message: "Data for this identifier is withheld following a data-subject objection." }, 451);
+    }
+    await next();
+  };
+
+  const nameParam = (c: Context<AppEnv>) => {
+    const n = c.req.query("name")?.trim();
+    return n ? n.slice(0, 200) : undefined;
+  };
+
   const requireBatch: MiddlewareHandler<AppEnv> = async (c, next) => {
     let body: unknown;
     try {
@@ -125,11 +141,15 @@ export function createApp(deps: Deps = {}) {
     });
   });
 
-  app.get("/pl/company/verify", rateLimit, requireId, payment, async (c) => {
+  const policy = (c: Context<AppEnv>) => policyFrom(c.env, discoveryCtx(c).baseUrl);
+
+  app.get("/legal", (c) => c.html(legalHtml({ ...discoveryCtx(c), operator: c.env.OPERATOR_NAME, privacyContact: c.env.PRIVACY_CONTACT })));
+
+  app.get("/pl/company/verify", rateLimit, requireId, optOut, payment, async (c) => {
     const id = c.get("id");
     try {
       const r = await svc(c.env).regon.core(id);
-      return c.json(toVerifyResult(id, r));
+      return c.json(toVerifyResult(id, r, policy(c), nameParam(c)));
     } catch (err) {
       return upstreamFailure(c, err);
     }
@@ -146,8 +166,14 @@ export function createApp(deps: Deps = {}) {
         const res = await regon.coreMany(kind, values);
         for (const [v, r] of res) found.set(`${kind}:${v}`, r);
       });
-      const results = ids.map((id) => toVerifyResult(id, found.get(`${id.kind}:${id.value}`)!));
-      return c.json({ count: results.length, results, invalid });
+      const pol = policy(c);
+      const withheld: ParsedId[] = [];
+      const results = [];
+      for (const id of ids) {
+        if (c.env.CACHE && (await c.env.CACHE.get(optOutKey(id.kind, id.value)))) withheld.push(id);
+        else results.push(toVerifyResult(id, found.get(`${id.kind}:${id.value}`)!, pol));
+      }
+      return c.json({ count: results.length, results, invalid, ...(withheld.length ? { withheld } : {}) });
     } catch (err) {
       return upstreamFailure(c, err);
     }

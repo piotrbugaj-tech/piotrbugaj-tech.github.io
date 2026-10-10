@@ -94,6 +94,12 @@ export interface Representation {
   members: Array<{ name: string; role: string | null }>;
 }
 
+/** Result of comparing a caller-supplied name (?name=) with the registered name. */
+export interface NameMatch {
+  score: number;
+  result: "match" | "partial" | "mismatch";
+}
+
 export interface CompanyProfile {
   schemaVersion: typeof SCHEMA_VERSION;
   country: "PL";
@@ -106,6 +112,8 @@ export interface CompanyProfile {
   };
   /** True for sole proprietors: the record describes a natural person (GDPR-relevant). */
   isNaturalPerson: boolean;
+  /** True when personal data (name, street address) was withheld for a natural person. */
+  personalDataRedacted: boolean;
   status: StatusInfo;
   dates: {
     /** Date of entry into the primary register (KRS / CEIDG / REGON). */
@@ -129,6 +137,8 @@ export interface CompanyProfile {
   retrievedAt: string;
   /** Non-fatal issues, e.g. a secondary register was temporarily unavailable. */
   warnings: string[];
+  /** Processed data from public registers — not an official extract. Link to terms/privacy. */
+  notice: string;
 }
 
 export interface VerifyResult {
@@ -139,13 +149,18 @@ export interface VerifyResult {
   /** Found and currently active (not suspended, removed, in liquidation or bankruptcy). */
   active: boolean;
   status: EntityStatus | "not_found";
+  /** Registered name; null when not found or withheld for a natural person (see personalDataRedacted). */
   name: string | null;
+  personalDataRedacted: boolean;
+  /** Present when the request included ?name= */
+  nameMatch: NameMatch | null;
   identifiers: Identifiers;
   legalForm: LegalForm | null;
   isNaturalPerson: boolean | null;
   endedAt: string | null;
   checkedAt: string;
   sources: SourceAttribution[];
+  notice: string;
 }
 
 export interface SearchHit {

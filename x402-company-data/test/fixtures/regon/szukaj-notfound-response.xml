@@ -1,0 +1,16 @@
+
+--uuid:9a0c6e21-7f53-4b18-a2d9-4c8e3b1d5f70+id=7
+Content-ID: <http://tempuri.org/0>
+Content-Transfer-Encoding: 8bit
+Content-Type: application/xop+xml;charset=utf-8;type="application/soap+xml"
+
+<!-- RECONSTRUCTED. Payload text (ErrorCode 4 + PL/EN messages + echoed Nip) is from the GUS documentation "ErrRespSearch" sample (orkanap/regonapi gusdoc/ErrRespSearch.txt). The GUS doc shows the Result in CDATA; real traffic is entity-escaped like the other fixtures - a robust parser must handle BOTH (strip <![CDATA[ ]]> if present, otherwise entity-decode). HTTP status is 200: "not found" is signalled INSIDE the payload (ErrorCode) and via GetValue('KomunikatKod') = 4. -->
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://www.w3.org/2005/08/addressing"><s:Header><a:Action s:mustUnderstand="1">http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/DaneSzukajPodmiotyResponse</a:Action></s:Header><s:Body><DaneSzukajPodmiotyResponse xmlns="http://CIS/BIR/PUBL/2014/07"><DaneSzukajPodmiotyResult>&lt;root&gt;
+  &lt;dane&gt;
+    &lt;ErrorCode&gt;4&lt;/ErrorCode&gt;
+    &lt;ErrorMessagePl&gt;Nie znaleziono podmiotu dla podanych kryteriów wyszukiwania.&lt;/ErrorMessagePl&gt;
+    &lt;ErrorMessageEn&gt;No data found for the specified search criteria.&lt;/ErrorMessageEn&gt;
+    &lt;Nip&gt;9999999999&lt;/Nip&gt;
+  &lt;/dane&gt;
+&lt;/root&gt;</DaneSzukajPodmiotyResult></DaneSzukajPodmiotyResponse></s:Body></s:Envelope>
+--uuid:9a0c6e21-7f53-4b18-a2d9-4c8e3b1d5f70+id=7--

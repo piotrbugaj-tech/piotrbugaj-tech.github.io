@@ -147,3 +147,42 @@ describe("POST /pl/company/verify/batch", () => {
     expect(facilitator.settleCalls[0].requirements.amount).toBe("12000");
   });
 });
+
+describe("data-protection policy", () => {
+  it("withholds the name of sole traders by default but supports ?name= matching", async () => {
+    const { paidFetch } = setup();
+    const body = (await (await paidFetch(`${URL_BASE}/pl/company/verify?nip=1234563218&name=Jan%20Testowy`)).json()) as any;
+    expect(body).toMatchObject({ found: true, name: null, personalDataRedacted: true, nameMatch: { result: "partial" } });
+    expect(body.notice).toContain("/legal");
+  });
+
+  it("shows company names and matches them ignoring legal-form words", async () => {
+    const { paidFetch } = setup();
+    const body = (await (await paidFetch(`${URL_BASE}/pl/company/verify?nip=7740001454&name=Orlen%20S.A.`)).json()) as any;
+    expect(body).toMatchObject({ name: "ORLEN SPÓŁKA AKCYJNA", personalDataRedacted: false, nameMatch: { result: "match", score: 1 } });
+  });
+
+  it("returns the name of sole traders when NATURAL_PERSONS=full", async () => {
+    const { appFetch, env } = setup();
+    env.NATURAL_PERSONS = "full";
+    const client = registerExactEvmScheme(new x402Client(), { signer: privateKeyToAccount(generatePrivateKey()) });
+    const body = (await (await wrapFetchWithPayment(appFetch, client)(`${URL_BASE}/pl/company/verify?nip=1234563218`)).json()) as any;
+    expect(body).toMatchObject({ name: "JAN TESTOWY USŁUGI", personalDataRedacted: false });
+  });
+
+  it("answers 451 for free when the data subject objected", async () => {
+    const { appFetch, kv, facilitator, regon } = setup();
+    await kv.put("optout:nip:1234563218", "2026-10-10 objection #1");
+    const res = await appFetch(`${URL_BASE}/pl/company/verify?nip=1234563218`);
+    expect(res.status).toBe(451);
+    expect(facilitator.verifyCalls).toHaveLength(0);
+    expect(regon.calls).toHaveLength(0);
+  });
+
+  it("serves the legal page", async () => {
+    const { appFetch } = setup();
+    const res = await appFetch(`${URL_BASE}/legal`);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain("Art. 14 GDPR");
+  });
+});

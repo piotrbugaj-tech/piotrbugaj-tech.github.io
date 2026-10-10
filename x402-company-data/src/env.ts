@@ -30,4 +30,11 @@ export interface Env {
   CEIDG_API_TOKEN?: string;
   /** "prod" | "test" */
   CEIDG_ENV?: string;
+
+  // --- data protection ---
+  /** "minimal" (default) | "full" — see src/policy.ts. */
+  NATURAL_PERSONS?: string;
+  /** Data controller shown on /legal (legal name, address, tax id). */
+  OPERATOR_NAME?: string;
+  PRIVACY_CONTACT?: string;
 }

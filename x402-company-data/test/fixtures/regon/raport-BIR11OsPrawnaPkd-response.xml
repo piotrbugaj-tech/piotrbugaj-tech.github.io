@@ -1,0 +1,20 @@
+
+--uuid:a6d0e8c2-5b17-4e93-8f40-2c9b7a1d6e35+id=17
+Content-ID: <http://tempuri.org/0>
+Content-Transfer-Encoding: 8bit
+Content-Type: application/xop+xml;charset=utf-8;type="application/soap+xml"
+
+<!-- RECONSTRUCTED from GUS BIR1.1 documentation sample for BIR11OsPrawnaPkd (orkanap/regonapi gusdoc/Responses.txt; PKD 4773Z primary, 2120Z secondary). One <dane> per PKD code; praw_pkdPrzewazajace is "1" for the primary activity, "0" otherwise. Some real responses additionally carry praw_pkdWersja (e.g. 2007) before praw_pkdKod (seen in johnzuk/GusApi fixture fullSearchMultipleResponse.xsd) - included here as optional. The sole-trader equivalent BIR11OsFizycznaPkd returns fiz_pkd_Kod, fiz_pkd_Nazwa, fiz_pkd_Przewazajace, fiz_SilosID, fiz_Silos_Symbol (CEIDG | Rolnicza | ...), fiz_dataSkresleniaDzialalnosciZRegon. Local-unit PKD: lokpraw_pkdKod / lokpraw_pkdNazwa / lokpraw_pkdPrzewazajace (needs REGON14). -->
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://www.w3.org/2005/08/addressing"><s:Header><a:Action s:mustUnderstand="1">http://CIS/BIR/PUBL/2014/07/IUslugaBIRzewnPubl/DanePobierzPelnyRaportResponse</a:Action></s:Header><s:Body><DanePobierzPelnyRaportResponse xmlns="http://CIS/BIR/PUBL/2014/07"><DanePobierzPelnyRaportResult>&lt;root&gt;
+  &lt;dane&gt;
+    &lt;praw_pkdKod&gt;4773Z&lt;/praw_pkdKod&gt;
+    &lt;praw_pkdNazwa&gt;SPRZEDAŻ DETALICZNA WYROBÓW FARMACEUTYCZNYCH PROWADZONA W WYSPECJALIZOWANYCH SKLEPACH&lt;/praw_pkdNazwa&gt;
+    &lt;praw_pkdPrzewazajace&gt;1&lt;/praw_pkdPrzewazajace&gt;
+  &lt;/dane&gt;
+  &lt;dane&gt;
+    &lt;praw_pkdKod&gt;2120Z&lt;/praw_pkdKod&gt;
+    &lt;praw_pkdNazwa&gt;PRODUKCJA LEKÓW I POZOSTAŁYCH WYROBÓW FARMACEUTYCZNYCH&lt;/praw_pkdNazwa&gt;
+    &lt;praw_pkdPrzewazajace&gt;0&lt;/praw_pkdPrzewazajace&gt;
+  &lt;/dane&gt;
+&lt;/root&gt;</DanePobierzPelnyRaportResult></DanePobierzPelnyRaportResponse></s:Body></s:Envelope>
+--uuid:a6d0e8c2-5b17-4e93-8f40-2c9b7a1d6e35+id=17--
