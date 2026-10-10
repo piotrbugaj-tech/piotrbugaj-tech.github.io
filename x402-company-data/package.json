@@ -1,0 +1,30 @@
+{
+  "name": "x402-company-data",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Polish (and later EU) company registry data for AI agents, paid per call via x402.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "@x402/core": "^2.28.0",
+    "@x402/evm": "^2.28.0",
+    "@x402/extensions": "^2.28.0",
+    "@x402/hono": "^2.28.0",
+    "fast-xml-parser": "^5.11.2",
+    "hono": "^4.13.13"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261010.1",
+    "@x402/fetch": "^2.28.0",
+    "typescript": "^7.0.2",
+    "viem": "^2.57.4",
+    "vitest": "^5.0.3",
+    "wrangler": "^4.149.0"
+  }
+}
