@@ -59,7 +59,8 @@ export function buildRoutes(env: Env): RoutesConfig {
       mimeType: "application/json",
       serviceName: SERVICE_NAME,
       tags: SERVICE_TAGS,
-      ...(env.PUBLIC_BASE_URL ? { resource: env.PUBLIC_BASE_URL + p.path } : {}),
+      // Explicit resource URL (otherwise the SDK uses the full request URL incl. query string).
+      ...(env.PUBLIC_BASE_URL ? { resource: env.PUBLIC_BASE_URL.replace(/\/+$/, "") + p.path, iconUrl: env.PUBLIC_BASE_URL.replace(/\/+$/, "") + "/icon.svg" } : {}),
       extensions: { ...discovery(p) },
       unpaidResponseBody: async () => ({
         contentType: "application/json",

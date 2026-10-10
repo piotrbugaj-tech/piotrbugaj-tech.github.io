@@ -5,19 +5,24 @@ import type { Env } from "./env";
 import { parseIdFromQuery, type ParsedId } from "./lib/ids";
 import { parseBatch, type ParsedBatch } from "./lib/batch";
 import { createPaymentMiddleware, DEFAULT_NETWORK } from "./payments";
-import { llmsTxt, openApiDocument, SERVICE_DESCRIPTION, type DiscoveryContext } from "./discovery/openapi";
+import { ICON_SVG, llmsTxt, openApiDocument, SERVICE_DESCRIPTION, wellKnownX402, type DiscoveryContext } from "./discovery/openapi";
 import { landingHtml } from "./discovery/landing";
 import { PRODUCTS, SERVICE_NAME } from "./products";
 import { RegonClient, REGON_TEST_KEY } from "./sources/regon/client";
-import { RegonService } from "./services/regon";
+import { RegonService, type RegonCore } from "./services/regon";
+import { SearchIndex } from "./services/search-index";
+import { nameTokens } from "./lib/namematch";
 import { KrsService } from "./services/krs";
 import { KrsClient } from "./sources/krs/client";
 import { buildProfile } from "./services/profile";
 import { UpstreamError } from "./sources/errors";
-import { toVerifyResult } from "./views/verify";
+import { regonStatus, toVerifyResult } from "./views/verify";
 import { mapLimit } from "./lib/pool";
 import { optOutKey, policyFrom } from "./policy";
 import { legalHtml } from "./discovery/legal";
+
+const SEARCH_COVERAGE =
+  "Legal entities (companies, foundations, associations, cooperatives…) indexed from official REGON/KRS records; status is as of the last lookup — call /pl/company/verify for the current status. Sole traders are not searchable by name (GDPR).";
 
 export interface Deps {
   /** Upstream fetch (tests inject a fake registry). */
@@ -32,6 +37,7 @@ export type AppEnv = { Bindings: Env; Variables: Vars };
 interface Services {
   regon: RegonService;
   krs: KrsService;
+  index: SearchIndex;
 }
 
 export function createApp(deps: Deps = {}) {
@@ -51,7 +57,7 @@ export function createApp(deps: Deps = {}) {
         fetch: deps.fetch,
       });
       const krs = new KrsClient({ fetch: deps.fetch, baseUrl: env.KRS_URL || undefined });
-      services = { regon: new RegonService(regon, env.CACHE), krs: new KrsService(krs, env.CACHE) };
+      services = { regon: new RegonService(regon, env.CACHE), krs: new KrsService(krs, env.CACHE), index: new SearchIndex(env.INDEX_DB) };
     }
     return services;
   };
@@ -76,9 +82,15 @@ export function createApp(deps: Deps = {}) {
     await next();
   };
 
+  const isPaying = (c: Context<AppEnv>) => !!(c.req.header("payment-signature") || c.req.header("x-payment"));
+
   // Validation runs before payment: malformed input gets a free 400.
+  // A bare unpaid request (no parameters) is a discovery probe from a catalog
+  // (CDP Bazaar validate, x402scan, 402index): it must get the 402 challenge.
   const requireId: MiddlewareHandler<AppEnv> = async (c, next) => {
-    const r = parseIdFromQuery(c.req.query());
+    const q = c.req.query();
+    if (!isPaying(c) && !q.nip && !q.regon && !q.krs) return next();
+    const r = parseIdFromQuery(q);
     if (!r.ok) return c.json({ error: "invalid_request", message: r.error }, 400);
     c.set("id", r.id);
     await next();
@@ -87,7 +99,7 @@ export function createApp(deps: Deps = {}) {
   // Art. 21 GDPR objections: identifiers on the exclusion list are not disclosed (free 451).
   const optOut: MiddlewareHandler<AppEnv> = async (c, next) => {
     const id = c.get("id");
-    if (c.env.CACHE && (await c.env.CACHE.get(optOutKey(id.kind, id.value)))) {
+    if (id && c.env.CACHE && (await c.env.CACHE.get(optOutKey(id.kind, id.value)))) {
       return c.json({ error: "unavailable_for_legal_reasons", message: "Data for this identifier is withheld following a data-subject objection." }, 451);
     }
     await next();
@@ -99,9 +111,11 @@ export function createApp(deps: Deps = {}) {
   };
 
   const requireBatch: MiddlewareHandler<AppEnv> = async (c, next) => {
+    const text = await c.req.text();
+    if (!isPaying(c) && text.trim() === "") return next(); // discovery probe -> 402
     let body: unknown;
     try {
-      body = await c.req.json();
+      body = JSON.parse(text);
     } catch {
       return c.json({ error: "invalid_request", message: "Body must be JSON." }, 400);
     }
@@ -109,6 +123,34 @@ export function createApp(deps: Deps = {}) {
     if (parsed.error) return c.json({ error: "invalid_request", message: parsed.error, invalid: parsed.invalid }, 400);
     c.set("batch", parsed);
     await next();
+  };
+
+  /** Runs work after the response (Workers waitUntil); awaited inline where no execution context exists (tests). */
+  const background = async (c: Context<AppEnv>, work: Promise<unknown>) => {
+    const guarded = work.catch((err) => console.warn("background task failed", err));
+    try {
+      c.executionCtx.waitUntil(guarded);
+    } catch {
+      await guarded;
+    }
+  };
+
+  /** Every resolved legal entity feeds the name-search index (natural persons are refused by the index). */
+  const indexCore = (c: Context<AppEnv>, core: RegonCore) => {
+    if (!core.found || !core.basic) return;
+    return background(
+      c,
+      svc(c.env).index.upsert({
+        nip: core.basic.nip,
+        regon: core.basic.regon,
+        krs: core.details?.krs ?? null,
+        name: core.details?.name ?? core.basic.name,
+        legalForm: core.details?.legalForm ?? (core.basic.type === "F" ? "sole_proprietorship" : null),
+        status: regonStatus(core),
+        city: core.basic.address.city,
+        source: "REGON",
+      }),
+    );
   };
 
   const upstreamFailure = (c: Context<AppEnv>, err: unknown) => {
@@ -131,8 +173,12 @@ export function createApp(deps: Deps = {}) {
     baseUrl: (c.env.PUBLIC_BASE_URL || new URL(c.req.url).origin).replace(/\/+$/, ""),
     network: c.env.NETWORK ?? DEFAULT_NETWORK,
     payTo: c.env.PAY_TO ?? "",
+    contactEmail: c.env.CONTACT_EMAIL,
   });
   app.get("/openapi.json", (c) => c.json(openApiDocument(discoveryCtx(c))));
+  app.get("/.well-known/x402", (c) => c.json(wellKnownX402(discoveryCtx(c))));
+  app.get("/.well-known/402index-verify.txt", (c) => (c.env.INDEX402_VERIFY_TOKEN ? c.text(c.env.INDEX402_VERIFY_TOKEN) : c.notFound()));
+  app.get("/icon.svg", (c) => c.body(ICON_SVG, 200, { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400" }));
   app.get("/llms.txt", (c) => c.text(llmsTxt(discoveryCtx(c))));
   app.get("/", (c) => {
     const ctx = discoveryCtx(c);
@@ -154,6 +200,7 @@ export function createApp(deps: Deps = {}) {
     const id = c.get("id");
     try {
       const r = await svc(c.env).regon.core(id);
+      await indexCore(c, r.value);
       return c.json(toVerifyResult(id, r, policy(c), nameParam(c)));
     } catch (err) {
       return upstreamFailure(c, err);
@@ -169,10 +216,50 @@ export function createApp(deps: Deps = {}) {
         // 404 cancels settlement: a profile miss is free (use /verify for paid existence checks).
         return c.json({ error: "not_found", message: `No entity with ${id.kind.toUpperCase()} ${id.value} in REGON/KRS. You were not charged.` }, 404);
       }
-      return c.json(r.profile);
+      const p = r.profile;
+      await background(
+        c,
+        svc(c.env).index.upsert({
+          ...p.identifiers,
+          name: p.name ?? "",
+          legalForm: p.legalForm.normalized,
+          status: p.status.code,
+          city: p.address?.city ?? null,
+          source: p.registries.krs ? "KRS" : "REGON",
+        }),
+      );
+      return c.json(p);
     } catch (err) {
       return upstreamFailure(c, err);
     }
+  });
+
+  // Validation before payment; a bare unpaid probe gets the 402.
+  const requireSearch: MiddlewareHandler<AppEnv> = async (c, next) => {
+    const name = c.req.query("name")?.trim() ?? "";
+    if (!isPaying(c) && !name) return next();
+    if (nameTokens(name).join("").length < 3) {
+      return c.json({ error: "invalid_request", message: "Parameter 'name' needs at least 3 significant characters (legal-form words like 'sp. z o.o.' are ignored)." }, 400);
+    }
+    await next();
+  };
+
+  app.get("/pl/company/search", rateLimit, requireSearch, payment, async (c) => {
+    const name = c.req.query("name")!.trim().slice(0, 200);
+    const city = c.req.query("city")?.trim() || undefined;
+    const limit = Number(c.req.query("limit") ?? 10);
+    const results = await svc(c.env).index.search(name, { city, limit });
+    if (results.length === 0) {
+      // 404 cancels settlement: an empty search is free.
+      return c.json({ error: "not_found", message: "No matching legal entity in the index. You were not charged.", coverage: SEARCH_COVERAGE }, 404);
+    }
+    return c.json({
+      query: { name, city: city ?? null },
+      count: results.length,
+      results,
+      coverage: SEARCH_COVERAGE,
+      notice: policy(c).notice,
+    });
   });
 
   app.post("/pl/company/verify/batch", rateLimit, requireBatch, payment, async (c) => {
@@ -184,7 +271,10 @@ export function createApp(deps: Deps = {}) {
       const found = new Map<string, Awaited<ReturnType<RegonService["core"]>>>();
       await mapLimit([...byKind.entries()], 3, async ([kind, values]) => {
         const res = await regon.coreMany(kind, values);
-        for (const [v, r] of res) found.set(`${kind}:${v}`, r);
+        for (const [v, r] of res) {
+          found.set(`${kind}:${v}`, r);
+          await indexCore(c, r.value);
+        }
       });
       const pol = policy(c);
       const withheld: ParsedId[] = [];

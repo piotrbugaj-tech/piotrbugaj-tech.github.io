@@ -23,10 +23,10 @@ function setup(opts: { failWith?: number } = {}) {
 const URL_BASE = "https://api.example.test";
 
 describe("GET /pl/company/verify", () => {
-  it("rejects missing / invalid identifiers before asking for payment", async () => {
+  it("answers bare discovery probes with 402 but rejects invalid identifiers for free", async () => {
     const { appFetch, regon } = setup();
     let res = await appFetch(`${URL_BASE}/pl/company/verify`);
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(402); // catalogs (CDP validate, x402scan) probe without parameters
     res = await appFetch(`${URL_BASE}/pl/company/verify?nip=7740001455`);
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ error: "invalid_request" });
@@ -119,6 +119,10 @@ describe("POST /pl/company/verify/batch", () => {
 
     res = await post({ nip: ["7740001454", "1234563218", "5250007738", "7740001455"], regon: ["610188201"] });
     expect(JSON.parse(atob(res.headers.get("PAYMENT-REQUIRED")!)).accepts[0].amount).toBe("12000"); // 4 valid × $0.003
+
+    res = await appFetch(`${URL_BASE}/pl/company/verify/batch`, { method: "POST" });
+    expect(res.status).toBe(402); // empty-body probe gets the minimum price
+    expect(JSON.parse(atob(res.headers.get("PAYMENT-REQUIRED")!)).accepts[0].amount).toBe("10000");
 
     res = await post({ nip: ["bad"] });
     expect(res.status).toBe(400);

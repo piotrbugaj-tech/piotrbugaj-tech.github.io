@@ -17,13 +17,24 @@
     "PUBLIC_BASE_URL": "",
     // "test" uses the public GUS test environment (fake data); "prod" needs REGON_API_KEY.
     "REGON_ENV": "test",
-    "CEIDG_ENV": "prod"
+    "CEIDG_ENV": "prod",
+    // "minimal" (default): sole traders' names/addresses withheld. "full" only after legal review.
+    "NATURAL_PERSONS": "minimal",
+    "CONTACT_EMAIL": "",
+    "OPERATOR_NAME": "",
+    "PRIVACY_CONTACT": ""
   },
   // Secrets (wrangler secret put …): REGON_API_KEY, CEIDG_API_TOKEN, CDP_API_KEY_ID, CDP_API_KEY_SECRET
 
   "kv_namespaces": [
     // Create with: npx wrangler kv namespace create CACHE  — then paste the id here.
     { "binding": "CACHE", "id": "REPLACE_WITH_KV_NAMESPACE_ID" }
+  ],
+
+  "d1_databases": [
+    // Company-name search index. Create with: npx wrangler d1 create company-index
+    // then: npx wrangler d1 migrations apply company-index --remote
+    { "binding": "INDEX_DB", "database_name": "company-index", "database_id": "REPLACE_WITH_D1_DATABASE_ID", "migrations_dir": "migrations" }
   ],
 
   "ratelimits": [

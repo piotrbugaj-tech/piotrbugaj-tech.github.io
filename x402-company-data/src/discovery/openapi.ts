@@ -1,9 +1,11 @@
 import { PRODUCTS, SERVICE_NAME, type Product } from "../products";
+import { BATCH_MAX } from "../lib/batch";
 
 export interface DiscoveryContext {
   baseUrl: string;
   network: string;
   payTo: string;
+  contactEmail?: string;
 }
 
 export const SERVICE_DESCRIPTION =
@@ -19,13 +21,14 @@ function operation(p: Product, ctx: DiscoveryContext) {
     operationId: p.id.replace(/-(\w)/g, (_, c: string) => c.toUpperCase()),
     summary: p.summary,
     description: `${p.description}\n\nPrice: ${p.price} (USDC on ${networkLabel(ctx.network)}, x402).`,
+    security: [],
+    // agentcash / x402scan discovery format.
     "x-payment-info": {
-      protocol: "x402",
-      scheme: "exact",
-      network: ctx.network,
-      asset: "USDC",
-      price: p.unitPrice !== undefined ? { perItemUsd: p.unitPrice, minUsd: p.minPrice } : { usd: Number(p.price.replace("$", "")) },
-      payTo: ctx.payTo,
+      price:
+        p.unitPrice !== undefined
+          ? { mode: "dynamic", currency: "USD", min: String(p.minPrice ?? p.unitPrice), max: String(Math.max(p.minPrice ?? 0, p.unitPrice * BATCH_MAX)) }
+          : { mode: "fixed", currency: "USD", amount: p.price.replace("$", "") },
+      protocols: [{ x402: {} }],
     },
     responses: {
       "200": { description: "Success", content: { "application/json": { example: p.outputExample } } },
@@ -62,11 +65,13 @@ export function openApiDocument(ctx: DiscoveryContext) {
     info: {
       title: SERVICE_NAME,
       version: "1.0.0",
-      description: SERVICE_DESCRIPTION,
+      description: `${SERVICE_DESCRIPTION} Payments: x402 v2, USDC on ${networkLabel(ctx.network)} (${ctx.network}).`,
+      ...(ctx.contactEmail ? { contact: { email: ctx.contactEmail } } : {}),
       "x-guidance":
         "Validate identifiers first (invalid NIP/REGON/KRS → free 400). Use /pl/company/verify for yes/no checks, " +
         "/pl/company for full profiles, /pl/company/search when you only know the name, /pl/company/verify/batch for lists.",
     },
+    "x-agentcash-guidance": { llmsTxtUrl: `${ctx.baseUrl}/llms.txt` },
     servers: [{ url: ctx.baseUrl }],
     paths,
     externalDocs: { description: "Data sources, licences and privacy", url: `${ctx.baseUrl}/legal` },
@@ -102,3 +107,10 @@ export function llmsTxt(ctx: DiscoveryContext): string {
   ];
   return lines.join("\n");
 }
+
+/** x402scan-compatible /.well-known/x402 (no formal x402 spec; OpenAPI is preferred). */
+export function wellKnownX402(ctx: DiscoveryContext) {
+  return { version: 1, resources: [...new Set(PRODUCTS.map((p) => ctx.baseUrl + p.path))] };
+}
+
+export const ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#1f2937"/><rect x="8" y="14" width="48" height="18" fill="#ffffff"/><rect x="8" y="32" width="48" height="18" fill="#dc143c"/><text x="32" y="44" font-family="Arial,sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#ffffff">402</text></svg>`;

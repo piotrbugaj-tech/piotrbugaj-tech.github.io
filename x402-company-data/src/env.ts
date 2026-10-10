@@ -1,12 +1,18 @@
 export interface Env {
   /** KV namespace for registry responses. */
   CACHE?: KVNamespace;
+  /** D1 database with the company-name search index (migrations/). Optional. */
+  INDEX_DB?: D1Database;
   /** Workers Rate Limiting bindings (optional; see wrangler.jsonc). */
   IP_LIMITER?: RateLimit;
   UPSTREAM_LIMITER?: RateLimit;
 
-  /** Public origin, e.g. "https://api.example.com" — used in discovery documents. */
+  /** Public https origin, e.g. "https://api.example.com" — used as the x402 resource URL and in discovery documents. */
   PUBLIC_BASE_URL?: string;
+  /** Shown in openapi.json info.contact (catalogs use it for ownership/dashboards). */
+  CONTACT_EMAIL?: string;
+  /** Token served at /.well-known/402index-verify.txt to claim the 402index.io listing. */
+  INDEX402_VERIFY_TOKEN?: string;
 
   // --- x402 ---
   /** EVM address that receives USDC. Required: without it paid routes return 503. */

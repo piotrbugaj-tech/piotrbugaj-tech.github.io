@@ -98,7 +98,7 @@ export const PRODUCTS: Product[] = [
     price: "$0.005",
     summary: "Does this Polish company exist and is it active?",
     description:
-      "Fast existence + status check of a Polish business by NIP, REGON or KRS against the official GUS REGON register: found, active, status (active / suspended / in_liquidation / in_bankruptcy / removed), official name and identifiers. Ideal for counterparty / invoice / KYB pre-checks.",
+      "Use when you have a Polish NIP, REGON or KRS number and need to know if the business exists and is active (e.g. before paying an invoice or onboarding a supplier). Checks the official GUS REGON register: found, active, status (active/suspended/in_liquidation/in_bankruptcy/removed), name, identifiers; optional ?name= match. Invalid ids get a free 400.",
     queryParams: { ...ID_PARAMS },
     outputExample: VERIFY_EXAMPLE,
   },
@@ -109,7 +109,7 @@ export const PRODUCTS: Product[] = [
     price: "$0.02",
     summary: "Unified Polish company profile (REGON + KRS + CEIDG).",
     description:
-      "Full normalised company profile merged from official Polish registers (GUS REGON, KRS court register, CEIDG sole-trader register): name, legal form, status, registered address, PKD activity codes, registration dates, share capital, website; management board on request (include=representation).",
+      "Use when you need the full picture of a Polish company (KYB, due diligence, CRM enrichment). One normalised JSON merged from official registers (GUS REGON + KRS court register): name, legal form, status, address, PKD activity codes, dates, share capital, website; board roles and signing rules with include=representation. Not found = free 404.",
     queryParams: {
       ...ID_PARAMS,
       include: { type: "string", description: "Comma-separated extras. Supported: representation (KRS management board).", enum: ["representation"] },
@@ -123,7 +123,7 @@ export const PRODUCTS: Product[] = [
     price: "$0.01",
     summary: "Find Polish companies by name.",
     description:
-      "Search Polish businesses by (part of) their name. Returns up to 20 candidates with identifiers (NIP/REGON/KRS), legal form, status and city — use the identifiers with /pl/company or /pl/company/verify.",
+      "Use when you only know a Polish company's name and need its NIP/REGON/KRS. Returns up to 20 legal-entity candidates with identifiers, legal form, status and city; feed the ids into /pl/company or /pl/company/verify. No match = free 404.",
     queryParams: {
       name: { type: "string", description: "Company name or fragment (min. 3 characters).", required: true, example: "orlen" },
       city: { type: "string", description: "Optional city filter." },
@@ -146,7 +146,7 @@ export const PRODUCTS: Product[] = [
     minPrice: 0.01,
     summary: "Verify up to 50 Polish companies in one paid call.",
     description:
-      "Batch version of /pl/company/verify: send up to 50 NIP / REGON / KRS numbers, get existence + status for each. Priced per identifier ($0.003, minimum $0.01) — cheaper than single calls. Invalid identifiers are reported back and not charged (validation happens before payment).",
+      "Use when you must check a list of Polish counterparties at once (invoice runs, supplier lists). Up to 50 NIP/REGON/KRS numbers per call, existence + status for each, $0.003 per valid identifier (min $0.01). Invalid ids are reported back and not charged.",
     bodySchema: {
       type: "object",
       properties: {
