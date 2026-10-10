@@ -11,6 +11,8 @@ export interface Env {
   PUBLIC_BASE_URL?: string;
   /** Shown in openapi.json info.contact (catalogs use it for ownership/dashboards). */
   CONTACT_EMAIL?: string;
+  /** Secret: private key of a small, separate wallet used by the weekly keepalive cron (src/keepalive.ts). */
+  KEEPALIVE_PRIVATE_KEY?: string;
   /** Token served at /.well-known/402index-verify.txt to claim the 402index.io listing. */
   INDEX402_VERIFY_TOKEN?: string;
 

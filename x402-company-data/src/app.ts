@@ -4,7 +4,7 @@ import type { FacilitatorClient } from "@x402/core/server";
 import type { Env } from "./env";
 import { parseIdFromQuery, type ParsedId } from "./lib/ids";
 import { parseBatch, type ParsedBatch } from "./lib/batch";
-import { createPaymentMiddleware, DEFAULT_NETWORK } from "./payments";
+import { CDP_FACILITATOR, createPaymentMiddleware, DEFAULT_FACILITATOR, DEFAULT_NETWORK } from "./payments";
 import { ICON_SVG, llmsTxt, openApiDocument, SERVICE_DESCRIPTION, wellKnownX402, type DiscoveryContext } from "./discovery/openapi";
 import { landingHtml } from "./discovery/landing";
 import { PRODUCTS, SERVICE_NAME } from "./products";
@@ -166,7 +166,30 @@ export function createApp(deps: Deps = {}) {
 
   app.use("*", cors({ origin: "*", exposeHeaders: ["PAYMENT-REQUIRED", "PAYMENT-RESPONSE", "X-PAYMENT-RESPONSE"] }));
 
-  app.get("/health", (c) => c.json({ ok: true }));
+  // Operational readiness (no secrets, only whether things are configured).
+  app.get("/health", async (c) => {
+    const e = c.env;
+    const network = e.NETWORK ?? DEFAULT_NETWORK;
+    const facilitator = e.FACILITATOR_URL || (e.CDP_API_KEY_ID ? CDP_FACILITATOR : DEFAULT_FACILITATOR);
+    const checks = {
+      payTo: !!e.PAY_TO,
+      publicBaseUrlHttps: !!e.PUBLIC_BASE_URL?.startsWith("https://"),
+      // x402.org only serves testnets; mainnet needs CDP (or another mainnet facilitator).
+      facilitatorMatchesNetwork: !(network === "eip155:8453" && facilitator.includes("x402.org")),
+      regonProductionKey: e.REGON_ENV !== "test" && !!e.REGON_API_KEY,
+      cache: !!e.CACHE,
+      searchIndex: !!e.INDEX_DB,
+    };
+    return c.json({
+      ok: checks.payTo,
+      ready: Object.values(checks).every(Boolean),
+      network,
+      facilitator: new URL(facilitator).host,
+      naturalPersons: policy(c).naturalPersons,
+      indexedEntities: await svc(e).index.count().catch(() => null),
+      checks,
+    });
+  });
 
   // ---- free discovery documents ----
   const discoveryCtx = (c: Context<AppEnv>): DiscoveryContext => ({

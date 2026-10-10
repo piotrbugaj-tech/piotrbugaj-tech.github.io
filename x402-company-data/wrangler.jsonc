@@ -6,6 +6,8 @@
   // @x402/hono uses Buffer when settling payments.
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // Weekly paid self-test (keeps the CDP Bazaar listing fresh). No-op unless KEEPALIVE_PRIVATE_KEY is set.
+  "triggers": { "crons": ["17 6 * * 1"] },
 
   "vars": {
     // EVM address that receives USDC. Paid routes answer 503 until this is set.
@@ -24,7 +26,7 @@
     "OPERATOR_NAME": "",
     "PRIVACY_CONTACT": ""
   },
-  // Secrets (wrangler secret put …): REGON_API_KEY, CEIDG_API_TOKEN, CDP_API_KEY_ID, CDP_API_KEY_SECRET
+  // Secrets (wrangler secret put …): REGON_API_KEY, CEIDG_API_TOKEN, CDP_API_KEY_ID, CDP_API_KEY_SECRET, KEEPALIVE_PRIVATE_KEY
 
   "kv_namespaces": [
     // Create with: npx wrangler kv namespace create CACHE  — then paste the id here.

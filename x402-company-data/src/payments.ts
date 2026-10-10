@@ -12,6 +12,7 @@ import { cdpAuthHeaders } from "./lib/cdp-auth";
 
 export const DEFAULT_NETWORK = "eip155:8453"; // Base mainnet
 export const DEFAULT_FACILITATOR = "https://x402.org/facilitator"; // testnet only
+export const CDP_FACILITATOR = "https://api.cdp.coinbase.com/platform/v2/x402";
 
 function discovery(p: Product) {
   if (p.method === "GET") {
@@ -76,8 +77,8 @@ export function buildRoutes(env: Env): RoutesConfig {
 }
 
 export function buildFacilitator(env: Env): FacilitatorClient {
-  const url = env.FACILITATOR_URL ?? DEFAULT_FACILITATOR;
   const useCdp = !!(env.CDP_API_KEY_ID && env.CDP_API_KEY_SECRET);
+  const url = env.FACILITATOR_URL || (useCdp ? CDP_FACILITATOR : DEFAULT_FACILITATOR);
   return new HTTPFacilitatorClient({
     url,
     ...(useCdp ? { createAuthHeaders: () => cdpAuthHeaders(url, env.CDP_API_KEY_ID!, env.CDP_API_KEY_SECRET!) } : {}),
