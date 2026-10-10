@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "x402-company-data",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  // @x402/hono uses Buffer when settling payments.
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  "vars": {
+    // EVM address that receives USDC. Paid routes answer 503 until this is set.
+    "PAY_TO": "",
+    // Base Sepolia for testing; switch to "eip155:8453" (Base mainnet) for production.
+    "NETWORK": "eip155:84532",
+    // Testnet: https://x402.org/facilitator  |  Mainnet (CDP): https://api.cdp.coinbase.com/platform/v2/x402
+    "FACILITATOR_URL": "https://x402.org/facilitator",
+    "PUBLIC_BASE_URL": "",
+    // "test" uses the public GUS test environment (fake data); "prod" needs REGON_API_KEY.
+    "REGON_ENV": "test",
+    "CEIDG_ENV": "prod"
+  },
+  // Secrets (wrangler secret put …): REGON_API_KEY, CEIDG_API_TOKEN, CDP_API_KEY_ID, CDP_API_KEY_SECRET
+
+  "kv_namespaces": [
+    // Create with: npx wrangler kv namespace create CACHE  — then paste the id here.
+    { "binding": "CACHE", "id": "REPLACE_WITH_KV_NAMESPACE_ID" }
+  ],
+
+  "ratelimits": [
+    // Per-IP abuse guard (checked before payment). Unique namespace_id per account.
+    { "name": "IP_LIMITER", "namespace_id": "40201", "simple": { "limit": 120, "period": 60 } },
+    // Shared guard for upstream registries with hourly quotas (CEIDG).
+    { "name": "UPSTREAM_LIMITER", "namespace_id": "40202", "simple": { "limit": 8, "period": 60 } }
+  ]
+}
