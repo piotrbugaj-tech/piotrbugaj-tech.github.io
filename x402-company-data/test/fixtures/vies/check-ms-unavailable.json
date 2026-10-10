@@ -1,0 +1,11 @@
+{
+  "_note": "RECONSTRUCTED. Transient failure shape: member-state back-end (PL) is down. HTTP 200, isValid=false, userError=MS_UNAVAILABLE. Retry later; never cache as 'invalid'. Other transient userError values handled by itaibo/vies-checker: GLOBAL_MAX_CONCURRENT_REQ, MS_MAX_CONCURRENT_REQ, SERVICE_UNAVAILABLE, TIMEOUT.",
+  "isValid": false,
+  "requestDate": "2026-10-10T08:16:20.250Z",
+  "userError": "MS_UNAVAILABLE",
+  "name": "---",
+  "address": "---",
+  "requestIdentifier": "",
+  "originalVatNumber": "7740001454",
+  "vatNumber": "7740001454"
+}

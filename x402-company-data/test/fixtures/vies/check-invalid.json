@@ -1,0 +1,23 @@
+{
+  "_note": "RECONSTRUCTED. Response of GET https://ec.europa.eu/taxation_customs/vies/rest-api/ms/PL/vat/1234567890 for a well-formed but unregistered/invalid number: HTTP 200, isValid=false, userError=INVALID, name/address '---'. IMPORTANT: userError values MS_UNAVAILABLE / SERVICE_UNAVAILABLE / TIMEOUT / GLOBAL_MAX_CONCURRENT_REQ / MS_MAX_CONCURRENT_REQ also arrive with HTTP 200 and isValid=false - they mean 'unknown', not 'invalid' (see check-ms-unavailable.json). Treat only userError==='INVALID' as a definitive negative.",
+  "isValid": false,
+  "requestDate": "2026-10-10T08:15:41.087Z",
+  "userError": "INVALID",
+  "name": "---",
+  "address": "---",
+  "requestIdentifier": "",
+  "originalVatNumber": "1234567890",
+  "vatNumber": "1234567890",
+  "viesApproximate": {
+    "name": "---",
+    "street": "---",
+    "postalCode": "---",
+    "city": "---",
+    "companyType": "---",
+    "matchName": 3,
+    "matchStreet": 3,
+    "matchPostalCode": 3,
+    "matchCity": 3,
+    "matchCompanyType": 3
+  }
+}

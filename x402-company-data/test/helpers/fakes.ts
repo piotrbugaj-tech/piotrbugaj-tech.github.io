@@ -140,3 +140,27 @@ export function fakeRegon(opts: FakeRegonOptions) {
   }) as typeof fetch;
   return { fetch: fn, calls };
 }
+
+// ---------- KRS Open API ----------
+export function fakeKrs(odpisy: Record<string, { register: "P" | "S"; body: unknown }>, opts: { failWith?: number } = {}) {
+  const calls: string[] = [];
+  const fn = (async (input: string | URL | Request) => {
+    const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
+    calls.push(url.pathname + url.search);
+    if (opts.failWith) return new Response("err", { status: opts.failWith });
+    const krs = url.pathname.split("/").pop()!;
+    const entry = odpisy[krs];
+    if (!entry || entry.register !== url.searchParams.get("rejestr")) return new Response("", { status: 404 });
+    return new Response(JSON.stringify(entry.body), { status: 200, headers: { "content-type": "application/json" } });
+  }) as typeof fetch;
+  return { fetch: fn, calls };
+}
+
+/** Routes upstream calls to the right fake by host. */
+export function upstreams(regon: { fetch: typeof fetch }, krs: { fetch: typeof fetch }) {
+  return (async (input: string | URL | Request, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url.includes("api-krs.ms.gov.pl")) return krs.fetch(input, init);
+    return regon.fetch(input, init);
+  }) as typeof fetch;
+}

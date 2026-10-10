@@ -1,0 +1,20 @@
+{
+  "_note": "RECONSTRUCTED. POST https://ec.europa.eu/taxation_customs/vies/rest-api/check-vat-number with JSON body {\"countryCode\":\"PL\",\"vatNumber\":\"7740001454\",\"requesterMemberStateCode\":\"PL\",\"requesterNumber\":\"<own NIP>\",\"traderName\":\"\",\"traderStreet\":\"\",\"traderPostalCode\":\"\",\"traderCity\":\"\",\"traderCompanyType\":\"\"} (Content-Type: application/json). Response keys per the swagger (CheckVatResponse): countryCode, vatNumber, requestDate, valid, requestIdentifier (consultation number; only when requester* supplied and valid), name, address, trader*/approx match fields. Errors in this variant come as {\"actionSucceed\":false,\"errorWrappers\":[{\"error\":\"INVALID_INPUT\",\"message\":\"...\"}]} (rocketfellows/vies-vat-validation-php-sdk-rest reads errorWrappers[0].error/.message). Test service (POST .../check-vat-test-service): vatNumber 100 = valid, 200 = invalid, 201 INVALID_INPUT, 202 INVALID_REQUESTER_INFO, 300 SERVICE_UNAVAILABLE, 301 MS_UNAVAILABLE, 302 TIMEOUT, 400 VAT_BLOCKED, 401 IP_BLOCKED, 500/501 GLOBAL_MAX_CONCURRENT_REQ(_TIME), 600/601 MS_MAX_CONCURRENT_REQ(_TIME).",
+  "countryCode": "PL",
+  "vatNumber": "7740001454",
+  "requestDate": "2026-10-10T08:17:09.901Z",
+  "valid": true,
+  "requestIdentifier": "WAPIAAAAZ1b9QkJt",
+  "name": "---",
+  "address": "---",
+  "traderName": "---",
+  "traderStreet": "---",
+  "traderPostalCode": "---",
+  "traderCity": "---",
+  "traderCompanyType": "---",
+  "traderNameMatch": "NOT_PROCESSED",
+  "traderStreetMatch": "NOT_PROCESSED",
+  "traderPostalCodeMatch": "NOT_PROCESSED",
+  "traderCityMatch": "NOT_PROCESSED",
+  "traderCompanyTypeMatch": "NOT_PROCESSED"
+}

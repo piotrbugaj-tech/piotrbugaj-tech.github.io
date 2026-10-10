@@ -54,8 +54,19 @@ export function reportFor(basic: Pick<RegonBasic, "type" | "silo">) {
   return null;
 }
 
-/** Field accessor that tolerates the praw_/fiz_ prefixes. */
-const f = (r: RegonRecord, prefix: string, key: string) => clean(r[`${prefix}_${key}`]);
+// GUS field-name casing drifts between reports (e.g. ...ZRegon vs ...zRegon), so
+// look keys up case-insensitively.
+const lowered = new WeakMap<RegonRecord, Map<string, string>>();
+function lc(r: RegonRecord): Map<string, string> {
+  let m = lowered.get(r);
+  if (!m) {
+    m = new Map(Object.entries(r).map(([k, v]) => [k.toLowerCase(), v]));
+    lowered.set(r, m);
+  }
+  return m;
+}
+/** Field accessor for praw_/fiz_ prefixed report fields. */
+const f = (r: RegonRecord, prefix: string, key: string) => clean(lc(r).get(`${prefix}_${key}`.toLowerCase()));
 
 export interface RegonDetails {
   name: string | null;
@@ -121,7 +132,7 @@ export function detailsFromReport(main: RegonRecord, general?: RegonRecord): Reg
     suspendedAt: isoDate(f(main, p, "dataZawieszeniaDzialalnosci")),
     resumedAt: isoDate(f(main, p, "dataWznowieniaDzialalnosci")),
     endedAt: isoDate(f(main, p, "dataZakonczeniaDzialalnosci")),
-    removedAt: isoDate(f(main, p, "dataSkresleniaZRegon") ?? f(main, p, "dataSkresleniaDzialalnosciZRegon")),
+    removedAt: isoDate(f(main, p, "dataSkresleniaZRegon") ?? f(main, p, "dataSkresleniaDzialalnosciZRegon") ?? f(main, p, "dataSkresleniaPodmiotuZRegon")),
     bankruptcyAt: isoDate(f(main, p, "dataOrzeczeniaOUpadlosci")),
     address: addressFromReport(main, p),
     // Contact details of natural persons are personal data: we do not expose them.

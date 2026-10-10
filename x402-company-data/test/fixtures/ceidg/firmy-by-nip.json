@@ -1,0 +1,43 @@
+{
+  "_note": "RECONSTRUCTED. Response of GET https://dane.biznes.gov.pl/api/ceidg/v3/firmy?nip=1234563218 (Authorization: Bearer <JWT>). Shape follows the CEIDG data-warehouse OpenAPI (FirmyResponse = count + firmy[] + links + properties; list items are the 'short' view of FirmaCeidg: id, nazwa, adresDzialalnosci, wlasciciel{imie,nazwisko,nip,regon}, dataRozpoczecia, status, link) as published for v2 (krj29b/CEIDGv2-OpenAPI) and confirmed for v3 by clients (tadek24/firmy-crm: /firmy returns firmy[] + count + links.next, 25 per page; OGGEE61/CEIDG_sawmills). Values are SYNTHETIC (NIP 1234563218 / REGON 123456785 are checksum-valid dummies). Exact v3 field set of the short view is not verified - read defensively. Dates are ISO yyyy-MM-dd.",
+  "firmy": [
+    {
+      "id": "0e8b8c1a-4a6f-4d0a-9d52-5b3f6a9c1e77",
+      "nazwa": "JAN TESTOWY USŁUGI TRANSPORTOWE",
+      "adresDzialalnosci": {
+        "ulica": "Test-Wilcza",
+        "budynek": "12",
+        "lokal": "3",
+        "miasto": "Kraśnik",
+        "wojewodztwo": "lubelskie",
+        "powiat": "kraśnicki",
+        "gmina": "Kraśnik",
+        "kraj": "PL",
+        "kod": "23-200",
+        "terc": "0607011",
+        "simc": "0933620",
+        "ulic": "24261"
+      },
+      "wlasciciel": {
+        "imie": "JAN",
+        "nazwisko": "TESTOWY",
+        "nip": "1234563218",
+        "regon": "123456785"
+      },
+      "dataRozpoczecia": "2015-03-12",
+      "status": "AKTYWNY",
+      "link": "https://dane.biznes.gov.pl/api/ceidg/v3/firma/0e8b8c1a-4a6f-4d0a-9d52-5b3f6a9c1e77"
+    }
+  ],
+  "count": 1,
+  "links": {
+    "first": "https://dane.biznes.gov.pl/api/ceidg/v3/firmy?nip=1234563218&page=0&limit=25",
+    "last": "https://dane.biznes.gov.pl/api/ceidg/v3/firmy?nip=1234563218&page=0&limit=25",
+    "self": "https://dane.biznes.gov.pl/api/ceidg/v3/firmy?nip=1234563218&page=0&limit=25"
+  },
+  "properties": {
+    "title": "Dane firm z CEIDG",
+    "provider": "Centralna Ewidencja i Informacja o Działalności Gospodarczej",
+    "dateModified": "2026-10-10T06:00:00Z"
+  }
+}

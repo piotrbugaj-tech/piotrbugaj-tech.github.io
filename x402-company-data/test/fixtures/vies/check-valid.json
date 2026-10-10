@@ -1,0 +1,23 @@
+{
+  "_note": "RECONSTRUCTED. Response of GET https://ec.europa.eu/taxation_customs/vies/rest-api/ms/PL/vat/7740001454 (no auth). Field names (isValid, requestDate, userError, name, address, requestIdentifier, originalVatNumber, vatNumber, viesApproximate{...}) follow the VIES REST swagger (swagger_publicVAT.yaml) as used by itaibo/vies-checker and TransactionLink docs. Poland does not disclose trader data: name/address are the literal string '---' for valid PL numbers (same as DE in rocketfellows README: 'VAT holder name: ---'). requestIdentifier is empty unless requester member state + number are supplied (POST variant). matchXxx codes: 1 = valid, 2 = invalid, 3 = not processed. Date is ISO-8601 UTC with milliseconds.",
+  "isValid": true,
+  "requestDate": "2026-10-10T08:15:03.412Z",
+  "userError": "VALID",
+  "name": "---",
+  "address": "---",
+  "requestIdentifier": "",
+  "originalVatNumber": "7740001454",
+  "vatNumber": "7740001454",
+  "viesApproximate": {
+    "name": "---",
+    "street": "---",
+    "postalCode": "---",
+    "city": "---",
+    "companyType": "---",
+    "matchName": 3,
+    "matchStreet": 3,
+    "matchPostalCode": 3,
+    "matchCity": 3,
+    "matchCompanyType": 3
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "_note": "RECONSTRUCTED / PARTLY UNVERIFIED. For a syntactically valid NIP that is not on the VAT register the MF API answers HTTP 200 with result.subject = null (still carrying requestId + requestDateTime) - this is how the official spec describes the empty result (search/nip -> Entity may be null); clients (M8T-Jacob/polish-registry) model it as found=false/statusVat=null ('Niezarejestrowany' is the statusVat string used when the subject exists but is not a VAT payer). Errors (bad NIP checksum/format, quota exceeded, malformed request) are NOT this shape: they return HTTP 400 with an error object {code, message} (the C# EntityResponse model nests it as 'exception'), e.g. WL-115 'Nieprawidlowy NIP', WL-112 'Pole NIP nie moze byc puste', WL-111 invalid bank account, WL-190 'Niepoprawne zadanie', WL-191 daily IP limit exhausted, WL-100 unexpected server error - see docs/research/02-api-zrodel.md. Handle both {code,message} at top level and {exception:{code,message}}.",
+  "result": {
+    "subject": null,
+    "requestId": "d4k7p-w3n8r5t",
+    "requestDateTime": "10-10-2026 10:15:44"
+  }
+}

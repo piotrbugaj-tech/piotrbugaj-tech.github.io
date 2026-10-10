@@ -104,7 +104,8 @@ export interface CompanyProfile {
   schemaVersion: typeof SCHEMA_VERSION;
   country: "PL";
   identifiers: Identifiers;
-  name: string;
+  /** Official name; null when withheld for a natural person (see personalDataRedacted). */
+  name: string | null;
   legalForm: {
     normalized: LegalForm;
     /** Original label from the register, e.g. "SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ". */

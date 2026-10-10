@@ -10,6 +10,9 @@ import { landingHtml } from "./discovery/landing";
 import { PRODUCTS, SERVICE_NAME } from "./products";
 import { RegonClient, REGON_TEST_KEY } from "./sources/regon/client";
 import { RegonService } from "./services/regon";
+import { KrsService } from "./services/krs";
+import { KrsClient } from "./sources/krs/client";
+import { buildProfile } from "./services/profile";
 import { UpstreamError } from "./sources/errors";
 import { toVerifyResult } from "./views/verify";
 import { mapLimit } from "./lib/pool";
@@ -28,6 +31,7 @@ export type AppEnv = { Bindings: Env; Variables: Vars };
 
 interface Services {
   regon: RegonService;
+  krs: KrsService;
 }
 
 export function createApp(deps: Deps = {}) {
@@ -46,7 +50,8 @@ export function createApp(deps: Deps = {}) {
         url: env.REGON_URL || undefined,
         fetch: deps.fetch,
       });
-      services = { regon: new RegonService(regon, env.CACHE) };
+      const krs = new KrsClient({ fetch: deps.fetch, baseUrl: env.KRS_URL || undefined });
+      services = { regon: new RegonService(regon, env.CACHE), krs: new KrsService(krs, env.CACHE) };
     }
     return services;
   };
@@ -150,6 +155,21 @@ export function createApp(deps: Deps = {}) {
     try {
       const r = await svc(c.env).regon.core(id);
       return c.json(toVerifyResult(id, r, policy(c), nameParam(c)));
+    } catch (err) {
+      return upstreamFailure(c, err);
+    }
+  });
+
+  app.get("/pl/company", rateLimit, requireId, optOut, payment, async (c) => {
+    const id = c.get("id");
+    const include = new Set((c.req.query("include") ?? "").split(",").map((s) => s.trim()));
+    try {
+      const r = await buildProfile(svc(c.env), { id, includeRepresentation: include.has("representation"), policy: policy(c) });
+      if (!r.found) {
+        // 404 cancels settlement: a profile miss is free (use /verify for paid existence checks).
+        return c.json({ error: "not_found", message: `No entity with ${id.kind.toUpperCase()} ${id.value} in REGON/KRS. You were not charged.` }, 404);
+      }
+      return c.json(r.profile);
     } catch (err) {
       return upstreamFailure(c, err);
     }

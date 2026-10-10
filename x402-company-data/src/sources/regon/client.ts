@@ -61,7 +61,10 @@ export function extractResult(body: string, operation: string): string | null {
   const re = new RegExp(`<(?:[\\w-]+:)?${operation}Result(?:\\s[^>]*)?(?:/>|>([\\s\\S]*?)</(?:[\\w-]+:)?${operation}Result>)`);
   const m = re.exec(body);
   if (!m) return null;
-  return decodeXmlEntities(m[1] ?? "").trim();
+  const raw = (m[1] ?? "").trim();
+  // Some GUS responses wrap the payload in CDATA instead of entity-escaping it.
+  const cdata = /^<!\[CDATA\[([\s\S]*)\]\]>$/.exec(raw);
+  return cdata ? cdata[1].trim() : decodeXmlEntities(raw).trim();
 }
 
 /** Parses the inner <root><dane>…</dane></root> document into flat records. */
@@ -169,7 +172,8 @@ export class RegonClient {
         const rows = parseDane(inner);
         const err = rows[0]?.ErrorCode;
         if (err === undefined || err === "") return rows;
-        if (err === "4") throw new RegonNotFound(rows[0].ErrorMessagePl || "not found");
+        // 4 = no data; 11 = PKD not kept for entities struck off before 2014-11-08.
+        if (err === "4" || err === "11") throw new RegonNotFound(rows[0].ErrorMessagePl || "not found");
         if (err === "7" && attempt === 0) {
           this.sid = null;
           continue;
@@ -179,7 +183,7 @@ export class RegonClient {
       // Empty result: ask the service why.
       const code = await this.getValue("KomunikatKod");
       if (code === "4") throw new RegonNotFound("not found");
-      if (code === "7" && attempt === 0) {
+      if ((code === "7" || !code) && attempt === 0) {
         this.sid = null;
         continue;
       }

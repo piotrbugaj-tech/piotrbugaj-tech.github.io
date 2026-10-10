@@ -1,0 +1,29 @@
+{
+  "_note": "RECONSTRUCTED from the MF 'Rejestr Podatnikow VAT' API spec v1.3.0 field list (field names verified via m4rcelpl/WykazPodatnikow DataMember attributes: name, nip, statusVat, regon, pesel, krs, residenceAddress, workingAddress, representatives[], authorizedClerks[], partners[], registrationLegalDate, registrationDenialDate, registrationDenialBasis, restorationDate, restorationBasis, removalDate, removalBasis, accountNumbers[], hasVirtualAccounts; person items: companyName, firstName, lastName, pesel, nip). Request: GET https://wl-api.mf.gov.pl/api/search/nip/7740001454?date=2026-10-10. Identifiers for ORLEN S.A. (NIP 7740001454, REGON 610188201, KRS 0000028860, statusVat Czynny) are real (cf. pwasniowski/mcp-wl-vat fixtures); address, dates, requestId and the bank account number (NBP documentation example NRB) are ILLUSTRATIVE. requestDateTime format is dd-MM-yyyy HH:mm:ss. Absent/empty optional fields come back as null or [] (EmitDefaultValue=false in the C# model means some are omitted entirely).",
+  "result": {
+    "subject": {
+      "name": "ORLEN SPÓŁKA AKCYJNA",
+      "nip": "7740001454",
+      "statusVat": "Czynny",
+      "regon": "610188201",
+      "pesel": null,
+      "krs": "0000028860",
+      "residenceAddress": null,
+      "workingAddress": "CHEMIKÓW 7, 09-411 PŁOCK",
+      "representatives": [],
+      "authorizedClerks": [],
+      "partners": [],
+      "registrationLegalDate": "1999-01-01",
+      "registrationDenialDate": null,
+      "registrationDenialBasis": null,
+      "restorationDate": null,
+      "restorationBasis": null,
+      "removalDate": null,
+      "removalBasis": null,
+      "accountNumbers": ["49102010260000042270201390"],
+      "hasVirtualAccounts": false
+    },
+    "requestId": "d4k7p-m9x2q8z",
+    "requestDateTime": "10-10-2026 10:15:02"
+  }
+}

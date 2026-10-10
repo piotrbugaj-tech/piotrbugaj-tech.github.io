@@ -1,0 +1,58 @@
+{
+  "_note": "RECONSTRUCTED. Response of GET https://dane.biznes.gov.pl/api/ceidg/v3/firma?nip=1234563218 (also /firma?ids=<id>&ids=<id>... up to 25 ids per call, /firma?regon=..., /firma/{id}). Top-level key is 'firma' (ARRAY, even for a single hit; wrap if a lone object comes back - OGGEE61 does). Field names follow FirmaCeidg from the CEIDG OpenAPI (krj29b/CEIDGv2-OpenAPI openAPIv2.yml) adjusted for v3 evidence: pkdGlowny is an OBJECT {kod, nazwa} in v3 (OGGEE61/CEIDG_sawmills, tadek24/firmy-crm normalizeCeidg reads pkdGlowny.kod/.nazwa; v2 had a plain string). pkd[] element shape in v3 is NOT verified (assumed {kod,nazwa} like pkdGlowny; v2 = string). Values SYNTHETIC. status enum: AKTYWNY, WYKRESLONY, ZAWIESZONY, OCZEKUJE_NA_ROZPOCZECIE_DZIALANOSCI, WYLACZNIE_W_FORMIE_SPOLKI. Optional blocks (spolki, ograniczenia, upadlosci, uprawnienia, zakazy, zarzadcaSukcesyjny, kwalifikacjeZawodowe...) are omitted when empty.",
+  "firma": [
+    {
+      "id": "0e8b8c1a-4a6f-4d0a-9d52-5b3f6a9c1e77",
+      "nazwa": "JAN TESTOWY USŁUGI TRANSPORTOWE",
+      "link": "https://dane.biznes.gov.pl/api/ceidg/v3/firma/0e8b8c1a-4a6f-4d0a-9d52-5b3f6a9c1e77",
+      "status": "AKTYWNY",
+      "wlasciciel": {
+        "imie": "JAN",
+        "nazwisko": "TESTOWY",
+        "nip": "1234563218",
+        "regon": "123456785"
+      },
+      "adresDzialalnosci": {
+        "ulica": "Test-Wilcza",
+        "budynek": "12",
+        "lokal": "3",
+        "miasto": "Kraśnik",
+        "wojewodztwo": "lubelskie",
+        "powiat": "kraśnicki",
+        "gmina": "Kraśnik",
+        "kraj": "PL",
+        "kod": "23-200",
+        "terc": "0607011",
+        "simc": "0933620",
+        "ulic": "24261"
+      },
+      "adresKorespondencyjny": {
+        "ulica": "Test-Wilcza",
+        "budynek": "12",
+        "lokal": "3",
+        "miasto": "Kraśnik",
+        "kraj": "PL",
+        "kod": "23-200"
+      },
+      "dataRozpoczecia": "2015-03-12",
+      "dataZawieszenia": "2019-01-07",
+      "dataWznowienia": "2019-07-01",
+      "pkdGlowny": { "kod": "4941Z", "nazwa": "TRANSPORT DROGOWY TOWARÓW" },
+      "pkd": [
+        { "kod": "4941Z", "nazwa": "TRANSPORT DROGOWY TOWARÓW" },
+        { "kod": "5229C", "nazwa": "POZOSTAŁA DZIAŁALNOŚĆ WSPOMAGAJĄCA TRANSPORT LĄDOWY" }
+      ],
+      "obywatelstwa": [{ "kraj": "POLSKA", "symbol": "PL" }],
+      "email": "kontakt@example.test",
+      "telefon": "+48 600 000 000",
+      "www": "https://example.test",
+      "wspolnoscMajatkowa": 0,
+      "spolki": [{ "nip": "1234563218", "regon": "123456785" }]
+    }
+  ],
+  "properties": {
+    "title": "Dane firmy z CEIDG",
+    "provider": "Centralna Ewidencja i Informacja o Działalności Gospodarczej",
+    "dateModified": "2026-10-10T06:00:00Z"
+  }
+}
