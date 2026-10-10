@@ -156,11 +156,24 @@ export function fakeKrs(odpisy: Record<string, { register: "P" | "S"; body: unkn
   return { fetch: fn, calls };
 }
 
-/** Routes upstream calls to the right fake by host. */
-export function upstreams(regon: { fetch: typeof fetch }, krs: { fetch: typeof fetch }) {
+/** Routes upstream calls to the right fake by host; `extra` maps a host substring to a fake. */
+export function upstreams(regon: { fetch: typeof fetch }, krs: { fetch: typeof fetch }, extra: Record<string, typeof fetch> = {}) {
   return (async (input: string | URL | Request, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    for (const [host, fn] of Object.entries(extra)) if (url.includes(host)) return fn(input, init);
     if (url.includes("api-krs.ms.gov.pl")) return krs.fetch(input, init);
     return regon.fetch(input, init);
   }) as typeof fetch;
+}
+
+/** JSON fake: `handler` gets the URL and returns [status, body]; calls are recorded. */
+export function fakeJson(handler: (url: URL) => [number, unknown]) {
+  const calls: string[] = [];
+  const fn = (async (input: string | URL | Request) => {
+    const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
+    calls.push(url.pathname + url.search);
+    const [status, body] = handler(url);
+    return new Response(status === 204 ? null : JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+  }) as typeof fetch;
+  return { fetch: fn, calls };
 }

@@ -94,6 +94,20 @@ export interface Representation {
   members: Array<{ name: string; role: string | null }>;
 }
 
+/** VAT registration (returned with include=vat). */
+export interface VatInfo {
+  /** Polish VAT register (MF "Biała Lista") for today: active | exempt | not_registered; null if unknown/unavailable. */
+  status: "active" | "exempt" | "not_registered" | null;
+  /** EU VAT (VIES) validity; null when VIES / the national system was unavailable. */
+  euVatValid: boolean | null;
+  /** Number of settlement bank accounts published in the white list (accounts themselves are not returned). */
+  bankAccountsCount: number | null;
+  hasVirtualAccounts: boolean | null;
+  /** MF request id — evidence of the white-list query performed by this service. */
+  whiteListRequestId: string | null;
+  checkedAt: string;
+}
+
 /** Result of comparing a caller-supplied name (?name=) with the registered name. */
 export interface NameMatch {
   score: number;
@@ -129,6 +143,8 @@ export interface CompanyProfile {
   capital: { amount: number; currency: string } | null;
   /** Management board / representation (KRS only; returned when include=representation). */
   representation: Representation | null;
+  /** VAT status (returned when include=vat). */
+  vat: VatInfo | null;
   registries: {
     regon: { type: string | null; silo: string | null } | null;
     krs: { register: "P" | "S"; registeredAt: string | null; lastEntryAt: string | null } | null;

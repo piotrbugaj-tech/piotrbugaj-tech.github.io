@@ -21,7 +21,7 @@ describe("discovery documents", () => {
   it("serves /.well-known/x402, llms.txt, the icon and an HTML landing page", async () => {
     expect(await (await get("/.well-known/x402")).json()).toEqual({
       version: 1,
-      resources: ["https://api.example.test/pl/company/verify", "https://api.example.test/pl/company", "https://api.example.test/pl/company/search", "https://api.example.test/pl/company/verify/batch"],
+      resources: ["https://api.example.test/pl/company/verify", "https://api.example.test/pl/company", "https://api.example.test/pl/company/search", "https://api.example.test/pl/vat/account-check", "https://api.example.test/pl/company/verify/batch"],
     });
     expect(await (await get("/llms.txt")).text()).toContain("/pl/company/verify");
     expect((await get("/icon.svg")).headers.get("content-type")).toBe("image/svg+xml");

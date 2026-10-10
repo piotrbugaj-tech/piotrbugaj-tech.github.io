@@ -3,7 +3,7 @@
 // openapi.json, llms.txt and /.well-known/x402.
 
 export const SERVICE_NAME = "PL Company Data";
-export const SERVICE_TAGS = ["kyb", "company-data", "poland", "business-registry", "vat"];
+export const SERVICE_TAGS = ["kyb", "company-data", "poland", "vat", "registry"];
 
 export interface Product {
   id: string;
@@ -112,7 +112,11 @@ export const PRODUCTS: Product[] = [
       "Use when you need the full picture of a Polish company (KYB, due diligence, CRM enrichment). One normalised JSON merged from official registers (GUS REGON + KRS court register): name, legal form, status, address, PKD activity codes, dates, share capital, website; board roles and signing rules with include=representation. Not found = free 404.",
     queryParams: {
       ...ID_PARAMS,
-      include: { type: "string", description: "Comma-separated extras. Supported: representation (KRS management board).", enum: ["representation"] },
+      include: {
+        type: "string",
+        description: "Comma-separated extras: representation (KRS board roles + signing rules), vat (Polish VAT status from the MF white list + EU VAT validity from VIES).",
+        example: "vat",
+      },
     },
     outputExample: PROFILE_EXAMPLE,
   },
@@ -135,6 +139,28 @@ export const PRODUCTS: Product[] = [
         { name: "ORLEN SPÓŁKA AKCYJNA", identifiers: { nip: "7740001454", regon: "610188201", krs: "0000028860" }, legalForm: "joint_stock_company", status: "active", city: "Płock", source: "KRS" },
       ],
       sources: [SOURCE_EXAMPLE],
+    },
+  },
+  {
+    id: "account-check",
+    method: "GET",
+    path: "/pl/vat/account-check",
+    price: "$0.01",
+    summary: "Is this bank account on the Polish VAT white list for this NIP?",
+    description:
+      "Use when an agent is about to pay a Polish invoice by bank transfer and must confirm the account belongs to the payee on the Ministry of Finance VAT white list (Biała Lista) today. Returns assigned true/false plus the MF request id. Invalid NIP/account checksums get a free 400.",
+    queryParams: {
+      nip: { type: "string", description: "Payee NIP (10 digits).", required: true, example: "7740001454" },
+      account: { type: "string", description: "Polish bank account: 26-digit NRB or PL IBAN; spaces allowed.", required: true, example: "PL61109010140000071219812874" },
+    },
+    outputExample: {
+      schemaVersion: "1.0",
+      query: { nip: "7740001454", account: "PL61 **** 2874" },
+      assigned: true,
+      date: "2026-10-10",
+      whiteListRequestId: "abc12-xyz34",
+      whiteListRequestDateTime: "10-10-2026 11:58:05",
+      sources: [{ source: "MF_WL", name: "Wykaz podatników VAT (Biała Lista) — API", publisher: "Ministerstwo Finansów / Szef KAS", url: "https://wl-api.mf.gov.pl", retrievedAt: "2026-10-10T09:58:05.000Z", cached: false }],
     },
   },
   {

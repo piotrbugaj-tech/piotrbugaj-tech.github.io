@@ -2,7 +2,7 @@ import { Hono, type Context, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 import type { FacilitatorClient } from "@x402/core/server";
 import type { Env } from "./env";
-import { parseIdFromQuery, type ParsedId } from "./lib/ids";
+import { normalizeNip, parseIdFromQuery, type ParsedId } from "./lib/ids";
 import { parseBatch, type ParsedBatch } from "./lib/batch";
 import { CDP_FACILITATOR, createPaymentMiddleware, DEFAULT_FACILITATOR, DEFAULT_NETWORK } from "./payments";
 import { ICON_SVG, llmsTxt, openApiDocument, SERVICE_DESCRIPTION, wellKnownX402, type DiscoveryContext } from "./discovery/openapi";
@@ -15,6 +15,15 @@ import { nameTokens } from "./lib/namematch";
 import { KrsService } from "./services/krs";
 import { KrsClient } from "./sources/krs/client";
 import { buildProfile } from "./services/profile";
+import { CeidgService } from "./services/ceidg";
+import { CeidgClient } from "./sources/ceidg/client";
+import { warsawDate, WhitelistService } from "./services/whitelist";
+import { WhitelistClient, WhitelistInputError } from "./sources/whitelist/client";
+import { ViesService } from "./services/vies";
+import { ViesClient } from "./sources/vies/client";
+import { normalizeNrb } from "./lib/nrb";
+import { attribution } from "./sources/attribution";
+import { SCHEMA_VERSION } from "./schema/company";
 import { UpstreamError } from "./sources/errors";
 import { regonStatus, toVerifyResult } from "./views/verify";
 import { mapLimit } from "./lib/pool";
@@ -31,13 +40,16 @@ export interface Deps {
   facilitator?: FacilitatorClient;
 }
 
-type Vars = { id: ParsedId; batch: ParsedBatch };
+type Vars = { id: ParsedId; batch: ParsedBatch; account: string };
 export type AppEnv = { Bindings: Env; Variables: Vars };
 
 interface Services {
   regon: RegonService;
   krs: KrsService;
   index: SearchIndex;
+  ceidg?: CeidgService;
+  whitelist: WhitelistService;
+  vies: ViesService;
 }
 
 export function createApp(deps: Deps = {}) {
@@ -57,7 +69,20 @@ export function createApp(deps: Deps = {}) {
         fetch: deps.fetch,
       });
       const krs = new KrsClient({ fetch: deps.fetch, baseUrl: env.KRS_URL || undefined });
-      services = { regon: new RegonService(regon, env.CACHE), krs: new KrsService(krs, env.CACHE), index: new SearchIndex(env.INDEX_DB) };
+      const ceidg = env.CEIDG_API_TOKEN
+        ? new CeidgService(
+            new CeidgClient({ token: env.CEIDG_API_TOKEN, env: env.CEIDG_ENV === "test" ? "test" : "prod", fetch: deps.fetch, limiter: env.UPSTREAM_LIMITER }),
+            env.CACHE,
+          )
+        : undefined;
+      services = {
+        regon: new RegonService(regon, env.CACHE),
+        krs: new KrsService(krs, env.CACHE),
+        index: new SearchIndex(env.INDEX_DB),
+        ceidg,
+        whitelist: new WhitelistService(new WhitelistClient({ fetch: deps.fetch }), env.CACHE),
+        vies: new ViesService(new ViesClient({ fetch: deps.fetch }), env.CACHE),
+      };
     }
     return services;
   };
@@ -234,7 +259,12 @@ export function createApp(deps: Deps = {}) {
     const id = c.get("id");
     const include = new Set((c.req.query("include") ?? "").split(",").map((s) => s.trim()));
     try {
-      const r = await buildProfile(svc(c.env), { id, includeRepresentation: include.has("representation"), policy: policy(c) });
+      const r = await buildProfile(svc(c.env), {
+        id,
+        includeRepresentation: include.has("representation"),
+        includeVat: include.has("vat"),
+        policy: policy(c),
+      });
       if (!r.found) {
         // 404 cancels settlement: a profile miss is free (use /verify for paid existence checks).
         return c.json({ error: "not_found", message: `No entity with ${id.kind.toUpperCase()} ${id.value} in REGON/KRS. You were not charged.` }, 404);
@@ -283,6 +313,44 @@ export function createApp(deps: Deps = {}) {
       coverage: SEARCH_COVERAGE,
       notice: policy(c).notice,
     });
+  });
+
+  // Validation before payment (NIP + NRB checksums); a bare unpaid probe gets the 402.
+  const requireAccountCheck: MiddlewareHandler<AppEnv> = async (c, next) => {
+    const nip = c.req.query("nip");
+    const account = c.req.query("account");
+    if (!isPaying(c) && !nip && !account) return next();
+    const n = nip ? normalizeNip(nip) : null;
+    const a = account ? normalizeNrb(account) : null;
+    if (!n || !a) {
+      return c.json({ error: "invalid_request", message: "Provide a valid nip (10 digits, checksum) and account (Polish NRB/IBAN, 26 digits, checksum)." }, 400);
+    }
+    c.set("id", { kind: "nip", value: n });
+    c.set("account", a);
+    await next();
+  };
+
+  app.get("/pl/vat/account-check", rateLimit, requireAccountCheck, optOut, payment, async (c) => {
+    const nip = c.get("id").value;
+    const account = c.get("account");
+    try {
+      const r = await svc(c.env).whitelist.checkAccount(nip, account);
+      return c.json({
+        schemaVersion: SCHEMA_VERSION,
+        query: { nip, account: `PL${account.slice(0, 2)} **** ${account.slice(-4)}` },
+        assigned: r.value.assigned,
+        date: warsawDate(r.fetchedAt),
+        whiteListRequestId: r.value.requestId,
+        whiteListRequestDateTime: r.value.requestDateTime,
+        sources: [attribution("MF_WL", r.fetchedAt, r.cached)],
+        notice:
+          policy(c).notice +
+          " The white-list query was performed by this service, not by you; for the Polish tax safe harbour keep your own verification record.",
+      });
+    } catch (err) {
+      if (err instanceof WhitelistInputError) return c.json({ error: "invalid_request", message: err.message }, 400);
+      return upstreamFailure(c, err);
+    }
   });
 
   app.post("/pl/company/verify/batch", rateLimit, requireBatch, payment, async (c) => {

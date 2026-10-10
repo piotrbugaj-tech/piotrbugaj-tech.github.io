@@ -6,12 +6,16 @@
 import type { Cached } from "../lib/cache";
 import type { ParsedId } from "../lib/ids";
 import type { Policy } from "../policy";
-import { SCHEMA_VERSION, type Address, type CompanyProfile, type EntityStatus, type SourceAttribution } from "../schema/company";
+import { SCHEMA_VERSION, type Address, type CompanyProfile, type EntityStatus, type SourceAttribution, type VatInfo } from "../schema/company";
 import { attribution } from "../sources/attribution";
 import { UpstreamError } from "../sources/errors";
 import type { KrsDetails } from "../sources/krs/normalize";
 import { regonStatus } from "../views/verify";
 import type { KrsService } from "./krs";
+import type { CeidgService } from "./ceidg";
+import type { WhitelistService } from "./whitelist";
+import type { ViesService } from "./vies";
+import type { CeidgDetails } from "../sources/ceidg/normalize";
 import type { RegonCore, RegonService } from "./regon";
 
 const SEVERITY: EntityStatus[] = ["unknown", "active", "not_started", "suspended", "in_liquidation", "in_bankruptcy", "removed"];
@@ -21,11 +25,16 @@ export const mostSevere = (...s: Array<EntityStatus | null | undefined>): Entity
 export interface ProfileDeps {
   regon: RegonService;
   krs: KrsService;
+  /** Present only when a CEIDG token is configured. */
+  ceidg?: CeidgService;
+  whitelist?: WhitelistService;
+  vies?: ViesService;
 }
 
 export interface ProfileRequest {
   id: ParsedId;
   includeRepresentation: boolean;
+  includeVat?: boolean;
   policy: Policy;
 }
 
@@ -70,7 +79,20 @@ export async function buildProfile(deps: ProfileDeps, req: ProfileRequest, now =
     if (krs) sources.push(attribution("KRS", krsR.value.fetchedAt, krsR.value.cached));
   } else if (krsR) warnings.push("KRS temporarily unavailable; capital, representation and court-register status may be missing.");
 
-  if (!core && !krs) {
+  // CEIDG (sole traders): authoritative status for natural persons, and a fallback when REGON is down.
+  let ceidg: CeidgDetails | null = null;
+  const ceidgEligible = deps.ceidg && id.kind !== "krs" && !krs && (!core || core.basic?.type === "F");
+  if (ceidgEligible) {
+    const nip = core?.basic?.nip ?? (id.kind === "nip" ? id.value : null);
+    const regonNo = core?.basic?.regon ?? (id.kind === "regon" ? id.value : null);
+    const ceidgR = await settle(nip ? deps.ceidg!.byNip(nip) : deps.ceidg!.byRegon(regonNo!));
+    if (ceidgR.ok && ceidgR.value.value) {
+      ceidg = ceidgR.value.value;
+      sources.push(attribution("CEIDG", ceidgR.value.fetchedAt, ceidgR.value.cached));
+    } else if (!ceidgR.ok) warnings.push("CEIDG temporarily unavailable.");
+  }
+
+  if (!core && !krs && !ceidg) {
     // Nothing usable: an outage is a 503 (not charged), a clean miss is "not found".
     const failure = !regonR.ok ? regonR.error : krsR && !krsR.ok ? krsR.error : null;
     if (failure) throw failure instanceof UpstreamError ? failure : new UpstreamError("REGON", String(failure));
@@ -79,27 +101,53 @@ export async function buildProfile(deps: ProfileDeps, req: ProfileRequest, now =
 
   const basic = core?.basic ?? null;
   const details = core?.details ?? null;
-  const natural = basic?.type === "F";
+  const natural = basic?.type === "F" || (!basic && !!ceidg);
   const redact = natural && policy.naturalPersons === "minimal";
 
-  // PKD: REGON report (has descriptions for everyone), KRS as fallback.
-  let pkd = krs?.pkd ?? [];
+  // PKD: REGON report (has descriptions for everyone), KRS / CEIDG as fallback.
+  let pkd = krs?.pkd ?? ceidg?.pkd ?? [];
   if (basic) {
     const pkdR = await settle(deps.regon.pkd(basic.regon, basic.type));
     if (pkdR.ok && pkdR.value.value.length) pkd = pkdR.value.value;
     else if (!pkdR.ok) warnings.push("REGON PKD report unavailable.");
   }
 
-  const status = mostSevere(core ? regonStatus(core) : null, krs?.status);
-  const address = details?.address ?? basic?.address ?? krs?.address ?? null;
-  const name = krs?.name ?? details?.name ?? basic?.name ?? null;
+  // CEIDG is the register of record for sole traders (REGON is fed from it and may lag).
+  const status = ceidg ? ceidg.status : mostSevere(core ? regonStatus(core) : null, krs?.status);
+  const address = ceidg?.address ?? details?.address ?? basic?.address ?? krs?.address ?? null;
+  const name = krs?.name ?? ceidg?.name ?? details?.name ?? basic?.name ?? null;
+  const nipOut = basic?.nip ?? details?.nip ?? krs?.nip ?? ceidg?.nip ?? (id.kind === "nip" ? id.value : null);
+
+  let vat: VatInfo | null = null;
+  if (req.includeVat) {
+    if (!nipOut) warnings.push("VAT status needs a NIP; none is known for this entity.");
+    else {
+      const [wl, vies] = await Promise.all([
+        deps.whitelist ? settle(deps.whitelist.vatStatus(nipOut)) : null,
+        deps.vies ? settle(deps.vies.check("PL", nipOut)) : null,
+      ]);
+      if (wl?.ok) sources.push(attribution("MF_WL", wl.value.fetchedAt, wl.value.cached));
+      else warnings.push("VAT white list (MF) unavailable right now.");
+      if (vies?.ok) sources.push(attribution("VIES", vies.value.fetchedAt, vies.value.cached));
+      if (!vies?.ok || vies.value.value.valid === null) warnings.push("VIES unavailable right now; euVatValid is null.");
+      const wlv = wl?.ok ? wl.value.value : null;
+      vat = {
+        status: wlv?.vatStatus ?? null,
+        euVatValid: vies?.ok ? vies.value.value.valid : null,
+        bankAccountsCount: wlv ? wlv.accountsCount : null,
+        hasVirtualAccounts: wlv?.hasVirtualAccounts ?? null,
+        whiteListRequestId: wlv?.requestId ?? null,
+        checkedAt: now.toISOString(),
+      };
+    }
+  }
 
   const profile: CompanyProfile = {
     schemaVersion: SCHEMA_VERSION,
     country: "PL",
     identifiers: {
-      nip: basic?.nip ?? details?.nip ?? krs?.nip ?? (id.kind === "nip" ? id.value : null),
-      regon: basic?.regon ?? krs?.regon ?? null,
+      nip: nipOut,
+      regon: basic?.regon ?? krs?.regon ?? ceidg?.regon ?? null,
       krs: krs?.krs ?? krsNumber,
     },
     name: redact ? null : name,
@@ -112,13 +160,13 @@ export async function buildProfile(deps: ProfileDeps, req: ProfileRequest, now =
     status: {
       code: status,
       active: status === "active",
-      suspendedSince: status === "suspended" ? (details?.suspendedAt ?? null) : null,
-      resumedAt: details?.resumedAt ?? null,
-      endedAt: krs?.removedAt ?? details?.endedAt ?? details?.removedAt ?? basic?.endedAt ?? null,
+      suspendedSince: status === "suspended" ? (ceidg?.suspendedAt ?? details?.suspendedAt ?? null) : null,
+      resumedAt: ceidg?.resumedAt ?? details?.resumedAt ?? null,
+      endedAt: krs?.removedAt ?? ceidg?.endedAt ?? ceidg?.removedAt ?? details?.endedAt ?? details?.removedAt ?? basic?.endedAt ?? null,
     },
     dates: {
       registered: krs?.registeredAt ?? details?.registeredAt ?? null,
-      started: details?.startedAt ?? null,
+      started: ceidg?.startedAt ?? details?.startedAt ?? null,
     },
     address: redact ? coarseAddress(address) : address,
     pkd: { primary: pkd.find((p) => p.primary) ?? null, all: pkd },
@@ -128,10 +176,11 @@ export async function buildProfile(deps: ProfileDeps, req: ProfileRequest, now =
     },
     capital: krs?.capital ?? null,
     representation: req.includeRepresentation ? (krs?.representation ?? null) : null,
+    vat,
     registries: {
       regon: basic ? { type: basic.type, silo: basic.silo } : null,
       krs: krs ? { register: krs.register, registeredAt: krs.registeredAt, lastEntryAt: krs.lastEntryAt } : null,
-      ceidg: null,
+      ceidg: ceidg ? { id: ceidg.id, status: ceidg.statusRaw } : null,
     },
     sources,
     retrievedAt: now.toISOString(),
