@@ -7,7 +7,7 @@ import type { SourceId } from "../schema/company";
  */
 export class UpstreamError extends Error {
   constructor(
-    readonly source: SourceId | "MF",
+    readonly source: SourceId,
     message: string,
     readonly status?: number,
   ) {

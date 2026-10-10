@@ -34,7 +34,7 @@ export type LegalForm =
   | "public_entity" // JST, urzędy, jednostki budżetowe
   | "other";
 
-export type SourceId = "REGON" | "KRS" | "CEIDG";
+export type SourceId = "REGON" | "KRS" | "CEIDG" | "MF_WL" | "VIES";
 
 export interface SourceAttribution {
   source: SourceId;
