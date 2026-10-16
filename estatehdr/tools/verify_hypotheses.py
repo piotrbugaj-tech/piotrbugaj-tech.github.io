@@ -868,6 +868,15 @@ def main(argv=None):
         R["spec_extras"] = exp_spec_extras(cfg, out_dir, parts, R.get("spec_extras"))
         done.append("spec_extras")
     os.makedirs(OUT, exist_ok=True)
+    if a.only and os.path.exists(path):  # re-read: keep what other runs wrote meanwhile, replace only ours
+        with open(path, encoding="utf-8") as fh:
+            cur = json.load(fh)
+        for k in done:
+            if k == "spec_extras" and parts:
+                cur[k] = {**cur.get(k, {}), **{p: v for p, v in R[k].items() if p in parts or p.startswith("batch_")}}
+            else:
+                cur[k] = R[k]
+        R = cur
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(R, fh, indent=1, default=float)
     print(json.dumps({k: R[k] for k in done}, indent=1, default=float)[:6000])
