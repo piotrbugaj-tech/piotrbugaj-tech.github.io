@@ -121,8 +121,9 @@ def exp_three_of_n(cfg):
 def _model_info(info):
     """Motion model the alignment used for a frame (align.model auto: the per-frame choice) + evidence."""
     sel = info.get("model_select") or {}
-    return {"model": info.get("model"), **({"model_llr": sel.get("llr"), "model_corner_diff_px": sel.get("corner_diff_px")}
-                                           if sel else {})}
+    return {"model": info.get("model"), **({"model_llr": sel.get("llr"), "model_llr_rest": sel.get("llr_rest"),
+                                            "model_local_cells": sel.get("local_cells"),
+                                            "model_corner_diff_px": sel.get("corner_diff_px")} if sel else {})}
 
 
 def exp_alignment(cfg, models=()):

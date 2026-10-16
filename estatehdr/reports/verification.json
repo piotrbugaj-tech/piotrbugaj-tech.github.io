@@ -1175,9 +1175,9 @@
     "pass_every_image": false
    }
   },
-  "seconds": 199.4,
+  "seconds": 164.7,
   "last_run_parts": [
-   "exposures"
+   "alignment_20px"
   ]
  },
  "alignment_models": {
