@@ -148,11 +148,19 @@ modules:
   twilight:
     enabled: false
     style: pink            # blue | pink | golden
+    darken_ev: 2.0         # przyciemnienie pierwszego planu
+    window_glow: 1.0       # siła świecenia okien
   remove:
     enabled: false         # wymaga maski <nazwa>.mask.png albo maski z UI
-    method: auto           # auto | patch | telea | migan
+    method: auto           # auto | patch | telea
+    dilate_frac: 0.002     # poszerzenie maski (ułamek dłuższego boku)
+    patch: 9
+    max_work_side: 320     # rozdzielczość robocza wyszukiwania łatek (pełna rozdz. przez pole przesunięć)
   grass:
     enabled: false
+    target_hue: 95         # docelowy odcień trawy (stopnie HSV)
+    hue_pull: 0.6
+    saturation_boost: 0.25
 
 export:
   sizes:

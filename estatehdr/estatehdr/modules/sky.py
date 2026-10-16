@@ -61,86 +61,116 @@ def _grad(y: np.ndarray) -> np.ndarray:
     return np.sqrt(gx * gx + gy * gy)
 
 
-def _energy(img: np.ndarray, sky: np.ndarray, gamma: float = 2.0) -> float:
-    s = img[sky]
-    g = img[~sky]
-    if len(s) < 0.01 * sky.size or len(g) < 0.05 * sky.size:
-        return -np.inf
-    step_s = max(1, len(s) // 20000)
-    step_g = max(1, len(g) // 20000)
-    cs = np.cov(s[::step_s].T) + np.eye(3) * 1e-6
-    cg = np.cov(g[::step_g].T) + np.eye(3) * 1e-6
-    ls = np.linalg.eigvalsh(cs)[-1]
-    lg = np.linalg.eigvalsh(cg)[-1]
-    return float(1.0 / (gamma * np.linalg.det(cs) ** (1 / 3) + np.linalg.det(cg) ** (1 / 3) + gamma * ls + lg))
-
-
-def _border(img: np.ndarray, grad: np.ndarray, n: int = 20) -> tuple[np.ndarray, float]:
-    h, w = grad.shape
-    best = (-np.inf, np.zeros(w, np.int64))
-    rows = np.arange(h)[:, None]
-    for t in np.quantile(grad, np.linspace(0.35, 0.97, n)):
-        edge = grad > t
-        edge[-1] = True
-        b = edge.argmax(0)
-        b = cv2.medianBlur(b.astype(np.float32)[None], 5)[0].astype(np.int64) if w >= 5 else b
-        sky = rows < b[None]
-        J = _energy(img, sky)
-        if J > best[0]:
-            best = (J, b)
-    return best[1], best[0]
-
-
 def detect_sky(img_small: np.ndarray, only_in: np.ndarray | None = None) -> tuple[np.ndarray | None, dict]:
     """Sky mask (float32 0..1, analysis resolution) of a display-referred sRGB image.
     Returns (None, info) when no plausible sky is found."""
     h, w = img_small.shape[:2]
     y = img_small @ LUMA
     grad = _grad(y)
-    info: dict = {}
     if only_in is not None:
         return _sky_in_windows(img_small, y, grad, only_in)
-    b, J = _border(img_small, grad)
-    rows = np.arange(h)[:, None]
-    sky = rows < b[None]
+    info: dict = {}
+    tex = cv2.blur(grad, (5, 5))
+    r, g, bl = img_small[..., 0], img_small[..., 1], img_small[..., 2]
+    green = (g > r * 1.05) & (g > bl * 1.05)
+    chroma = (np.maximum(np.maximum(r, g), bl) - np.minimum(np.minimum(r, g), bl)) / (y + 1e-3)
+    # 1. seeds: smooth, non-green, not dark pixels in the top band
+    top = max(2, int(0.06 * h))
+    seed = np.zeros((h, w), bool)
+    seed[:top] = (tex[:top] < 0.03) & ~green[:top] & (y[:top] > 0.15)
+    sfrac = float(seed[:top].mean())
+    info["seed_frac"] = round(sfrac, 3)
+    if sfrac < 0.15:
+        info["reason"] = "no smooth region at the top"
+        return None, info
+    # 2. candidates: like the seeds, bluish or cloud-like, and not textured (edges are barriers)
+    sp = img_small[seed]
+    mu = sp.mean(0)
+    cov = np.cov(sp[:: max(1, len(sp) // 20000)].T) + np.eye(3) * 4e-4
+    d = img_small.reshape(-1, 3) - mu
+    m2 = np.einsum("ij,jk,ik->i", d, np.linalg.inv(cov), d).reshape(h, w)
+    ys_seed = float(np.median(y[seed]))
+    bluish = ((bl - r) / (y + 1e-3) > 0.08) & ~green & (y > 0.12)
+    cloud = (chroma < 0.12) & (y > max(0.35, 0.55 * ys_seed))
+    # soft cloud edges are allowed more texture than seed-coloured pixels (facades, roofs)
+    cand = ((m2 < 16.0) & (tex < 0.045)) | ((bluish | cloud) & (tex < 0.08))
+    cand |= seed
+    n, lab = cv2.connectedComponents(cand.astype(np.uint8), connectivity=4)
+    keep = np.zeros(n, bool)
+    keep[np.unique(lab[seed])] = True
+    keep[0] = False
+    sky = keep[lab]
+    # textured clouds (strong local contrast): bright, non-green regions touching the sky core
+    # whose pixels mostly have sky *below* them in the same column (a facade never has)
+    kx = max(1, int(0.03 * w))
+    skyx = cv2.dilate(sky.astype(np.uint8), np.ones((1, 2 * kx + 1), np.uint8)) > 0
+    below = np.zeros_like(sky)
+    below[:-1] = np.flip(np.maximum.accumulate(np.flip(skyx, 0), 0), 0)[1:]
+    ccand = (y > 0.4) & (chroma < 0.6) & ((bl - r) / (y + 1e-3) > -0.05) & ~green & (tex < 0.3) & ~sky
+    near = cv2.dilate(sky.astype(np.uint8), np.ones((3, 3), np.uint8)) > 0
+    n, lab = cv2.connectedComponents(ccand.astype(np.uint8), connectivity=8)
+    if n > 1:
+        idx = lab.ravel()
+        cnt = np.bincount(idx, minlength=n).astype(np.float64)
+        touch = np.bincount(idx, weights=near.ravel().astype(np.float64), minlength=n)
+        blw = np.bincount(idx, weights=below.ravel().astype(np.float64), minlength=n)
+        ok = (touch > 0) & (blw >= 0.3 * np.maximum(cnt, 1))
+        ok[0] = False
+        sky |= ok[lab]
+    # fill small enclosed holes (birds, wires, lamp posts)
+    holes = (~sky).astype(np.uint8)
+    n, lab, stats, _ = cv2.connectedComponentsWithStats(holes, 4)
+    for i in range(1, n):
+        x0, y0, ww, hh, area = stats[i]
+        if area < 0.001 * h * w and y0 > 0 and x0 > 0 and x0 + ww < w and y0 + hh < h:
+            sky[lab == i] = True
     frac = float(sky.mean())
-    cols = float((b > 0.02 * h).mean())
-    info.update(border_energy=J, raw_frac=round(frac, 4), top_cols=round(cols, 3))
-    if frac < 0.03 or cols < 0.3:
+    cols = float(sky[: max(1, int(0.02 * h))].mean(0).__gt__(0.5).mean())
+    info.update(raw_frac=round(frac, 4), top_cols=round(cols, 3))
+    if frac < 0.02 or cols < 0.3:
         info["reason"] = "no sky region at the top"
         return None, info
-    ys, yg = np.median(y[sky]), np.median(y[~sky])
+    ys, yg = float(np.median(y[sky])), float(np.median(y[~sky]))
     gs = float(np.mean(grad[sky]))
     px = img_small[sky]
-    green = float(np.mean((px[:, 1] > px[:, 0] * 1.08) & (px[:, 1] > px[:, 2] * 1.08)))
-    info.update(sky_luma=round(float(ys), 3), ground_luma=round(float(yg), 3), sky_grad=round(gs, 4),
-                green_frac=round(green, 3))
-    if ys < 0.45 or ys < yg + 0.05 or green > 0.3 or gs > 0.06:
-        info["reason"] = "top region does not look like sky"
+    green_frac = float(np.mean(green[sky]))
+    # sky vs. ceiling / bright wall: a sky is bluish, or (overcast, sunset) the brightest part of
+    # the frame; interior ceilings are neutral/warm and darker than the window views
+    blue = float(np.median((px[:, 2] - px[:, 0]) / (px @ LUMA + 1e-3)))
+    g97 = float(np.percentile(y[~sky], 97))
+    info.update(sky_luma=round(ys, 3), ground_luma=round(yg, 3), sky_grad=round(gs, 4),
+                green_frac=round(green_frac, 3), blue=round(blue, 3), ground_p97=round(g97, 3))
+    if green_frac > 0.3 or gs > 0.06:
+        info["reason"] = "top region is green or textured"
         return None, info
-    # --- refinement: sky-coloured gaps in trees / regions behind wires --------------------------
+    if blue >= 0.3:            # clearly blue: deep blue skies may be darker than sunlit facades
+        ok = ys >= 0.2
+    elif blue >= 0.08:         # pale blue: must also be bright
+        ok = ys >= 0.45 and ys >= yg + 0.05
+    else:                      # overcast (near white, very bright) / sunset (warm): the brightest part of
+        ok = cols >= 0.5 and ((ys >= 0.85 and ys >= g97 - 0.03) or   # a wide top region
+                              (ys >= 0.45 and ((blue <= -0.15 and ys >= g97 - 0.02) or
+                                               (blue <= -0.04 and ys >= g97 + 0.1))))
+    if not ok:
+        info["reason"] = "top region is not sky-like (colour/brightness: ceiling, wall)"
+        return None, info
+    # 3. refinement: sky-coloured gaps inside tree crowns (enclosed by vegetation)
+    rows_with = np.nonzero(sky.any(1))[0]
+    horizon = int(rows_with.max()) if len(rows_with) else 0
     mu = px.mean(0)
     cov = np.cov(px[:: max(1, len(px) // 20000)].T) + np.eye(3) * 2e-4
-    icov = np.linalg.inv(cov)
     d = img_small.reshape(-1, 3) - mu
-    m2 = np.einsum("ij,jk,ik->i", d, icov, d).reshape(h, w)
+    m2 = np.einsum("ij,jk,ik->i", d, np.linalg.inv(cov), d).reshape(h, w)
     ylo = float(np.percentile(y[sky], 10))
-    horizon = int(np.percentile(b, 90))
-    cand = (m2 < 9.0) & (y >= ylo) & ~sky & (rows <= horizon)
-    veg = ((img_small[..., 1] > img_small[..., 0]) & (img_small[..., 1] >= img_small[..., 2] * 0.95)) | (y < ys * 0.45)
-    near = cv2.dilate(sky.astype(np.uint8), np.ones((7, 7), np.uint8)) > 0
-    n, lab, stats, _ = cv2.connectedComponentsWithStats(cand.astype(np.uint8), 8)
+    rows = np.arange(h)[:, None]
+    gap = (m2 < 9.0) & (y >= ylo) & ~sky & (rows <= horizon)
+    veg = green | (y < ys * 0.45)
+    n, lab, stats, _ = cv2.connectedComponentsWithStats(gap.astype(np.uint8), 8)
     add = np.zeros(n, bool)
     k = np.ones((5, 5), np.uint8)
     for i in range(1, n):
         x0, y0, ww, hh, area = stats[i]
-        if area < 3:
-            continue
-        comp = lab[y0:y0 + hh, x0:x0 + ww] == i
-        if near[y0:y0 + hh, x0:x0 + ww][comp].mean() > 0 and grad[y0:y0 + hh, x0:x0 + ww][comp].mean() < 2 * gs + 0.01:
-            add[i] = True
-            continue
-        if area > 0.02 * h * w:
+        if area < 2 or area > 0.02 * h * w:
             continue
         pad = 3
         a0, a1, c0, c1 = max(0, y0 - pad), min(h, y0 + hh + pad), max(0, x0 - pad), min(w, x0 + ww + pad)
@@ -149,16 +179,6 @@ def detect_sky(img_small: np.ndarray, only_in: np.ndarray | None = None) -> tupl
         if ring.sum() and veg[a0:a1, c0:c1][ring].mean() > 0.5:
             add[i] = True
     sky = sky | add[lab]
-    # remove small isolated sky islands below the border band (bright facade patches etc.)
-    n, lab, stats, _ = cv2.connectedComponentsWithStats(sky.astype(np.uint8), 8)
-    if n > 2:
-        keep = np.zeros(n, bool)
-        big = np.argmax(stats[1:, cv2.CC_STAT_AREA]) + 1
-        keep[big] = True
-        for i in range(1, n):
-            if i != big and (stats[i, cv2.CC_STAT_AREA] >= 4 or stats[i, cv2.CC_STAT_TOP] < horizon):
-                keep[i] = True
-        sky = keep[lab] & sky
     info.update(frac=round(float(sky.mean()), 4), horizon_frac=round(horizon / h, 3))
     return sky.astype(np.float32), info
 
@@ -209,10 +229,11 @@ def _fbm(w: int, h: int, rng: np.random.Generator, cell: float, octaves: int = 5
 
 
 def _gradient(stops_srgb, t: np.ndarray) -> np.ndarray:
+    """Zenith -> horizon colour as a quadratic Bezier through three sRGB stops (linear light,
+    no kink/banding at the middle stop)."""
     z, m, hz = (srgb_to_linear(np.array(c, np.float32)) for c in stops_srgb)
-    t = t[..., None]
-    lo = z + (m - z) * np.clip(t / 0.55, 0, 1)
-    return np.where(t < 0.55, lo, m + (hz - m) * np.clip((t - 0.55) / 0.45, 0, 1)).astype(np.float32)
+    t = np.clip(t, 0, 1)[..., None]
+    return ((1 - t) ** 2 * z + 2 * (1 - t) * t * m + t * t * hz).astype(np.float32)
 
 
 def synth_sky(w: int, h: int, style: str, seed: int, twilight: bool = False) -> np.ndarray:
@@ -226,26 +247,31 @@ def synth_sky(w: int, h: int, style: str, seed: int, twilight: bool = False) -> 
     sky = _gradient(stops, np.broadcast_to(t, (h, w)))
     amount = 0.25 if twilight else CLOUDS.get(style, 0.0)
     if amount > 0:
-        cell = max(w, h) / (2.5 if style == "dramatic" else 1.5)
-        aniso = 1.6 if style == "dramatic" else 4.0
+        dramatic = style == "dramatic"
+        cell = max(w, h) / (2.2 if dramatic else 1.5)
+        aniso = 1.8 if dramatic else 4.0
         n = _fbm(w, h, rng, cell, 6, aniso)
         n = (n - n.mean()) / (n.std() + 1e-6)
-        thr = 0.35 if style == "dramatic" else 0.6
-        cover = np.clip((n - thr) / 0.9, 0, 1)
+        thr = 0.15 if dramatic else 0.6
+        cover = np.clip((n - thr) / (0.6 if dramatic else 0.9), 0, 1)
         cover = cover * cover * (3 - 2 * cover)
         haze = 1.0 - 0.65 * yy ** 2  # clouds thin out towards the horizon
         a = amount * cover * haze
         if twilight:
             ccol = _gradient(stops, np.clip(t + 0.25, 0, 1)) * 1.1  # clouds lit from below the horizon
         else:
-            thick = np.clip((n - thr) / 1.6, 0, 1)
-            shade = 1.0 - (0.42 if style == "dramatic" else 0.15) * thick ** 1.3
-            # light from above: the upper edge of a cloud is brighter
-            dy = np.zeros_like(n)
-            dy[2:] = n[2:] - n[:-2]
-            shade = shade * (1.0 + 0.10 * np.clip(dy * 4, 0, 1))
-            base_white = srgb_to_linear(np.array((0.97, 0.97, 0.98), np.float32))
-            ccol = base_white[None, None] * shade[..., None]
+            white = srgb_to_linear(np.array((0.98, 0.98, 0.99), np.float32))
+            shadow = srgb_to_linear(np.array((0.55, 0.60, 0.70), np.float32))
+            # thicker parts are darker (self-shadowing), upper edges are sun-lit
+            thick = np.clip((n - thr) / (1.4 if dramatic else 2.0), 0, 1) ** 1.2
+            if not dramatic:
+                thick *= 0.35
+            cb = cv2.GaussianBlur(cover, (0, 0), max(1.0, 0.01 * w))
+            dy = np.zeros_like(cb)
+            dy[1:] = cb[1:] - cb[:-1]
+            lit = np.clip(dy * (0.6 * w), 0, 1)  # cover increasing downwards = top edge
+            mix = np.clip(thick - 0.6 * lit, 0, 1)[..., None]
+            ccol = white[None, None] * (1 - mix) + shadow[None, None] * mix
         sky = sky * (1 - a[..., None]) + ccol * a[..., None]
     return sky.astype(np.float32)
 
@@ -264,12 +290,13 @@ def load_sky_file(path: str, seed: int) -> np.ndarray | None:
 
 
 def _fit_cover(src: np.ndarray, w: int, h: int) -> np.ndarray:
-    """Scale to cover w x h, anchored at the bottom (horizon of a sky photo stays low)."""
+    """Scale to cover w x h, anchored at the top (the top of a sky photo is pure sky; trees or
+    roofs at its bottom edge are cropped away)."""
     sh, sw = src.shape[:2]
     s = max(w / sw, h / sh)
     r = cv2.resize(src, (max(w, round(sw * s)), max(h, round(sh * s))), interpolation=cv2.INTER_AREA if s < 1 else cv2.INTER_CUBIC)
     x0 = (r.shape[1] - w) // 2
-    return r[r.shape[0] - h:, x0:x0 + w]
+    return r[:h, x0:x0 + w]
 
 
 # ---------------------------------------------------------------------------------------------
@@ -301,7 +328,7 @@ def composite_sky(img: np.ndarray, mask_small: np.ndarray, new_sky_lin_small: np
     gain = 1.0
     if match_luma is not None:
         cur = float(np.median((new @ LUMA)[mask_small > 0.5])) if (mask_small > 0.5).any() else 1.0
-        gain = match_luma / max(cur, 1e-4)
+        gain = float(np.clip(match_luma / max(cur, 1e-4), 0.5, 2.0))
         new *= gain
     soft = cv2.GaussianBlur(mask_small.astype(np.float32), (0, 0), band_px)
     band = ((soft > 0.02) & (soft < 0.98)).astype(np.float32)

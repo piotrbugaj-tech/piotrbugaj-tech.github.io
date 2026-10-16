@@ -48,7 +48,9 @@ def list_images(folder: str, recursive: bool = True) -> list[str]:
     for root, dirs, files in os.walk(folder):
         dirs[:] = sorted(d for d in dirs if not d.startswith(".") and d not in ("estatehdr_output", "output"))
         for f in files:
-            if os.path.splitext(f)[1].lower() in SUPPORTED_EXTS and not f.startswith("."):
+            # <name>.mask.png files are removal masks, not photos
+            if os.path.splitext(f)[1].lower() in SUPPORTED_EXTS and not f.startswith(".") and \
+                    not f.lower().endswith(".mask.png"):
                 out.append(os.path.join(root, f))
         if not recursive:
             break
