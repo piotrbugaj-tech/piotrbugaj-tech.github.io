@@ -3,11 +3,10 @@ from __future__ import annotations
 
 import json
 import logging
-import math
 import multiprocessing as mp
 import os
 import time
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 
 from .config import Config
 from .grouping import Group, load_groups, save_groups, scan_folder
@@ -57,9 +56,15 @@ def _worker_init(threads: int, log_level: int):
     logging.basicConfig(level=log_level, format="%(asctime)s %(levelname)s %(processName)s %(name)s: %(message)s")
 
 
-def _run_one(group: Group, cfg_dict: dict, out_dir: str, masks: dict | None):
+def _run_one(group: Group, cfg_dict: dict, out_dir: str, masks: dict | None, queue=None, index: int = 0):
     from .pipeline import process_group
-    return process_group(group, Config(cfg_dict), out_dir, extra_masks=masks)
+    def report(frac, msg):
+        try:
+            queue.put_nowait({"series": group.name, "index": index, "frac": frac, "stage": msg})
+        except Exception:
+            pass
+    return process_group(group, Config(cfg_dict), out_dir, progress=report if queue is not None else None,
+                         extra_masks=masks)
 
 
 def run_batch(input_dir: str | None, out_dir: str, cfg: Config, groups_file: str | None = None,
@@ -109,22 +114,45 @@ def run_batch(input_dir: str | None, out_dir: str, cfg: Config, groups_file: str
                              "result": r})
     else:
         ctx = mp.get_context("spawn")
-        with ProcessPoolExecutor(max_workers=workers, mp_context=ctx, initializer=_worker_init,
-                                 initargs=(threads, logging.getLogger().level or logging.INFO)) as ex:
-            futs = {ex.submit(_run_one, g, dict(cfg), out_dir, (masks or {}).get(g.name)): (i, g)
-                    for i, g in enumerate(groups)}
-            for fut in as_completed(futs):
-                i, g = futs[fut]
+        mgr = ctx.Manager() if progress_cb else None
+        queue = mgr.Queue() if mgr else None
+
+        def drain():
+            while queue is not None:
                 try:
-                    r = fut.result()
-                except Exception as exc:  # worker crash (e.g. killed by the OS)
-                    r = {"name": g.name, "status": "error", "error": f"worker crashed: {exc}",
-                         "files": [f.path for f in g.frames]}
-                results.append(r)
-                done += 1
-                if progress_cb:
-                    progress_cb({"series": g.name, "index": i, "total": len(groups), "frac": 1.0, "stage": "gotowe",
-                                 "result": r})
+                    ev = queue.get_nowait()
+                except Exception:
+                    return
+                ev["total"] = len(groups)
+                try:
+                    progress_cb(ev)
+                except Exception:
+                    pass
+        try:
+            with ProcessPoolExecutor(max_workers=workers, mp_context=ctx, initializer=_worker_init,
+                                     initargs=(threads, logging.getLogger().level or logging.INFO)) as ex:
+                futs = {ex.submit(_run_one, g, dict(cfg), out_dir, (masks or {}).get(g.name), queue, i): (i, g)
+                        for i, g in enumerate(groups)}
+                pending = set(futs)
+                while pending:
+                    finished, pending = wait(pending, timeout=0.5, return_when=FIRST_COMPLETED)
+                    drain()
+                    for fut in finished:
+                        i, g = futs[fut]
+                        try:
+                            r = fut.result()
+                        except Exception as exc:  # worker crash (e.g. killed by the OS)
+                            r = {"name": g.name, "status": "error", "error": f"worker crashed: {exc}",
+                                 "files": [f.path for f in g.frames]}
+                        results.append(r)
+                        done += 1
+                        if progress_cb:
+                            progress_cb({"series": g.name, "index": i, "total": len(groups), "frac": 1.0,
+                                         "stage": "gotowe", "result": r})
+                drain()
+        finally:
+            if mgr is not None:
+                mgr.shutdown()
     order = {g.name: i for i, g in enumerate(groups)}
     results.sort(key=lambda r: order.get(r["name"], 0))
     try:

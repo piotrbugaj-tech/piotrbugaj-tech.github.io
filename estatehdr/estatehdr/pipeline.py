@@ -14,7 +14,6 @@ Order of stages (each one can be switched off in config.yaml):
 from __future__ import annotations
 
 import gc
-import json
 import logging
 import os
 import time

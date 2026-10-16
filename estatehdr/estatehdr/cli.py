@@ -99,7 +99,7 @@ def main(argv=None):
     if a.cmd == "group":
         _setup_logging(a.verbose)
         from .grouping import save_groups, scan_folder
-        cfg = load_config(overrides=([f"grouping.mode=fixed", f"grouping.bracket_size={a.bracket_size}"] if a.bracket_size else []))
+        cfg = load_config(overrides=(["grouping.mode=fixed", f"grouping.bracket_size={a.bracket_size}"] if a.bracket_size else []))
         groups, failures = scan_folder(a.input, cfg.get("grouping", {}))
         out = a.output or os.path.join(a.input, "groups.json")
         save_groups(groups, out)

@@ -4,7 +4,6 @@ All functions take display-referred sRGB images as float32 in [0,1] (HxWx3).
 """
 from __future__ import annotations
 
-import math
 
 import cv2
 import numpy as np
@@ -152,13 +151,11 @@ def lpips_distance(a: np.ndarray, b: np.ndarray) -> float | None:
     """LPIPS (AlexNet) if torch + lpips + weights are available locally; otherwise None."""
     global _LPIPS
     try:
-        import torch  # noqa: F401
-        import lpips  # noqa: F401
+        import torch
+        import lpips
     except Exception:
         return None
     try:
-        import torch
-        import lpips
         if _LPIPS is None:
             _LPIPS = lpips.LPIPS(net="alex", verbose=False)
         ta = torch.from_numpy(a.transpose(2, 0, 1)[None] * 2 - 1).float()
@@ -204,7 +201,6 @@ def halo_index(img: np.ndarray, mask: np.ndarray, band: int = 30) -> dict:
     outside the mask edge with a band further out.  A positive value means a bright halo."""
     if mask is None or mask.sum() < 100:
         return {"halo": None}
-    y = img @ LUMA
     m = mask.astype(np.uint8)
     d1 = cv2.dilate(m, np.ones((5, 5), np.uint8))
     near = cv2.dilate(m, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * band + 1, 2 * band + 1))).astype(bool) & ~d1.astype(bool)

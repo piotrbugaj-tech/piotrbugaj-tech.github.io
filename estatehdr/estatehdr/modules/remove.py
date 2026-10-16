@@ -131,7 +131,6 @@ def exemplar_inpaint(img: np.ndarray, hole: np.ndarray, patch: int = 9, max_side
     conf = filled.astype(np.float32)
     src_of = -np.ones((h, w, 2), np.int32)
     k3 = np.ones((3, 3), np.uint8)
-    pp = patch * patch
     while True:
         unf = ~filled
         if not unf.any():

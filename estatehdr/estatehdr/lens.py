@@ -16,7 +16,7 @@ import logging
 import cv2
 import numpy as np
 
-from .imgutil import chmax, chmin, luminance, resize_max
+from .imgutil import chmax, luminance, resize_max
 
 log = logging.getLogger(__name__)
 

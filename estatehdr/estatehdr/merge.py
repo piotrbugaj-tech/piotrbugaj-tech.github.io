@@ -17,7 +17,7 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-from .imgutil import chmax, chmin, luminance, resize_to
+from .imgutil import chmax, chmin, luminance
 
 log = logging.getLogger(__name__)
 

@@ -175,10 +175,10 @@ export:
 
 presets:
   neutral:
-    label: "Neutralny (naturalny, jak 'Classic')"
+    label: "Neutralny - naturalny wygląd do ogłoszeń (MLS)"
     overrides: {}
   airy:
-    label: "Jasny / airy"
+    label: "Jasny (airy) - więcej światła i lekkości"
     overrides:
       tonemap:
         target_key: 0.62
@@ -192,7 +192,7 @@ presets:
       windows:
         exterior_target: 0.68
   premium:
-    label: "Premium (więcej kontrastu, głębszy widok okien, jak 'Lisa')"
+    label: "Premium - więcej kontrastu i koloru, głębszy widok za oknami"
     overrides:
       tonemap:
         target_key: 0.54

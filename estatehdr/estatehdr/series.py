@@ -15,10 +15,9 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
-import cv2
 import numpy as np
 
-from .imgutil import chmax, chmin, luminance, resize_max, srgb_to_linear, linear_to_srgb
+from .imgutil import chmax, luminance, resize_max, linear_to_srgb
 from .io.metadata import FrameMeta
 from .io.reader import Decoded, decode
 

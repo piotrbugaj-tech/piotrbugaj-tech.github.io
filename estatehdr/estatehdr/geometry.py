@@ -76,61 +76,6 @@ def _undistorted_to_distorted(X, Y, k1, iters: int = 6):
     return Xd, Yd
 
 
-def _straightness(gray8: np.ndarray, k1: float, min_len: float) -> float:
-    h, w = gray8.shape
-    # always go through the same resampling (also for k1 = 0) so blur does not bias the score;
-    # replicate the border: a constant border would add artificial long straight edges
-    mx, my = undistort_map(w, h, k1)
-    g = cv2.remap(gray8, mx, my, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
-    segs = detect_segments(g, min_len)
-    if len(segs) == 0:
-        return 0.0
-    # ignore segments hugging the image border
-    m = 4
-    keep = ~((np.minimum(segs[:, 0], segs[:, 2]) < m) & (np.maximum(segs[:, 0], segs[:, 2]) < m) |
-             (np.minimum(segs[:, 1], segs[:, 3]) < m) & (np.maximum(segs[:, 1], segs[:, 3]) < m) |
-             (np.minimum(segs[:, 0], segs[:, 2]) > w - m) | (np.minimum(segs[:, 1], segs[:, 3]) > h - m))
-    segs = segs[keep]
-    L = np.hypot(segs[:, 2] - segs[:, 0], segs[:, 3] - segs[:, 1])
-    return float((L ** 2).sum())
-
-
-def _edge_points(gray8: np.ndarray, max_points: int = 60000):
-    """Canny edge points with their gradient (normal) angle, in coordinates normalised by
-    the half diagonal and centred."""
-    h, w = gray8.shape
-    g = cv2.GaussianBlur(gray8, (0, 0), 1.0)
-    e = cv2.Canny(g, 40, 100)
-    gx = cv2.Sobel(g.astype(np.float32), cv2.CV_32F, 1, 0, ksize=3)
-    gy = cv2.Sobel(g.astype(np.float32), cv2.CV_32F, 0, 1, ksize=3)
-    ys, xs = np.nonzero(e)
-    if len(xs) > max_points:
-        idx = np.random.default_rng(0).choice(len(xs), max_points, replace=False)
-        ys, xs = ys[idx], xs[idx]
-    phi = np.arctan2(gy[ys, xs], gx[ys, xs])
-    cx, cy = (w - 1) / 2, (h - 1) / 2
-    R = math.hypot(cx, cy)
-    return (xs - cx) / R, (ys - cy) / R, phi
-
-
-def hough_concentration(X: np.ndarray, Y: np.ndarray, phi: np.ndarray, k1: float,
-                        n_theta: int = 360, rho_bins: int = 1200, spread_deg: int = 4) -> float:
-    """Sum of squared Hough accumulator counts after undistorting points with k1.
-    Straight lines concentrate votes, so the value peaks at the correct k1."""
-    r2 = X * X + Y * Y
-    f = (1.0 + k1 * r2) / (1.0 + k1 * 0.5)  # keep the overall scale constant (no bias towards shrinking)
-    Xu, Yu = X * f, Y * f
-    th0 = np.mod(phi, np.pi)
-    offs = np.radians(np.arange(-spread_deg, spread_deg + 1, 1.0))
-    th = (th0[:, None] + offs[None, :]) % np.pi
-    rho = Xu[:, None] * np.cos(th) + Yu[:, None] * np.sin(th)
-    ti = np.minimum((th / np.pi * n_theta).astype(np.int64), n_theta - 1)
-    lim = 1.3
-    ri = np.clip(((rho + lim) / (2 * lim) * rho_bins).astype(np.int64), 0, rho_bins - 1)
-    acc = np.bincount((ti * rho_bins + ri).ravel(), minlength=n_theta * rho_bins).astype(np.float64)
-    return float((acc * acc).sum() / max(len(X), 1) ** 2)
-
-
 def edge_chains(gray8: np.ndarray, min_len_frac: float = 0.08, max_chains: int = 400):
     """Long, nearly straight edge chains (lists of normalised points) for plumb-line fitting."""
     h, w = gray8.shape
@@ -248,7 +193,7 @@ def _vertical_vp(segs: np.ndarray, w: int, h: int, max_angle: float = 25.0):
         c = np.abs((to * dirs).sum(1))
         return np.degrees(np.arccos(np.clip(c, -1, 1)))
     rng = np.random.default_rng(0)
-    best_inl, best_v = None, None
+    best_inl = None
     n = len(lines)
     wts = L / L.sum()
     for _ in range(min(500, n * (n - 1) // 2 + 1)):
@@ -259,7 +204,7 @@ def _vertical_vp(segs: np.ndarray, w: int, h: int, max_angle: float = 25.0):
         v = v / np.linalg.norm(v)
         inl = angular_err(v) < 1.0
         if best_inl is None or (L[inl].sum() > L[best_inl].sum()):
-            best_inl, best_v = inl, v
+            best_inl = inl
     if best_inl is None or best_inl.sum() < 2:
         return None, 0, None
     # least squares refinement: v minimising sum w (l . v)^2

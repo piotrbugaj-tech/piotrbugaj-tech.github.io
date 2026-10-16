@@ -641,7 +641,6 @@ LABELS = {"none": 0, "wall": 1, "ceiling": 2, "floor": 3, "window": 4, "frame": 
 
 def render_exterior(width=2400, height=1600, seed=5, pitch_deg=4.0, roll_deg=-0.8, supersample=2):
     """Simple two-storey house facade, lawn, trees and sky.  Returns radiance and labels."""
-    rng = np.random.default_rng(seed)
     ss = supersample
     w, h = width * ss, height * ss
     cam = CameraSpec(width=w, height=h, hfov_deg=70, pos=(0, 1.6, 0), yaw_deg=0, pitch_deg=pitch_deg,
@@ -956,7 +955,7 @@ def generate_dataset(out_root: str, width: int = 2400, height: int = 1600, scene
         rad_tilt, lab_tilt = Renderer(spec, neutral_lights=False).render(
             CameraSpec(**{**asdict(cam), "k1": 0.0, "ca": 0.0, "vignetting": 0.0}), distort=False)
         ghost = moving_object([0.30, 0.38, 0.46, 0.54, 0.62], 0.62, 0.035, 0.10) if series.ghost else None
-        frames = write_series(rad, inp, f"IMG", series, rng, ghost_fn=ghost, start_index=idx)
+        frames = write_series(rad, inp, "IMG", series, rng, ghost_fn=ghost, start_index=idx)
         idx += len(series.evs)
         gdir = os.path.join(out_root, "gt", name)
         os.makedirs(gdir, exist_ok=True)
