@@ -78,7 +78,8 @@ dystorsji metodą plumb-line, punkt zbiegu z LSD + RANSAC, CIEDE2000, SSIM (Wang
 |---|---|---|
 | Sceny syntetyczne (`estatehdr/synthetic.py`) | własne (MIT, jak kod) | testy z prawdą referencyjną |
 | Google HDR+ Burst Photography Dataset (RAW `merged.dng`, galeria `final.jpg`) | CC-BY-SA 4.0 | testy na realnych wnętrzach i exteriorach (sky / twilight); tylko lokalnie |
-| OpenCV `opencv_extra/testdata/cv/hdr` (Memorial Church, St. Louis Arch) | warunki repozytorium opencv_extra | testy realnych serii bracketingowych; tylko lokalnie |
+| OpenCV `opencv_extra/testdata/cv/hdr`: St. Louis Arch (Wikimedia, CC-BY-SA) i Memorial Church (P. Debevec, dane badawcze z publikacji Debevec i Malik 1997) | CC-BY-SA / dane badawcze | testy realnych serii bracketingowych; tylko lokalnie, bez redystrybucji |
+| Galeria HDR+ (14 zdjęć budynków z niebem, `data/public/exteriors`) | CC-BY-SA 4.0 | testy wymiany nieba i zmierzchu; tylko lokalnie |
 | Portfolio użytkownika (zdjęcia z tego repozytorium `piotrbugaj-tech.github.io`) | dane użytkownika | test „nie psuć gotowego zdjęcia” (tryb jednej klatki) |
 
 Raporty w `reports/` zawierają tylko małe podglądy wyników (skalowane, do dokumentacji jakości).

@@ -6,6 +6,7 @@ Sources (see LICENSES.md / DECISIONS.md D-17):
   * Google HDR+ burst dataset (CC-BY-SA 4.0) - real RAW DNGs (Nexus 6).  From the HDR+ 'merged.dng'
     (high-SNR linear radiance of real interiors with windows) semi-synthetic bracket series are
     rendered with known exposures, noise, camera curve, handheld shake and EXIF.
+  * HDR+ gallery (CC-BY-SA 4.0): 14 finished photos of buildings with sky (sky / twilight tests).
   * The user's own portfolio photos from the surrounding website repository (single, finished
     images) - used only locally for the single-image 'do no harm' check.
 
@@ -135,6 +136,26 @@ def portfolio(out: str, site_root: str):
     print("portfolio:", len(best), "images ->", d)
 
 
+# 14 building exteriors with sky from the HDR+ gallery (CC-BY-SA 4.0): sky / twilight / grass tests
+EXTERIORS = ["0043_20161103_114437_266", "0127_20161107_171749_524", "0272_20160515_130708_549",
+             "0919_20150905_181412_593", "0919_20150910_131720_137", "33TJ_20150723_184246_613",
+             "33TJ_20150810_140637_256", "4KK2_20150910_131804_951", "5a9e_20141007_173502_483",
+             "5a9e_20150403_162152_482", "6G7M_20150403_152401_583", "6G7M_20150404_132758_328",
+             "6G7M_20150410_063210_560", "c1b1_20150109_171200_810"]
+GALLERY = "https://storage.googleapis.com/hdrplusdata/20171106_subset/gallery_20171023/"
+
+
+def exteriors(out: str):
+    d = os.path.join(out, "exteriors", "input")
+    os.makedirs(d, exist_ok=True)
+    for i, name in enumerate(EXTERIORS):
+        dst = os.path.join(d, f"EXT_{i:03d}_{name}.jpg")
+        if not os.path.exists(dst):
+            urllib.request.urlretrieve(GALLERY + name + ".jpg", dst + ".part")
+            os.replace(dst + ".part", dst)
+    print("exteriors:", len(EXTERIORS), "images ->", d)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", default="data/public")
@@ -145,6 +166,7 @@ def main():
     opencv_sets(a.out)
     if not a.skip_hdrplus:
         hdrplus_sets(a.out, a.width)
+        exteriors(a.out)
     portfolio(a.out, a.site_root)
 
 
