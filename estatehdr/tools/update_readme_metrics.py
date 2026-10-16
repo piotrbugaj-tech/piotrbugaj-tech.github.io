@@ -269,7 +269,7 @@ def section_perf():
 # --- 6.7 ------------------------------------------------------------------------------------------
 def section_acceptance():
     s = stage_numbers()
-    d, m = load("calibration", "full_pipeline.json"), load("comparisons", "metrics.json")
+    d = load("calibration", "full_pipeline.json")
     p, pf = load("portfolio_do_no_harm.json"), load("perf.json")["series"]
     v, ex = s["v"], s["extras"]
     rows = []
@@ -289,19 +289,28 @@ def section_acceptance():
     row("Grupowanie", "100% z EXIF i bez", f"{g['with_exif']['series_exact']}/{g['with_exif']['of']} i "
         f"{g['without_exif']['series_exact']}/{g['without_exif']['of']}",
         status(all(g[k]["series_exact"] == g[k]["of"] for k in ("with_exif", "without_exif"))))
-    e = ex.get("exposures")
+    e = (ex.get("exposures") or {}).get("summary")
     if e:
-        row("Ekspozycje względne", "±0.1 EV od GT", f"maks. błąd {e['max_abs_err_ev']:.3f} EV",
-            status(e["max_abs_err_ev"] <= 0.1))
+        row("Ekspozycje względne (z EXIF)", "±0.1 EV od GT", f"maks. błąd {e['with_exif_max_abs_err_ev']:.2f} EV",
+            status(e["pass_with_exif"]))
+        row("Ekspozycje względne (bez EXIF)", "±0.1 EV od GT", f"maks. błąd {e['without_exif_max_abs_err_ev']:.2f} EV",
+            status(e["pass_without_exif"]))
     else:
         row("Ekspozycje względne", "±0.1 EV od GT", "`test_exposures_without_exif`", "tak (test)")
-    shift = max(s["hand_shift"], default=0.0)
-    row("Wyrównanie", "≤ 0.6 px statyw, ≤ 0.8 px z ręki (przesunięcia do 20 px)",
-        f"{rng(s['tri'])} px i {rng(s['hand'])} px; sprawdzone przesunięcia do {shift:.0f} px",
-        status(max(s["tri"]) <= 0.6 and max(s["hand"]) <= 0.8, partial=shift < 15))
-    gh = ex.get("ghost")
+    row("Wyrównanie (serie GT)", "≤ 0.6 px statyw, ≤ 0.8 px z ręki",
+        f"{rng(s['tri'])} px i {rng(s['hand'])} px (przesunięcia do {max(s['hand_shift'], default=0):.0f} px)",
+        status(max(s["tri"]) <= 0.6 and max(s["hand"]) <= 0.8))
+    a20 = (ex.get("alignment_20px") or {}).get("summary")
+    if a20:
+        lo, hi = a20["true_shift_px_range"]
+        row("Wyrównanie: z ręki z perspektywą", "≤ 0.8 px przy przesunięciach do 20 px",
+            f"średnio {a20['mean_err_px']:.2f} px, najgorsza klatka {a20['worst_frame_mean_err_px']:.2f} px "
+            f"(przesunięcia {lo:.0f}–{hi:.0f} px)", status(a20["pass"]))
+    gh = (ex.get("ghost") or {}).get("summary")
     if gh:
-        row("Duchy", "< 2% maski ducha odbiega o > 0.5 EV", f"{gh['fraction_pct']:.2f}%", status(gh["fraction_pct"] < 2))
+        row("Duchy", "< 2% maski ducha odbiega o > 0.5 EV",
+            f"{100 * gh['frac_dev_gt_0.5ev']:.2f}% (bez deghostingu {100 * gh['frac_dev_gt_0.5ev_deghost_off']:.1f}%)",
+            status(gh["pass"]))
     else:
         row("Duchy", "< 2% maski ducha odbiega o > 0.5 EV", "`test_deghosting_moving_object`", "tak (test)")
     row("Przepalenia poza światłami", "< 0.5%", f"{rng(after('clipped_nonlight_%'))}%",
@@ -318,19 +327,23 @@ def section_acceptance():
                   for q in PRESETS)
     row("Okna: L* widoku", "55–80 (premium 45–70)", per_preset("win_L"), status(ok_view))
     row("Okna: detal", "≥ 0.6× GT", f"{rng(after('win_detail_ratio'))}×", status(min(after("win_detail_ratio")) >= 0.6))
-    wi = ex.get("window_iou")
+    wi = (ex.get("window_iou") or {}).get("summary")
     if wi:
-        row("Okna: IoU maski", "≥ 0.8", rng(wi["iou"]), status(min(wi["iou"]) >= 0.8))
+        row("Okna: IoU maski", "≥ 0.8", f"min. {wi['min_iou_glass']:.2f} (szyby)", status(wi["pass_glass"]))
     else:
         row("Okna: IoU maski", "≥ 0.8", "test sprawdza > 0.6", "nie zmierzone")
     row("Neutralność ścian", "ΔE ≤ 3.0", per_preset("wall_dE_gt", 2), status(max(after("wall_dE_gt")) <= 3.0))
-    wb = ex.get("white_balance") or {}
-    if "bulb_dE" in wb:
-        row("Neutralność w strefie żarówek", "ΔE ≤ 5.0", rng(wb["bulb_dE"]), status(max(wb["bulb_dE"]) <= 5.0))
+    wb = (ex.get("white_balance") or {}).get("summary") or {}
+    if "zone_dE_max" in wb:
+        zones = [ex["white_balance"][sc]["zone_dE"] for sc in ("living_room", "bedroom", "kitchen")
+                 if isinstance(ex["white_balance"].get(sc), dict) and "zone_dE" in ex["white_balance"][sc]]
+        row("Neutralność w strefie żarówek", "ΔE ≤ 5.0", rng(zones) if zones else f"maks. {wb['zone_dE_max']:.2f}",
+            status(wb["pass_zone_5"]))
     else:
         row("Neutralność w strefie żarówek", "ΔE ≤ 5.0", "—", "nie zmierzone")
     if "accent_dH_deg" in wb:
-        row("Ściana akcentowa", "ΔH < 10°", f"{wb['accent_dH_deg']:.1f}°", status(wb["accent_dH_deg"] < 10))
+        row("Ściana akcentowa", "ΔH < 10°", f"{wb['accent_dH_deg']:.0f}° (kolor o małym nasyceniu)",
+            status(wb["pass_accent_10"]))
     else:
         row("Ściana akcentowa", "ΔH < 10°", "`test_white_balance_removes_cast` (akcent zostaje czerwony)", "tak (test)")
     vert = after("vert_med_deg") + s["vert_after"]
@@ -342,17 +355,18 @@ def section_acceptance():
         status(max(s["ca_lin"] + s["ca_pipe"]) <= 0.3))
     row("Szum", "σ niższe niż w klatce", f"{s['noise_lower']}/{s['noise_n']} RAW, o {rng(s['noise_red'], 0)}%",
         status(s["noise_n"] > 0 and s["noise_lower"] == s["noise_n"]))
-    sh = ex.get("sharpness")
+    sh = (ex.get("sharpness") or {}).get("summary")
     if sh:
-        row("Ostrość", "≥ 0.9× wejścia", f"{rng(sh['ratio'])}×", status(min(sh["ratio"]) >= 0.9))
+        row("Ostrość krawędzi", "≥ 0.9× wejścia", f"min. {sh['min_acutance_ratio']:.2f}×", status(sh["pass"]))
     else:
-        row("Ostrość", "≥ 0.9× wejścia", "—", "nie zmierzone")
-    pb = [cmp_mean(m, "before", "portfolio_single", k) for k in ("clipped_%", "crushed_%")]
-    pa = [cmp_mean(m, "neutral", "portfolio_single", k) for k in ("clipped_%", "crushed_%")]
-    if None not in pb + pa:
-        row("Jedna klatka: przepalenia i zaczernienia", "spadają",
-            f"przepalenia {pb[0]:.2f} → {pa[0]:.2f}%, zaczernienia {pb[1]:.2f} → {pa[1]:.2f}% (portfolio, 6.2)",
-            status(pa[0] <= pb[0] and pa[1] <= pb[1]))
+        row("Ostrość krawędzi", "≥ 0.9× wejścia", "—", "nie zmierzone")
+    sf = (ex.get("single_frame") or {}).get("summary")
+    if sf:
+        n_img = sf["images"]
+        row("Jedna klatka: przepalenia", "spadają", f"{sf['clipped_pct_before']:.2f} → {sf['clipped_pct_after']:.2f}% "
+            f"(spadek na {sf['clipped_down']}/{n_img})", status(sf["clipped_down"] == n_img))
+        row("Jedna klatka: zaczernienia", "spadają", f"{sf['crushed_pct_before']:.3f} → {sf['crushed_pct_after']:.3f}% "
+            f"(spadek na {sf['crushed_down']}/{n_img}; wszędzie < 0.5%)", status(sf["pass_mean"]))
     ss, de, below = p["metrics"]["ssim"], p["metrics"]["dE_ref"], p["ssim_below_0.85"]
     row("„Nie psuć” (portfolio)", "SSIM ≥ 0.85, średnie ΔE ≤ 6",
         f"SSIM mediana {ss['median']:.3f}, {below}/{p['images']} zdjęć poniżej 0.85; ΔE średnie {de['mean']:.2f}",

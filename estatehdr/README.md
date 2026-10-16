@@ -283,7 +283,7 @@ Szczegóły: [reports/perf.json](reports/perf.json).
 
 ### 6.7 Kryteria akceptacji ze SPEC: podsumowanie
 
-Ta tabela też powstaje z raportów. 32 kryteria: niespełnione 4, spełnione częściowo 3, bez pomiaru 3.
+Ta tabela też powstaje z raportów. 35 kryteriów: niespełnione 8, spełnione częściowo 2, bez pomiaru 0.
 „Tak (test)” oznacza, że kryterium sprawdza test automatyczny, bez osobnej liczby w raporcie. Przyczyny braków
 opisuje §9.
 
@@ -291,9 +291,11 @@ opisuje §9.
 |---|---|---|---|
 | Odporność batcha | błędny plik nie zatrzymuje batcha | uszkodzony plik, niepełna seria, brak EXIF, awaria workera (`tests/test_robustness.py`) | tak (test) |
 | Grupowanie | 100% z EXIF i bez | 6/6 i 6/6 | tak |
-| Ekspozycje względne | ±0.1 EV od GT | `test_exposures_without_exif` | tak (test) |
-| Wyrównanie | ≤ 0.6 px statyw, ≤ 0.8 px z ręki (przesunięcia do 20 px) | 0.29–0.45 px i 0.22–0.27 px; sprawdzone przesunięcia do 10 px | częściowo |
-| Duchy | < 2% maski ducha odbiega o > 0.5 EV | `test_deghosting_moving_object` | tak (test) |
+| Ekspozycje względne (z EXIF) | ±0.1 EV od GT | maks. błąd 0.00 EV | tak |
+| Ekspozycje względne (bez EXIF) | ±0.1 EV od GT | maks. błąd 2.00 EV | **nie** |
+| Wyrównanie (serie GT) | ≤ 0.6 px statyw, ≤ 0.8 px z ręki | 0.29–0.45 px i 0.22–0.27 px (przesunięcia do 10 px) | tak |
+| Wyrównanie: z ręki z perspektywą | ≤ 0.8 px przy przesunięciach do 20 px | średnio 1.24 px, najgorsza klatka 1.43 px (przesunięcia 18–19 px) | **nie** |
+| Duchy | < 2% maski ducha odbiega o > 0.5 EV | 0.45% (bez deghostingu 14.6%) | tak |
 | Przepalenia poza światłami | < 0.5% | 0.02–0.03% | tak |
 | Zaczernienia | < 0.5% | 0.00–0.01% | tak |
 | Halo okno/ściana | < 4 L* | maks. 3.3 L* | tak |
@@ -303,17 +305,18 @@ opisuje §9.
 | Okna: odzyskiwalne przepalenia | < 5% | 0.0% | tak |
 | Okna: L* widoku | 55–80 (premium 45–70) | neutral 72.0, airy 76.4, premium 66.5 | tak |
 | Okna: detal | ≥ 0.6× GT | 1.04–1.22× | tak |
-| Okna: IoU maski | ≥ 0.8 | test sprawdza > 0.6 | nie zmierzone |
+| Okna: IoU maski | ≥ 0.8 | min. 0.99 (szyby) | tak |
 | Neutralność ścian | ΔE ≤ 3.0 | neutral 3.06, airy 3.03, premium 3.14 | **nie** |
-| Neutralność w strefie żarówek | ΔE ≤ 5.0 | — | nie zmierzone |
-| Ściana akcentowa | ΔH < 10° | `test_white_balance_removes_cast` (akcent zostaje czerwony) | tak (test) |
+| Neutralność w strefie żarówek | ΔE ≤ 5.0 | 4.88–9.01 | **nie** |
+| Ściana akcentowa | ΔH < 10° | 78° (kolor o małym nasyceniu) | **nie** |
 | Piony | mediana ≤ 0.5° | 0.06–0.17° | tak |
 | Dystorsja | \|k1 − k1_GT\| ≤ 0.02 | maks. 0.012 | tak |
 | Winieta | resztka w rogu ≤ 8% | płaskie sceny ≤ 8% (test); wnętrza syntetyczne: korekta odrzucana przez strażniki (D-44) | częściowo |
 | Aberracja chromatyczna | ≤ 0.3 px na brzegu | liniowe 0.33–0.65 px, pipeline 0.42–1.11 px | **nie** |
 | Szum | σ niższe niż w klatce | 6/6 RAW, o 31–71% | tak |
-| Ostrość | ≥ 0.9× wejścia | — | nie zmierzone |
-| Jedna klatka: przepalenia i zaczernienia | spadają | przepalenia 0.07 → 0.43%, zaczernienia 0.03 → 0.36% (portfolio, 6.2) | **nie** |
+| Ostrość krawędzi | ≥ 0.9× wejścia | min. 0.97× | tak |
+| Jedna klatka: przepalenia | spadają | 9.39 → 5.93% (spadek na 11/11) | tak |
+| Jedna klatka: zaczernienia | spadają | 0.016 → 0.025% (spadek na 4/11; wszędzie < 0.5%) | **nie** |
 | „Nie psuć” (portfolio) | SSIM ≥ 0.85, średnie ΔE ≤ 6 | SSIM mediana 0.970, 4/104 zdjęć poniżej 0.85; ΔE średnie 4.68 | częściowo |
 | Maska nieba | IoU ≥ 0.85 | 0.94 | tak |
 | Twilight | niebo w stylu, okna świecą, fasada ciemniejsza | `test_twilight_*` | tak (test) |
