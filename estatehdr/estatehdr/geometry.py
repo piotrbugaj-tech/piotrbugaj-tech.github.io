@@ -22,6 +22,7 @@ import cv2
 import numpy as np
 
 from . import accel
+from .config import mode_of
 from .imgutil import LUMA, resize_max
 
 log = logging.getLogger(__name__)
@@ -320,7 +321,7 @@ def correct(img: np.ndarray, cfg: dict, meta=None) -> tuple[np.ndarray, dict]:
     info = {}
     # 1. distortion
     k1 = 0.0
-    if gcfg.get("distortion", "auto") == "auto":
+    if mode_of(gcfg.get("distortion", "auto")) == "auto":
         k1, info["distortion"] = estimate_distortion(g8, float(gcfg.get("max_k1", 0.18)), float(gcfg.get("min_k1", 0.03)))
     if abs(k1) > 0:
         mx, my = undistort_map(ws, hs, k1)

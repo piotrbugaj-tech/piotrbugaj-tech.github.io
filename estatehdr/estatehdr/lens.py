@@ -16,6 +16,7 @@ import logging
 import cv2
 import numpy as np
 
+from .config import mode_of
 from .imgutil import chmax, luminance, resize_max
 
 log = logging.getLogger(__name__)
@@ -130,7 +131,7 @@ def estimate_vignetting(img: np.ndarray, max_side: int = 800) -> tuple[float, fl
 def correct(rad: np.ndarray, cfg: dict) -> tuple[np.ndarray, dict]:
     lcfg = cfg.get("lens", {})
     info = {}
-    if lcfg.get("ca", "auto") != "off":
+    if mode_of(lcfg.get("ca", "auto")) != "off":
         sR, sB, ci = estimate_ca(rad)
         info["ca"] = ci
         if abs(sR - 1) > 2e-5:
@@ -139,7 +140,7 @@ def correct(rad: np.ndarray, cfg: dict) -> tuple[np.ndarray, dict]:
             rad[..., 2] = _radial_scale(rad[..., 2], sB)
         info["ca_scales"] = [sR, sB]
     vmode = lcfg.get("vignetting", "auto")
-    if vmode != "off":
+    if mode_of(vmode) != "off":
         if isinstance(vmode, (int, float)) and not isinstance(vmode, bool):
             # manual: corner fall-off fraction to undo, e.g. 0.25 = corners 25% darker
             a, b, vi = -float(vmode), 0.0, {"manual": float(vmode)}

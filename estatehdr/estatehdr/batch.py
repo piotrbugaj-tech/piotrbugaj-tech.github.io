@@ -7,21 +7,26 @@ import multiprocessing as mp
 import os
 import time
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
+from concurrent.futures.process import BrokenProcessPool
 
 from .config import Config
-from .grouping import Group, load_groups, save_groups, scan_folder
+from .grouping import Group, load_groups, save_groups, scan_folder, unique_names
+from .io.metadata import RAW_MIN_PIXELS
 
 log = logging.getLogger(__name__)
 
 
+def frame_pixels(f) -> int:
+    """Pixel count for the memory estimate (0 = unknown)."""
+    px = (f.width or 0) * (f.height or 0)
+    if f.kind == "raw" and px < RAW_MIN_PIXELS:
+        return 24_000_000  # only a preview size is known: assume a typical sensor
+    return px
+
+
 def estimate_series_bytes(group: Group) -> int:
     """Peak memory estimate of one series (decoded frames + float buffers)."""
-    px = 0
-    for f in group.frames:
-        if f.width and f.height:
-            px = max(px, f.width * f.height)
-    if not px:
-        px = 24_000_000
+    px = max((frame_pixels(f) for f in group.frames), default=0) or 24_000_000
     n = len(group.frames)
     bytes_per_frame = 6 if any(f.kind in ("raw", "tiff") for f in group.frames) else 3
     # decoded frames + radiance (12) + display image (12) + temporaries (~24)
@@ -56,8 +61,19 @@ def _worker_init(threads: int, log_level: int):
     logging.basicConfig(level=log_level, format="%(asctime)s %(levelname)s %(processName)s %(name)s: %(message)s")
 
 
+CRASH_ENV = "ESTATEHDR_TEST_CRASH_SERIES"  # tests only: the named series kills its process
+WORKER_CRASHED = "worker crashed (out of memory or native crash)"
+
+
+def _test_crash_hook(group: Group):
+    if os.environ.get(CRASH_ENV) == group.name:
+        os._exit(1)
+
+
 def _run_one(group: Group, cfg_dict: dict, out_dir: str, masks: dict | None, queue=None, index: int = 0):
     from .pipeline import process_group
+    _test_crash_hook(group)
+
     def report(frac, msg):
         try:
             queue.put_nowait({"series": group.name, "index": index, "frac": frac, "stage": msg})
@@ -67,12 +83,25 @@ def _run_one(group: Group, cfg_dict: dict, out_dir: str, masks: dict | None, que
                          extra_masks=masks)
 
 
+def _error_result(g: Group, msg: str) -> dict:
+    return {"name": g.name, "status": "error", "error": msg, "files": [f.path for f in g.frames],
+            "warnings": list(g.warnings), "outputs": {}}
+
+
+def _write_json(path: str, data: dict):
+    tmp = path + ".part"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=1, default=str)
+    os.replace(tmp, path)  # never leave a half-written report behind
+
+
 def run_batch(input_dir: str | None, out_dir: str, cfg: Config, groups_file: str | None = None,
               files: list[str] | None = None, progress_cb=None, masks: dict | None = None) -> dict:
-    """Group + process everything; returns the report dict (also written to report.json)."""
+    """Group + process everything; returns the report dict (also written to report.json, after
+    every finished series with ``complete: false`` and at the end with ``complete: true``)."""
     t0 = time.time()
     os.makedirs(out_dir, exist_ok=True)
-    failures = []
+    failures, skipped = [], []
     if groups_file:
         groups = load_groups(groups_file, base=input_dir)
     else:
@@ -87,17 +116,47 @@ def run_batch(input_dir: str | None, out_dir: str, cfg: Config, groups_file: str
                     failures.append({"file": p, "error": str(exc)})
             groups = group_frames(metas, cfg.get("grouping", {}))
         else:
-            groups, failures = scan_folder(input_dir, cfg.get("grouping", {}), bool(cfg.get("input", {}).get("recursive", True)))
-    save_groups(groups, os.path.join(out_dir, "groups.json"))
+            groups, failures = scan_folder(input_dir, cfg.get("grouping", {}),
+                                           bool(cfg.get("input", {}).get("recursive", True)),
+                                           exclude=[out_dir], skipped=skipped)
+    unique_names(groups)  # outputs are named after the series
+    save_groups(groups, os.path.join(out_dir, "groups.json"), base=input_dir)
     if not groups:
         log.warning("no images found")
     workers = plan_workers(groups, cfg)
     cpu = os.cpu_count() or 2
-    threads = cfg.get("runtime", {}).get("opencv_threads", "auto")
-    threads = int(threads) if threads not in (None, "auto") else max(1, cpu // workers)
+    threads_cfg = cfg.get("runtime", {}).get("opencv_threads", "auto")
+    threads = int(threads_cfg) if threads_cfg not in (None, "auto") else max(1, cpu // workers)
     log.info("processing %d series with %d worker(s), %d OpenCV thread(s) each", len(groups), workers, threads)
-    results = []
-    done = 0
+    results = {}  # index -> result
+    report_path = os.path.join(out_dir, "report.json")
+
+    def build_report(complete: bool) -> dict:
+        res = [results[i] for i in sorted(results)]
+        try:
+            import resource
+            peak = max(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+                       resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss)
+            peak_gb = round(peak / (1 << 20), 2)  # ru_maxrss is in KiB on Linux
+        except Exception:
+            peak_gb = None
+        return {
+            "input": input_dir, "output": out_dir, "preset": cfg.get("preset"), "peak_rss_gb": peak_gb,
+            "complete": complete, "series": res, "unreadable": failures, "skipped": skipped,
+            "pending": [g.name for i, g in enumerate(groups) if i not in results],
+            "ok": sum(r["status"] == "ok" for r in res),
+            "failed": sum(r["status"] != "ok" for r in res) + len(failures),
+            "seconds": round(time.time() - t0, 1), "workers": workers,
+        }
+
+    def finished(i: int, g: Group, r: dict):
+        results[i] = r
+        _write_json(report_path, build_report(False))
+        if progress_cb:
+            progress_cb({"series": g.name, "index": i, "total": len(groups), "frac": 1.0, "stage": "gotowe",
+                         "result": r})
+
+    _write_json(report_path, build_report(False))
     if workers <= 1:
         import cv2
         cv2.setNumThreads(threads)
@@ -106,69 +165,69 @@ def run_batch(input_dir: str | None, out_dir: str, cfg: Config, groups_file: str
             def prog(frac, msg, _i=i, _g=g):
                 if progress_cb:
                     progress_cb({"series": _g.name, "index": _i, "total": len(groups), "frac": frac, "stage": msg})
-            r = process_group(g, cfg, out_dir, progress=prog, extra_masks=(masks or {}).get(g.name))
-            results.append(r)
-            done += 1
-            if progress_cb:
-                progress_cb({"series": g.name, "index": i, "total": len(groups), "frac": 1.0, "stage": "gotowe",
-                             "result": r})
+            _test_crash_hook(g)
+            finished(i, g, process_group(g, cfg, out_dir, progress=prog, extra_masks=(masks or {}).get(g.name)))
     else:
-        ctx = mp.get_context("spawn")
-        mgr = ctx.Manager() if progress_cb else None
-        queue = mgr.Queue() if mgr else None
-
-        def drain():
-            while queue is not None:
-                try:
-                    ev = queue.get_nowait()
-                except Exception:
-                    return
-                ev["total"] = len(groups)
-                try:
-                    progress_cb(ev)
-                except Exception:
-                    pass
-        try:
-            with ProcessPoolExecutor(max_workers=workers, mp_context=ctx, initializer=_worker_init,
-                                     initargs=(threads, logging.getLogger().level or logging.INFO)) as ex:
-                futs = {ex.submit(_run_one, g, dict(cfg), out_dir, (masks or {}).get(g.name), queue, i): (i, g)
-                        for i, g in enumerate(groups)}
-                pending = set(futs)
-                while pending:
-                    finished, pending = wait(pending, timeout=0.5, return_when=FIRST_COMPLETED)
-                    drain()
-                    for fut in finished:
-                        i, g = futs[fut]
-                        try:
-                            r = fut.result()
-                        except Exception as exc:  # worker crash (e.g. killed by the OS)
-                            r = {"name": g.name, "status": "error", "error": f"worker crashed: {exc}",
-                                 "files": [f.path for f in g.frames]}
-                        results.append(r)
-                        done += 1
-                        if progress_cb:
-                            progress_cb({"series": g.name, "index": i, "total": len(groups), "frac": 1.0,
-                                         "stage": "gotowe", "result": r})
-                drain()
-        finally:
-            if mgr is not None:
-                mgr.shutdown()
-    order = {g.name: i for i, g in enumerate(groups)}
-    results.sort(key=lambda r: order.get(r["name"], 0))
-    try:
-        import resource
-        peak = max(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss, resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss)
-        peak_gb = round(peak / (1 << 20), 2)  # ru_maxrss is in KiB on Linux
-    except Exception:
-        peak_gb = None
-    report = {
-        "input": input_dir, "output": out_dir, "preset": cfg.get("preset"), "peak_rss_gb": peak_gb,
-        "series": results, "unreadable": failures,
-        "ok": sum(r["status"] == "ok" for r in results),
-        "failed": sum(r["status"] != "ok" for r in results) + len(failures),
-        "seconds": round(time.time() - t0, 1), "workers": workers,
-    }
-    with open(os.path.join(out_dir, "report.json"), "w", encoding="utf-8") as fh:
-        json.dump(report, fh, indent=1, default=str)
+        _run_pool(groups, cfg, out_dir, masks, workers, threads, progress_cb, finished)
+    report = build_report(True)
+    _write_json(report_path, report)
     log.info("done: %d ok, %d failed in %.1fs -> %s", report["ok"], report["failed"], report["seconds"], out_dir)
     return report
+
+
+def _run_pool(groups, cfg, out_dir, masks, workers, threads, progress_cb, finished):
+    """Worker processes.  If one dies (OOM kill, native crash), the pool breaks and every
+    unfinished series raises BrokenProcessPool: those are re-run one by one, each in a fresh
+    single-worker pool, so only the series that really kills its worker is reported."""
+    ctx = mp.get_context("spawn")
+    mgr = ctx.Manager() if progress_cb else None
+    queue = mgr.Queue() if mgr else None
+    level = logging.getLogger().level or logging.INFO
+
+    def drain():
+        while queue is not None:
+            try:
+                ev = queue.get_nowait()
+            except Exception:
+                return
+            ev["total"] = len(groups)
+            try:
+                progress_cb(ev)
+            except Exception:
+                pass
+
+    def run(items, n_workers, n_threads) -> list:
+        """Run (index, group) items in one pool; returns the items lost to a broken pool."""
+        lost = []
+        with ProcessPoolExecutor(max_workers=n_workers, mp_context=ctx, initializer=_worker_init,
+                                 initargs=(n_threads, level)) as ex:
+            futs = {ex.submit(_run_one, g, dict(cfg), out_dir, (masks or {}).get(g.name), queue, i): (i, g)
+                    for i, g in items}
+            pending = set(futs)
+            while pending:
+                done, pending = wait(pending, timeout=0.5, return_when=FIRST_COMPLETED)
+                drain()
+                for fut in done:
+                    i, g = futs[fut]
+                    try:
+                        r = fut.result()
+                    except BrokenProcessPool:
+                        lost.append((i, g))  # maybe not this series' fault: decided by the re-run
+                        continue
+                    except Exception as exc:
+                        r = _error_result(g, f"{type(exc).__name__}: {exc}")
+                    finished(i, g, r)
+            drain()
+        return lost
+
+    try:
+        lost = run(list(enumerate(groups)), workers, threads)
+        if lost:
+            log.warning("a worker process died; re-running %d unfinished series one at a time", len(lost))
+        for i, g in sorted(lost, key=lambda x: x[0]):
+            if run([(i, g)], 1, max(threads, (os.cpu_count() or 2) // 2)):
+                log.error("[%s] %s", g.name, WORKER_CRASHED)
+                finished(i, g, _error_result(g, WORKER_CRASHED))
+    finally:
+        if mgr is not None:
+            mgr.shutdown()

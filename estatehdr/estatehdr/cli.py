@@ -99,14 +99,25 @@ def main(argv=None):
     if a.cmd == "group":
         _setup_logging(a.verbose)
         from .grouping import save_groups, scan_folder
+        inp = os.path.abspath(a.input)  # absolute paths: the file works from any working directory
+        if not os.path.isdir(inp):
+            print(f"błąd: nie ma takiego folderu: {a.input}", file=sys.stderr)
+            return 2
         cfg = load_config(overrides=(["grouping.mode=fixed", f"grouping.bracket_size={a.bracket_size}"] if a.bracket_size else []))
-        groups, failures = scan_folder(a.input, cfg.get("grouping", {}))
-        out = a.output or os.path.join(a.input, "groups.json")
-        save_groups(groups, out)
+        out = os.path.abspath(a.output or os.path.join(inp, "groups.json"))
+        skipped = []  # RAW+JPEG siblings, EstateHDR outputs (also in a custom output folder inside the input)
+        groups, failures = scan_folder(inp, cfg.get("grouping", {}), bool(cfg.get("input", {}).get("recursive", True)),
+                                       skipped=skipped)
+        if not groups and not failures:
+            print(f"brak obsługiwanych zdjęć (RAW/JPEG/TIFF/PNG) w: {a.input}", file=sys.stderr)
+            return 1
+        save_groups(groups, out, base=inp)
         for gr in groups:
             print(f"{gr.name:30s} {gr.size} klatek  {' '.join(f.name for f in gr.frames)}  {'; '.join(gr.warnings)}")
         for f in failures:
             print(f"POMINIĘTO {f['file']}: {f['error']}")
+        for f in skipped:
+            print(f"POMINIĘTO {f['file']}: {f['reason']}")
         print(f"zapisano: {out}")
         return 0
 
@@ -118,6 +129,9 @@ def main(argv=None):
 
     # process
     inp = os.path.abspath(a.input)
+    if not os.path.exists(inp):  # before anything is created
+        print(f"błąd: nie ma takiego pliku ani folderu: {a.input}", file=sys.stderr)
+        return 2
     files = None
     if os.path.isfile(inp):
         files = [inp]
@@ -125,9 +139,19 @@ def main(argv=None):
     else:
         base = inp
     out = os.path.abspath(a.output or os.path.join(base, "estatehdr_output"))
+    cfg = load_config(a.config, a.preset, _module_overrides(a) + list(a.set))
+    if not a.groups:
+        from .grouping import list_images
+        from .io.metadata import SUPPORTED_EXTS
+        if files:
+            found = os.path.splitext(inp)[1].lower() in SUPPORTED_EXTS
+        else:
+            found = bool(list_images(inp, bool(cfg.get("input", {}).get("recursive", True)), exclude=[out]))
+        if not found:
+            print(f"brak obsługiwanych zdjęć (RAW/JPEG/TIFF/PNG) w: {a.input}", file=sys.stderr)
+            return 1
     os.makedirs(out, exist_ok=True)
     _setup_logging(a.verbose, os.path.join(out, "estatehdr.log"))
-    cfg = load_config(a.config, a.preset, _module_overrides(a) + list(a.set))
     from .batch import run_batch
     masks = None
     if cfg["modules"]["remove"].get("enabled"):

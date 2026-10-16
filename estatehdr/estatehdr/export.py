@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 
 from . import accel
+from .config import mode_of
 from .imgutil import LUMA, row_strips
 from .io import writer
 
@@ -68,8 +69,9 @@ def export_all(img: np.ndarray, group, ref_meta, cfg, out_dir: str, result: dict
         fname = tmpl.format(name=group.name, size=name, preset=preset) + ".jpg"
         path = os.path.join(out_dir, fname)
         exif = None
-        if ecfg.get("exif", "copy") != "none":
-            exif = writer.build_exif(ref_meta if ecfg.get("exif", "copy") == "copy" else None,
+        exif_mode = mode_of(ecfg.get("exif", "copy"), "copy")  # copy | minimal | none (off)
+        if exif_mode != "off":
+            exif = writer.build_exif(ref_meta if exif_mode == "copy" else None,
                                      im8.shape[1], im8.shape[0], desc)
         writer.write_jpeg(path, im8, int(size.get("quality", 92)), exif, subsampling=ecfg.get("subsampling", "4:4:4"))
         outputs[name] = {"path": path, "width": int(im8.shape[1]), "height": int(im8.shape[0])}

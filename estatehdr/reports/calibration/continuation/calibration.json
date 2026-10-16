@@ -1,0 +1,585 @@
+{
+ "preset": "neutral",
+ "mode": "synthetic",
+ "seconds": 1507.2,
+ "loss_before": 4.768742651962771,
+ "loss_after": 2.994346939897126,
+ "trajectory": [
+  {
+   "step": 0,
+   "loss": 4.768742651962771,
+   "params": {
+    "white_balance.target_cct": 6600.0,
+    "white_balance.global_strength": 0.75,
+    "white_balance.mixed_light_strength": 1.0,
+    "white_balance.tint_strength": 0.75,
+    "white_balance.max_local_shift": 1.225,
+    "tonemap.target_key": 0.63,
+    "tonemap.compress_shadows": 0.56,
+    "tonemap.compress_highlights": 0.68,
+    "windows.exterior_target": 0.595
+   },
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 1.1662542819976807,
+     "wall_L": 1.2641235351562499,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.169229793548584,
+     "ssim": 0.17831639324548187
+    },
+    "IMG_0005": {
+     "wall_dE": 0.651036262512207,
+     "wall_L": 4.619106674194335,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 0.8772504806518555,
+     "ssim": 0.17675299725971683
+    },
+    "IMG_0008": {
+     "wall_dE": 1.073697566986084,
+     "wall_L": 1.5759727478027343,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.360651206970215,
+     "ssim": 0.19383601556317087
+    }
+   }
+  },
+  {
+   "step": 1,
+   "round": 1,
+   "param": "white_balance.target_cct",
+   "value": 7000.0,
+   "loss": 4.762298401153347,
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.9875798225402832,
+     "wall_L": 1.2666091918945312,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.1685341835021974,
+     "ssim": 0.17635724958986376
+    },
+    "IMG_0005": {
+     "wall_dE": 1.1391918659210205,
+     "wall_L": 4.588663101196289,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 0.9398379325866699,
+     "ssim": 0.18665948319546843
+    },
+    "IMG_0008": {
+     "wall_dE": 0.6683144569396973,
+     "wall_L": 1.609540557861328,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.366922664642334,
+     "ssim": 0.188684693590359
+    }
+   }
+  },
+  {
+   "step": 2,
+   "round": 1,
+   "param": "white_balance.global_strength",
+   "value": 0.65,
+   "loss": 4.7200346059473315,
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.9791290760040283,
+     "wall_L": 1.3260154724121094,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.1897294044494628,
+     "ssim": 0.2020857424181024
+    },
+    "IMG_0005": {
+     "wall_dE": 0.9491627216339111,
+     "wall_L": 4.634042358398437,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 0.9144346237182618,
+     "ssim": 0.17914302185790465
+    },
+    "IMG_0008": {
+     "wall_dE": 0.6251204013824463,
+     "wall_L": 1.6007400512695311,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.3689165115356445,
+     "ssim": 0.1915844327621552
+    }
+   }
+  },
+  {
+   "step": 3,
+   "round": 1,
+   "param": "white_balance.global_strength",
+   "value": 0.55,
+   "loss": 4.612033796062005,
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.9343125820159912,
+     "wall_L": 1.264977264404297,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.168740463256836,
+     "ssim": 0.18231056663400347
+    },
+    "IMG_0005": {
+     "wall_dE": 0.7993249893188477,
+     "wall_L": 4.635474014282226,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 0.8943088531494141,
+     "ssim": 0.17971508375843204
+    },
+    "IMG_0008": {
+     "wall_dE": 0.5841307640075684,
+     "wall_L": 1.6029647827148437,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.3749486923217775,
+     "ssim": 0.21489333232177676
+    }
+   }
+  },
+  {
+   "step": 4,
+   "round": 1,
+   "param": "white_balance.global_strength",
+   "value": 0.5,
+   "loss": 4.576377780153114,
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.9296841621398926,
+     "wall_L": 1.2620407104492186,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.1679834365844728,
+     "ssim": 0.1773925485464487
+    },
+    "IMG_0005": {
+     "wall_dE": 0.7502801418304443,
+     "wall_L": 4.597251892089844,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 0.886943244934082,
+     "ssim": 0.18498747221261924
+    },
+    "IMG_0008": {
+     "wall_dE": 0.5600996017456055,
+     "wall_L": 1.6096893310546874,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.379684066772461,
+     "ssim": 0.22309673209956693
+    }
+   }
+  },
+  {
+   "step": 5,
+   "round": 1,
+   "param": "white_balance.tint_strength",
+   "value": 0.95,
+   "loss": 4.42151097716262,
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.5930781364440918,
+     "wall_L": 1.2764236450195312,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.165391445159912,
+     "ssim": 0.1740723017094452
+    },
+    "IMG_0005": {
+     "wall_dE": 0.6112751960754395,
+     "wall_L": 4.593875885009766,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 0.8912060737609864,
+     "ssim": 0.18317804576751384
+    },
+    "IMG_0008": {
+     "wall_dE": 0.3075900077819824,
+     "wall_L": 1.784307861328125,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.4251221656799318,
+     "ssim": 0.2590121677511348
+    }
+   }
+  },
+  {
+   "step": 6,
+   "round": 1,
+   "param": "white_balance.tint_strength",
+   "value": 1.0,
+   "loss": 4.276140612841162,
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.5385580062866211,
+     "wall_L": 1.2206268310546875,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.177357578277588,
+     "ssim": 0.21545620523837705
+    },
+    "IMG_0005": {
+     "wall_dE": 0.5991325378417969,
+     "wall_L": 4.615024566650391,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 0.891965675354004,
+     "ssim": 0.17920468085396757
+    },
+    "IMG_0008": {
+     "wall_dE": 0.2544431686401367,
+     "wall_L": 1.5629150390625,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.374524211883545,
+     "ssim": 0.19921333737987013
+    }
+   }
+  },
+  {
+   "step": 7,
+   "round": 1,
+   "param": "tonemap.target_key",
+   "value": 0.67,
+   "loss": 3.5262211778783166,
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.6213350296020508,
+     "wall_L": 0.3683303833007812,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.357200050354004,
+     "ssim": 0.24172738966809382
+    },
+    "IMG_0005": {
+     "wall_dE": 0.6677260398864746,
+     "wall_L": 3.422200012207031,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 0.9737054824829102,
+     "ssim": 0.2008464622371342
+    },
+    "IMG_0008": {
+     "wall_dE": 0.3529071807861328,
+     "wall_L": 0.5753791809082031,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.563905143737793,
+     "ssim": 0.23340117846434083
+    }
+   }
+  },
+  {
+   "step": 8,
+   "round": 1,
+   "param": "tonemap.target_key",
+   "value": 0.7,
+   "loss": 3.058961676397029,
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.6555991172790527,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.431015205383301,
+     "ssim": 0.2230367659327095
+    },
+    "IMG_0005": {
+     "wall_dE": 0.7351760864257812,
+     "wall_L": 2.4695526123046876,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.0414139747619628,
+     "ssim": 0.1854354722877951
+    },
+    "IMG_0008": {
+     "wall_dE": 0.4289982318878174,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.7185312271118165,
+     "ssim": 0.2881263358161632
+    }
+   }
+  },
+  {
+   "step": 9,
+   "round": 1,
+   "param": "tonemap.compress_shadows",
+   "value": 0.64,
+   "loss": 3.0460702420917407,
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.6612346172332764,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.4214728355407715,
+     "ssim": 0.21872201831132343
+    },
+    "IMG_0005": {
+     "wall_dE": 0.7362391948699951,
+     "wall_L": 2.506230926513672,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.0279345512390137,
+     "ssim": 0.17976704821942735
+    },
+    "IMG_0008": {
+     "wall_dE": 0.42276859283447266,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.6921642303466797,
+     "ssim": 0.27167671116658965
+    }
+   }
+  },
+  {
+   "step": 10,
+   "round": 2,
+   "param": "white_balance.target_cct",
+   "value": 7200.0,
+   "loss": 3.0276260462011044,
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.6495153903961182,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.4237699508666992,
+     "ssim": 0.21635362152391302
+    },
+    "IMG_0005": {
+     "wall_dE": 0.7446928024291992,
+     "wall_L": 2.465105438232422,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.03931941986084,
+     "ssim": 0.20088378967911424
+    },
+    "IMG_0008": {
+     "wall_dE": 0.37749457359313965,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.703358268737793,
+     "ssim": 0.26238488328407583
+    }
+   }
+  },
+  {
+   "step": 11,
+   "round": 2,
+   "param": "white_balance.target_cct",
+   "value": 7400.0,
+   "loss": 3.009592159172603,
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.641686201095581,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.423960876464844,
+     "ssim": 0.215658597042085
+    },
+    "IMG_0005": {
+     "wall_dE": 0.7413475513458252,
+     "wall_L": 2.4917816162109374,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.0373027801513672,
+     "ssim": 0.18821873153780944
+    },
+    "IMG_0008": {
+     "wall_dE": 0.32516932487487793,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.7034765243530274,
+     "ssim": 0.2601742744414557
+    }
+   }
+  },
+  {
+   "step": 12,
+   "round": 2,
+   "param": "white_balance.max_local_shift",
+   "value": 1.375,
+   "loss": 3.005420916150007,
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.6402721405029297,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.4239314079284668,
+     "ssim": 0.21565851539778125
+    },
+    "IMG_0005": {
+     "wall_dE": 0.7413475513458252,
+     "wall_L": 2.4917816162109374,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.0373027801513672,
+     "ssim": 0.18821873153780944
+    },
+    "IMG_0008": {
+     "wall_dE": 0.3141350746154785,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.7034400939941408,
+     "ssim": 0.2601748367652854
+    }
+   }
+  },
+  {
+   "step": 13,
+   "round": 2,
+   "param": "tonemap.compress_highlights",
+   "value": 0.64,
+   "loss": 2.994346939897126,
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.6398835182189941,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.4191896438598635,
+     "ssim": 0.21620775436562556
+    },
+    "IMG_0005": {
+     "wall_dE": 0.7294809818267822,
+     "wall_L": 2.50667724609375,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.0368624687194825,
+     "ssim": 0.1847627334148192
+    },
+    "IMG_0008": {
+     "wall_dE": 0.30066466331481934,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.693293571472168,
+     "ssim": 0.25601823840507465
+    }
+   }
+  }
+ ],
+ "params_before": {
+  "white_balance.target_cct": 6600.0,
+  "white_balance.global_strength": 0.75,
+  "white_balance.mixed_light_strength": 1.0,
+  "white_balance.tint_strength": 0.75,
+  "white_balance.max_local_shift": 1.225,
+  "tonemap.target_key": 0.63,
+  "tonemap.compress_shadows": 0.56,
+  "tonemap.compress_highlights": 0.68,
+  "windows.exterior_target": 0.595
+ },
+ "params_after": {
+  "white_balance.target_cct": 7400.0,
+  "white_balance.global_strength": 0.5,
+  "white_balance.mixed_light_strength": 1.0,
+  "white_balance.tint_strength": 1.0,
+  "white_balance.max_local_shift": 1.375,
+  "tonemap.target_key": 0.7,
+  "tonemap.compress_shadows": 0.64,
+  "tonemap.compress_highlights": 0.64,
+  "windows.exterior_target": 0.595
+ }
+}

@@ -15,16 +15,18 @@ import logging
 import cv2
 import numpy as np
 
+from .config import mode_of
+
 log = logging.getLogger(__name__)
 _STATE = {"device": "cpu", "umat": False}
 MIN_PIXELS = 250_000  # smaller arrays are not worth the transfer
 
 
 def setup(device: str = "auto", force_umat: bool = False) -> str:
-    want = str(device or "auto").lower()
+    want = mode_of(device)
     name = "cpu"
     use = False
-    if want != "cpu":
+    if want not in ("cpu", "off"):
         try:
             if cv2.ocl.haveOpenCL():
                 cv2.ocl.setUseOpenCL(True)

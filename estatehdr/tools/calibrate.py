@@ -17,7 +17,7 @@ parameters.  Optimiser: coordinate search with step halving (deterministic).
 Usage:
   python tools/calibrate.py --input data/synthetic/input --synthetic-gt data/synthetic \\
       [--preset neutral] [--pairs DIR] [--rounds 3] [--out reports/calibration]
-Writes calibration.json (trajectory), calibrated.yaml (changed parameters, usable with
+Writes calibration.json (trajectory), calibrated.yaml (parameters that differ from config.yaml, usable with
 `--config`) and calibration.md (metrics before / after).
 """
 import argparse
@@ -231,9 +231,12 @@ def main():
             break
     _, _, evals1 = evaluate_all(series, cfg, a.preset, pairs)
     os.makedirs(a.out, exist_ok=True)
+    # every calibrated value that differs from the built-in config (so a run continued from
+    # --base-config still yields one self-contained file usable with --config)
+    builtin = load_config(None, a.preset)
     changed = {}
     for key, *_ in PARAMS:
-        v0, v1 = get(cfg0, key), get(cfg, key)
+        v0, v1 = get(builtin, key), get(cfg, key)
         if abs(float(v0) - float(v1)) > 1e-9:
             put(changed, key, v1)
     with open(os.path.join(a.out, "calibrated.yaml"), "w", encoding="utf-8") as fh:

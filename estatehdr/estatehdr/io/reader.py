@@ -5,10 +5,13 @@ memory low for 24-60 Mpx files; conversion to float happens per stage.
 The ``encoding`` field tells the linearisation stage what the code values
 mean: ``linear`` (RAW, linear TIFF), ``srgb`` (JPEG/PNG/8-bit TIFF) or
 ``unknown`` (16-bit TIFF without colour information; decided per series).
+Embedded ICC profiles other than sRGB are converted to sRGB (``icc.py``).
 """
 from __future__ import annotations
 
+import io
 import logging
+import os
 from dataclasses import dataclass
 
 import cv2
@@ -28,6 +31,7 @@ class Decoded:
     image: np.ndarray  # HxWx3 uint8/uint16, RGB
     encoding: str  # linear | srgb | unknown
     max_value: float
+    icc: str | None = None  # description of the input profile the pixels were converted from
 
     def as_float(self) -> np.ndarray:
         return self.image.astype(np.float32) * np.float32(1.0 / self.max_value)
@@ -55,32 +59,32 @@ def _decode_raw(path: str, half: bool, raw_cfg: dict) -> Decoded:
     return Decoded(rgb, "linear", 65535.0)
 
 
-def _decode_tiff(path: str) -> Decoded:
+def _decode_tiff(path: str) -> tuple[Decoded, bytes | None]:
     import tifffile
     try:
         with tifffile.TiffFile(path) as tf:
             page = tf.pages[0]
             arr = page.asarray()
-            has_icc = 34675 in page.tags
+            icc = page.tags[34675].value if 34675 in page.tags else None
     except Exception as exc:
         raise DecodeError(f"TIFF decode failed: {exc}") from exc
+    icc = bytes(icc) if icc else None
     if arr.ndim == 2:
         arr = np.repeat(arr[..., None], 3, -1)
     if arr.shape[-1] == 4:
         arr = arr[..., :3]
     if arr.dtype == np.uint8:
-        return Decoded(np.ascontiguousarray(arr), "srgb", 255.0)
+        return Decoded(np.ascontiguousarray(arr), "srgb", 255.0), icc
     if arr.dtype == np.uint16:
-        return Decoded(np.ascontiguousarray(arr), "srgb" if has_icc else "unknown", 65535.0)
+        return Decoded(np.ascontiguousarray(arr), "srgb" if icc else "unknown", 65535.0), icc
     if arr.dtype in (np.float32, np.float64, np.float16):
         a = np.clip(arr.astype(np.float32), 0, None)
         m = max(float(a.max()), 1e-6)
-        return Decoded((np.clip(a / m, 0, 1) * 65535).astype(np.uint16), "linear", 65535.0)
+        return Decoded((np.clip(a / m, 0, 1) * 65535).astype(np.uint16), "linear", 65535.0), icc
     raise DecodeError(f"unsupported TIFF dtype {arr.dtype}")
 
 
-def _decode_cv(path: str) -> Decoded:
-    data = np.fromfile(path, dtype=np.uint8)
+def _decode_cv(data: np.ndarray) -> Decoded:
     if data.size == 0:
         raise DecodeError("empty file")
     img = cv2.imdecode(data, cv2.IMREAD_UNCHANGED)
@@ -96,14 +100,63 @@ def _decode_cv(path: str) -> Decoded:
     return Decoded(np.ascontiguousarray(img), "srgb", maxv)
 
 
-def _check_truncated_jpeg(path: str):
-    with open(path, "rb") as fh:
-        fh.seek(0, 2)
-        size = fh.tell()
-        fh.seek(max(0, size - 2))
-        tail = fh.read(2)
-    if tail != b"\xff\xd9":
-        raise DecodeError("JPEG is truncated (missing end-of-image marker)")
+def jpeg_scan(buf: bytes) -> tuple[bool, bytes | None]:
+    """(complete, embedded ICC profile) of a JPEG file's bytes.  Complete = an EOI marker follows
+    the first scan of the main image.  Marker segments before it are skipped by their length
+    fields (the EXIF thumbnail's own EOI inside APP1 does not count) and entropy-coded data
+    cannot contain FFD9 (byte stuffing; RSTn are FFD0-FFD7), so data appended after EOI
+    (Samsung trailers, Motion Photo videos, padding) is fine."""
+    n = len(buf)
+    if n < 4 or buf[0] != 0xFF or buf[1] != 0xD8:
+        return True, None  # not a JPEG stream: the decoder reports it
+    chunks = {}
+    i = 2
+    while i + 4 <= n:
+        if buf[i] != 0xFF:  # stray byte between segments: resynchronise
+            i += 1
+            continue
+        m = buf[i + 1]
+        if m == 0xFF:  # fill byte
+            i += 1
+            continue
+        if m == 0x01 or 0xD0 <= m <= 0xD8:  # markers without a length field
+            i += 2
+            continue
+        if m == 0xD9:  # EOI before any image data
+            break
+        seg = (buf[i + 2] << 8) | buf[i + 3]
+        if m == 0xE2 and seg > 16 and buf[i + 4:i + 16] == b"ICC_PROFILE\0":
+            chunks[buf[i + 16]] = buf[i + 18:i + 2 + seg]
+        if m == 0xDA:  # start of scan
+            return buf.find(b"\xff\xd9", i + 2 + seg) >= 0, (b"".join(chunks[k] for k in sorted(chunks)) or None)
+        i += 2 + seg
+    return False, None
+
+
+def _png_icc(buf: bytes) -> bytes | None:
+    try:
+        from PIL import Image
+        with Image.open(io.BytesIO(buf)) as im:
+            return im.info.get("icc_profile") or None
+    except Exception:
+        return None
+
+
+def _color_manage(d: Decoded, icc: bytes | None, path: str):
+    """Convert pixels tagged with a non-sRGB ICC profile to sRGB (in place)."""
+    if not icc:
+        return
+    from . import icc as icc_mod
+    try:
+        need, desc = icc_mod.inspect(icc)
+        if not need:
+            return
+        icc_mod.to_srgb(d.image, icc, linear=d.encoding == "linear")
+    except Exception as exc:  # broken / unsupported profile: keep the pixels as they are
+        log.warning("%s: embedded ICC profile not applied (%s); assuming sRGB", os.path.basename(path), exc)
+        return
+    d.icc = desc
+    log.info("%s: converted from ICC profile '%s' to sRGB", os.path.basename(path), desc)
 
 
 def apply_orientation(img: np.ndarray, orientation: int) -> np.ndarray:
@@ -121,18 +174,30 @@ def decode(path: str, orientation: int = 1, half: bool = False, raw_cfg: dict | 
     if kind == "raw":
         return _decode_raw(path, half, raw_cfg or {})
     if kind == "tiff":
-        d = _decode_tiff(path)
+        d, icc = _decode_tiff(path)
         d.image = apply_orientation(d.image, orientation)
         if half:
             d.image = d.image[::2, ::2].copy()
+        _color_manage(d, icc, path)
         return d
     if kind in ("jpeg", "png"):
+        try:
+            with open(path, "rb") as fh:
+                buf = fh.read()
+        except OSError as exc:
+            raise DecodeError(f"cannot read file: {exc}") from exc
         if kind == "jpeg":
-            _check_truncated_jpeg(path)
-        d = _decode_cv(path)
+            complete, icc = jpeg_scan(buf)
+            if not complete:
+                raise DecodeError("JPEG is truncated (missing end-of-image marker)")
+        else:
+            icc = _png_icc(buf)
+        d = _decode_cv(np.frombuffer(buf, np.uint8))
+        del buf
         d.image = apply_orientation(d.image, orientation)
         if half:
             d.image = cv2.resize(d.image, (d.image.shape[1] // 2, d.image.shape[0] // 2),
                                  interpolation=cv2.INTER_AREA)
+        _color_manage(d, icc, path)
         return d
     raise DecodeError(f"unsupported file type: {path}")

@@ -56,6 +56,7 @@ class FrameMeta:
     focal_length: float | None = None
     focal_35mm: float | None = None
     orientation: int = 1
+    software: str | None = None
     errors: list = field(default_factory=list)
 
     @property
@@ -138,6 +139,25 @@ def _pick(tags: dict, *names):
     return None
 
 
+def largest_dimensions(tags: dict) -> tuple[int | None, int | None]:
+    """Largest width x height pair over all IFDs of an EXIF/TIFF tag dict (exifread names:
+    "Image ImageWidth", "EXIF SubIFD0 ImageWidth", "EXIF ExifImageWidth", ...).  In NEF / DNG
+    files IFD0 often describes a small preview; the full image is in a sub-IFD."""
+    best, bw, bh = 0, None, None
+    for k in tags:
+        for wk, hk in (("ImageWidth", "ImageLength"), ("ExifImageWidth", "ExifImageLength")):
+            if not k.endswith(" " + wk):
+                continue
+            w = _to_float(tags[k])
+            h = _to_float(tags.get(k[: -len(wk)] + hk))
+            if w and h and w * h > best:
+                best, bw, bh = w * h, int(w), int(h)
+    return bw, bh
+
+
+RAW_MIN_PIXELS = 4_000_000  # smaller "image" sizes of a RAW file are previews, not the sensor
+
+
 def read_metadata(path: str) -> FrameMeta:
     kind = file_kind(path)
     meta = FrameMeta(path=path, kind=kind)
@@ -178,11 +198,16 @@ def read_metadata(path: str) -> FrameMeta:
                 meta.orientation = int(getattr(o, "values", [1])[0])
             except (ValueError, TypeError, IndexError):
                 meta.orientation = 1
-        meta.width = _to_float(_pick(tags, "ExifImageWidth", "ImageWidth"))
-        meta.height = _to_float(_pick(tags, "ExifImageLength", "ImageLength"))
-        meta.width = int(meta.width) if meta.width else None
-        meta.height = int(meta.height) if meta.height else None
-    if kind == "raw" and (meta.exposure_time is None or meta.timestamp is None):
+        meta.software = _to_str(tags.get("Image Software"))
+        if kind == "raw":
+            meta.width, meta.height = largest_dimensions(tags)
+        else:
+            meta.width = _to_float(_pick(tags, "ExifImageWidth", "ImageWidth"))
+            meta.height = _to_float(_pick(tags, "ExifImageLength", "ImageLength"))
+            meta.width = int(meta.width) if meta.width else None
+            meta.height = int(meta.height) if meta.height else None
+    if kind == "raw" and (meta.exposure_time is None or meta.timestamp is None or
+                          (meta.width or 0) * (meta.height or 0) < RAW_MIN_PIXELS):
         _raw_fallback(meta)
     if kind in ("jpeg", "png", "tiff") and (meta.width is None or meta.height is None):
         try:
@@ -215,7 +240,10 @@ def _raw_fallback(meta: FrameMeta):
                 meta.focal_length = float(o.focal_len)
             if meta.timestamp is None and o.timestamp > 0:
                 meta.timestamp, meta.timestamp_source = float(o.timestamp), "exif"
-            meta.width = meta.width or r.sizes.width
-            meta.height = meta.height or r.sizes.height
+            # sensor size without unpacking / demosaicing (cheap)
+            sz = r.sizes
+            w, h = (sz.width, sz.height) if sz.width and sz.height else (sz.raw_width, sz.raw_height)
+            if w and h and w * h > (meta.width or 0) * (meta.height or 0):
+                meta.width, meta.height = int(w), int(h)
     except Exception as exc:
         meta.errors.append(f"rawpy-meta: {exc}")

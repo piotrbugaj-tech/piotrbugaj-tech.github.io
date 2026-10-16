@@ -8,8 +8,15 @@
   F lens: chromatic aberration estimate vs ground truth
   G sky mask IoU vs ground-truth labels
   H noise before / after on single noisy RAW frames (HDR+)
-Writes reports/verification.json and reports/verification.md.
+
+Usage (from the project root, after ``python tools/make_synthetic.py``):
+  python tools/verify_hypotheses.py [OUTPUT_DIR]
+OUTPUT_DIR is a processed synthetic batch (report.json + quality.json) used by D, E and F; when it
+is not given (default output/verify_synthetic) or holds no report.json, the synthetic batch is run
+into it (preset neutral) and evaluated against the synthetic ground truth (quality.json, as
+tools/evaluate.py does).  Writes reports/verification.json.
 """
+import argparse
 import json
 import os
 import shutil
@@ -20,7 +27,8 @@ import cv2
 import numpy as np
 import tifffile
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, ROOT)
 from estatehdr import align, merge  # noqa: E402
 from estatehdr.config import load_config  # noqa: E402
 from estatehdr.denoise import estimate_sigma  # noqa: E402
@@ -29,8 +37,9 @@ from estatehdr.imgutil import LUMA, linear_to_srgb, luminance, resize_max  # noq
 from estatehdr.io.metadata import read_metadata  # noqa: E402
 from estatehdr.series import load_series  # noqa: E402
 
-SYN = "data/synthetic"
-OUT = "reports"
+SYN = os.path.join(ROOT, "data", "synthetic")
+OUT = os.path.join(ROOT, "reports")
+DEFAULT_BATCH = os.path.join(ROOT, "output", "verify_synthetic")
 
 
 def gt_params(scene):
@@ -172,7 +181,7 @@ def exp_sky(cfg):
 
 def exp_noise(cfg):
     from estatehdr.batch import run_batch
-    src = "data/public/hdrplus_single/input"
+    src = os.path.join(ROOT, "data", "public", "hdrplus_single", "input")
     if not os.path.isdir(src):
         return None
     out = tempfile.mkdtemp()
@@ -197,8 +206,29 @@ def exp_noise(cfg):
         shutil.rmtree(out, ignore_errors=True)
 
 
-def main():
-    out_dir = sys.argv[1] if len(sys.argv) > 1 else "output/synth_v12"
+def ensure_synthetic_batch(out_dir: str) -> str:
+    """Processed synthetic batch with quality.json in ``out_dir`` (run + evaluated when missing)."""
+    if not os.path.isdir(os.path.join(SYN, "input")):
+        sys.exit(f"no synthetic dataset in {SYN} - run: python tools/make_synthetic.py")
+    if not os.path.exists(os.path.join(out_dir, "report.json")):
+        from estatehdr.batch import run_batch
+        print(f"running the synthetic batch into {out_dir} ...")
+        run_batch(os.path.join(SYN, "input"), out_dir, load_config(None, "neutral"))
+    if not os.path.exists(os.path.join(out_dir, "quality.json")):
+        from estatehdr.quality.evaluate import evaluate_output_dir
+        from tools.evaluate import synthetic_gt_map
+        res = evaluate_output_dir(out_dir, synthetic_gt_map(SYN, out_dir))
+        with open(os.path.join(out_dir, "quality.json"), "w", encoding="utf-8") as fh:
+            json.dump(res, fh, indent=1, default=float)
+    return out_dir
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("output_dir", nargs="?", default=DEFAULT_BATCH,
+                    help="processed synthetic batch (created when it has no report.json)")
+    a = ap.parse_args(argv)
+    out_dir = ensure_synthetic_batch(os.path.abspath(a.output_dir))
     cfg = load_config(None, "neutral")
     R = {"grouping": exp_grouping(cfg)}
     print("A done", R["grouping"])

@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 import cv2
 import numpy as np
 
-from .io.metadata import FrameMeta, SUPPORTED_EXTS, read_metadata
+from .io.metadata import FrameMeta, SUPPORTED_EXTS, file_kind, read_metadata
 
 log = logging.getLogger(__name__)
 
@@ -43,10 +43,13 @@ def natural_key(s: str):
     return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", s)]
 
 
-def list_images(folder: str, recursive: bool = True) -> list[str]:
+def list_images(folder: str, recursive: bool = True, exclude: list[str] | None = None) -> list[str]:
+    """Supported image files; ``exclude`` lists folders (e.g. the active output folder) to skip."""
+    skip = {os.path.realpath(d) for d in exclude or []}
     out = []
     for root, dirs, files in os.walk(folder):
-        dirs[:] = sorted(d for d in dirs if not d.startswith(".") and d not in ("estatehdr_output", "output"))
+        dirs[:] = sorted(d for d in dirs if not d.startswith(".") and d not in ("estatehdr_output", "output")
+                         and os.path.realpath(os.path.join(root, d)) not in skip)
         for f in files:
             # <name>.mask.png files are removal masks, not photos
             if os.path.splitext(f)[1].lower() in SUPPORTED_EXTS and not f.startswith(".") and \
@@ -55,6 +58,48 @@ def list_images(folder: str, recursive: bool = True) -> list[str]:
         if not recursive:
             break
     return sorted(out, key=natural_key)
+
+
+def collapse_raw_siblings(paths: list[str]) -> tuple[list[str], list[dict]]:
+    """RAW+JPEG shooting: files in one folder that share a stem and differ only in being RAW vs
+    JPEG/TIFF/PNG are one frame -> keep the RAW. Returns (kept paths, skipped entries)."""
+    by_stem: dict[tuple[str, str], list[str]] = {}
+    for p in paths:
+        by_stem.setdefault((os.path.dirname(p), os.path.splitext(os.path.basename(p))[0].casefold()), []).append(p)
+    drop = {}
+    for sib in by_stem.values():
+        raws = [p for p in sib if file_kind(p) == "raw"]
+        if raws and len(raws) < len(sib):
+            for p in sib:
+                if p not in raws:
+                    drop[p] = os.path.basename(raws[0])
+    kept = [p for p in paths if p not in drop]
+    skipped = [{"file": p, "reason": "RAW sibling used", "used": raw} for p, raw in drop.items()]
+    return kept, skipped
+
+
+_UNSAFE = re.compile(r'[\\/:*?"<>|\x00-\x1f]+')
+
+
+def safe_name(name: str) -> str:
+    """Series name usable as a file name stem (no path separators / reserved characters)."""
+    s = _UNSAFE.sub("_", str(name)).strip()[:120]
+    return s if s.strip(".") else "series"
+
+
+def unique_names(groups: list[Group]) -> list[Group]:
+    """Make series names safe and unique in place (``name``, ``name_2``, ... like the web UI);
+    outputs are written as <name>_<size>.jpg, so equal names would overwrite each other."""
+    used = set()
+    for g in groups:
+        base = safe_name(g.name)
+        name, k = base, 2
+        while name.casefold() in used:  # case-insensitive file systems
+            name = f"{base}_{k}"
+            k += 1
+        used.add(name.casefold())
+        g.name = name
+    return groups
 
 
 def thumbnail(meta: FrameMeta, size: int = 48) -> np.ndarray | None:
@@ -77,8 +122,12 @@ def thumbnail(meta: FrameMeta, size: int = 48) -> np.ndarray | None:
             img = cv2.imread(meta.path, cv2.IMREAD_REDUCED_GRAYSCALE_8)
         else:
             img = cv2.imread(meta.path, cv2.IMREAD_GRAYSCALE | cv2.IMREAD_ANYDEPTH)
+            if img is None and meta.kind == "tiff":  # layouts OpenCV cannot read (decode uses tifffile)
+                import tifffile
+                img = np.asarray(tifffile.imread(meta.path, key=0), np.float32)
+                img = img.mean(-1) if img.ndim == 3 else img
             if img is not None and img.dtype != np.uint8:
-                img = (img.astype(np.float32) / max(1.0, float(img.max())) * 255).astype(np.uint8)
+                img = (np.clip(img.astype(np.float32), 0, None) / max(1.0, float(img.max())) * 255).astype(np.uint8)
     except Exception as exc:
         log.debug("thumbnail failed for %s: %s", meta.path, exc)
         return None
@@ -90,9 +139,10 @@ def thumbnail(meta: FrameMeta, size: int = 48) -> np.ndarray | None:
 
 
 def rank_similarity(a: np.ndarray | None, b: np.ndarray | None) -> float:
-    """Spearman correlation of gradient magnitudes: robust to exposure differences."""
+    """Spearman correlation of gradient magnitudes: robust to exposure differences.
+    A missing thumbnail (unreadable file) never joins a series."""
     if a is None or b is None:
-        return 1.0
+        return 0.0
     if a.shape != b.shape:
         b = cv2.resize(b, (a.shape[1], a.shape[0]), interpolation=cv2.INTER_AREA)
 
@@ -119,7 +169,8 @@ def estimate_brightness_ev(thumb: np.ndarray | None) -> float | None:
     return float(np.log2(max(np.mean(lin), 1e-5)))
 
 
-def group_frames(metas: list[FrameMeta], cfg: dict | None = None) -> list[Group]:
+def group_frames(metas: list[FrameMeta], cfg: dict | None = None, thumbs: dict | None = None) -> list[Group]:
+    """``thumbs``: optional {path: thumbnail} already computed by ``scan_folder``."""
     cfg = cfg or {}
     mode = cfg.get("mode", "auto")
     fixed = int(cfg.get("bracket_size", 0) or 0)
@@ -135,8 +186,8 @@ def group_frames(metas: list[FrameMeta], cfg: dict | None = None) -> list[Group]
     else:
         metas = sorted(metas, key=lambda m: natural_key(m.name))
     if mode == "single":
-        return [Group(os.path.splitext(m.name)[0], [m]) for m in metas]
-    thumbs = [thumbnail(m) for m in metas]
+        return unique_names([Group(os.path.splitext(m.name)[0], [m]) for m in metas])
+    thumbs = [thumbs[m.path] if thumbs and m.path in thumbs else thumbnail(m) for m in metas]
     # EXIF-based rules are applied per pair of frames, so a folder mixing camera files with
     # EXIF-less files (exports, screenshots) still groups the camera files by exposure/time
     evs = [m.exposure_value for m in metas]
@@ -207,42 +258,89 @@ def group_frames(metas: list[FrameMeta], cfg: dict | None = None) -> list[Group]
         if len(frames) > 1 and any(f.exposure_value is None for f in frames):
             grp.warnings.append("no EXIF exposure data - exposures estimated from pixels")
         out.append(grp)
+    unique_names(out)
     log.info("grouped %d frames into %d series (sizes: %s)", len(metas), len(out),
              ", ".join(str(len(g.frames)) for g in out))
     return out
 
 
-def scan_folder(folder: str, cfg: dict | None = None, recursive: bool = True):
-    """Read metadata for all images; returns (groups, failures)."""
-    paths = list_images(folder, recursive)
-    metas, failures = [], []
+def scan_folder(folder: str, cfg: dict | None = None, recursive: bool = True, exclude: list[str] | None = None,
+                skipped: list | None = None):
+    """Read metadata for all images; returns (groups, failures).  Files that cannot be read
+    (no metadata / no decodable pixels) go to ``failures`` and are not grouped.  ``exclude``:
+    folders to ignore (the active output folder); ``skipped`` (optional list) receives files
+    left out on purpose (RAW+JPEG siblings, EstateHDR's own outputs)."""
+    cfg = cfg or {}
+    skipped = skipped if skipped is not None else []
+    paths, sib = collapse_raw_siblings(list_images(folder, recursive, exclude))
+    for e in sib:
+        log.info("skipping %s: %s (%s)", e["file"], e["reason"], e["used"])
+    skipped.extend(sib)
+    need_thumbs = cfg.get("mode", "auto") != "single"
+    metas, failures, thumbs = [], [], {}
     for p in paths:
         try:
-            m = read_metadata(p)
             if os.path.getsize(p) == 0:
                 raise ValueError("empty file")
-            metas.append(m)
+            m = read_metadata(p)
         except Exception as exc:
             failures.append({"file": p, "error": str(exc)})
             log.warning("skipping %s: %s", p, exc)
-    return group_frames(metas, cfg), failures
+            continue
+        if m.software and m.software.startswith("EstateHDR"):
+            log.info("skipping %s: EstateHDR output (%s)", p, m.software)
+            skipped.append({"file": p, "reason": "EstateHDR output"})
+            continue
+        if need_thumbs:
+            thumbs[p] = thumbnail(m)
+            readable = thumbs[p] is not None
+        else:  # cheap check: the header gave no image size (RAW: neither EXIF nor LibRaw)
+            readable = bool(m.width and m.height)
+        if not readable:
+            err = "unreadable image (pixels cannot be decoded)" + (f": {'; '.join(m.errors)}" if m.errors else "")
+            failures.append({"file": p, "error": err})
+            log.warning("skipping %s: %s", p, err)
+            continue
+        metas.append(m)
+    return group_frames(metas, cfg, thumbs), failures
 
 
-def save_groups(groups: list[Group], path: str):
+def save_groups(groups: list[Group], path: str, base: str | None = None):
+    """Paths inside ``base`` (the input folder) are stored relative to it, others absolute."""
+    data = {"version": 1, "groups": [g.to_dict() for g in groups]}
+    if base:
+        base = os.path.abspath(base)
+        data["base"] = base
+        for g in data["groups"]:
+            g["files"] = [os.path.relpath(f, base) if _inside(f, base) else os.path.abspath(f) for f in g["files"]]
     with open(path, "w", encoding="utf-8") as fh:
-        json.dump({"version": 1, "groups": [g.to_dict() for g in groups]}, fh, indent=1)
+        json.dump(data, fh, indent=1)
+
+
+def _inside(path: str, folder: str) -> bool:
+    try:
+        return os.path.commonpath([os.path.abspath(path), folder]) == folder
+    except ValueError:  # different drives (Windows)
+        return False
 
 
 def load_groups(path: str, base: str | None = None) -> list[Group]:
+    """Relative paths are resolved against ``base`` (the input folder), else the folder stored by
+    ``save_groups``, else the folder of the groups file - the first candidate where the file exists."""
     with open(path, "r", encoding="utf-8") as fh:
         data = json.load(fh)
+    roots = [r for r in (base, data.get("base"), os.path.dirname(os.path.abspath(path))) if r]
     out = []
     for g in data.get("groups", []):
         frames = []
         for f in g["files"]:
-            p = f if os.path.isabs(f) or base is None else os.path.join(base, f)
+            if os.path.isabs(f):
+                p = f
+            else:
+                cands = [os.path.join(r, f) for r in roots]
+                p = next((c for c in cands if os.path.exists(c)), cands[0])
             frames.append(read_metadata(p))
         if frames:
             out.append(Group(g.get("name") or os.path.splitext(os.path.basename(frames[0].path))[0], frames,
                              list(g.get("warnings", []))))
-    return out
+    return unique_names(out)

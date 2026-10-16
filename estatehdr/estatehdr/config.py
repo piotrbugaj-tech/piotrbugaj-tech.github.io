@@ -1,7 +1,14 @@
 """Configuration: one YAML file (config.yaml) with defaults + presets.
 
-Resolution order: built-in config.yaml -> user config file -> preset overrides ->
-command-line ``--set section.key=value`` overrides.
+Resolution order (later wins):
+  1. built-in config.yaml;
+  2. the user file's ``presets`` section, merged into the built-in presets;
+  3. overrides of the selected preset;
+  4. user-file values that *differ from the built-in defaults* (a recursive diff, ``presets``
+     excluded): a full copy of config.yaml with a few edits applies only those edits and does
+     not undo the preset, while a calibrated / custom file wins over every preset;
+  5. command-line ``--set section.key=value`` overrides.
+Mode switches documented as ``auto | off`` are read with ``mode_of`` (YAML turns ``off`` into False).
 """
 from __future__ import annotations
 
@@ -38,6 +45,39 @@ def deep_merge(base: dict, over: dict) -> dict:
     return out
 
 
+_MISSING = object()
+_OFF = {"off", "false", "none", "no", "0", "disabled"}
+
+
+def mode_of(v: Any, default: str = "auto") -> str:
+    """Normalised mode switch: False / None / "off" / "false" / "none" / "no" / 0 -> "off";
+    True / "on" / "yes" -> ``default``; anything else -> its lower-case string."""
+    if v is None or v is False:
+        return "off"
+    if v is True:
+        return default
+    s = str(v).strip().lower()
+    if s in _OFF:
+        return "off"
+    if s in ("", "on", "true", "yes"):
+        return default
+    return s
+
+
+def diff_from(user: dict, base: dict) -> dict:
+    """Entries of ``user`` whose values differ from ``base`` (recursively)."""
+    out = {}
+    for k, v in (user or {}).items():
+        b = base.get(k, _MISSING) if isinstance(base, dict) else _MISSING
+        if isinstance(v, dict) and isinstance(b, dict):
+            d = diff_from(v, b)
+            if d:
+                out[k] = d
+        elif b is _MISSING or v != b:
+            out[k] = copy.deepcopy(v)
+    return out
+
+
 def _parse_value(s: str) -> Any:
     try:
         return yaml.safe_load(s)
@@ -57,15 +97,20 @@ def set_path(d: dict, dotted: str, value: Any):
 
 def load_config(path: str | None = None, preset: str | None = None, overrides: list[str] | None = None) -> Config:
     with open(DEFAULT_CONFIG_PATH, "r", encoding="utf-8") as fh:
-        cfg = yaml.safe_load(fh) or {}
+        base = yaml.safe_load(fh) or {}
+    user = {}
     if path and os.path.abspath(path) != DEFAULT_CONFIG_PATH:
         with open(path, "r", encoding="utf-8") as fh:
-            cfg = deep_merge(cfg, yaml.safe_load(fh) or {})
-    presets = cfg.get("presets", {}) or {}
-    name = preset or cfg.get("preset", "neutral")
+            user = yaml.safe_load(fh) or {}
+    presets = deep_merge(base.get("presets") or {}, user.get("presets") or {})
+    name = preset or user.get("preset") or base.get("preset", "neutral")
     if name not in presets:
         raise ValueError(f"unknown preset '{name}', available: {', '.join(presets)}")
-    cfg = deep_merge(cfg, presets[name].get("overrides", {}) or {})
+    cfg = deep_merge(base, (presets[name] or {}).get("overrides", {}) or {})
+    cfg["presets"] = presets
+    edits = diff_from({k: v for k, v in user.items() if k != "presets"},
+                      {k: v for k, v in base.items() if k != "presets"})
+    cfg = deep_merge(cfg, edits)
     cfg["preset"] = name
     for item in overrides or []:
         if "=" not in item:

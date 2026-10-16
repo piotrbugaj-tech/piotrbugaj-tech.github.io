@@ -1,6 +1,6 @@
 """Loading a bracket series: decode, linearise, estimate relative exposures.
 
-Linearisation:
+Linearisation (per frame, by its own encoding; a series mixing encodings gets a warning):
   * RAW / float TIFF -> already linear;
   * JPEG / PNG / 8-bit TIFF -> inverse camera response.  By default the sRGB
     curve; with ``crf: auto`` a two-parameter family (sRGB + S-curve strength,
@@ -17,9 +17,10 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from .config import mode_of
 from .imgutil import chmax, luminance, resize_max, linear_to_srgb
 from .io.metadata import FrameMeta
-from .io.reader import Decoded, decode
+from .io.reader import DecodeError, Decoded, decode
 
 log = logging.getLogger(__name__)
 
@@ -161,9 +162,24 @@ def load_series(name: str, metas: list[FrameMeta], cfg: dict) -> Series:
     raw_cfg = dict(icfg.get("raw", {}))
     if len(metas) == 1 and raw_cfg.get("fbdd_single", True):
         raw_cfg["fbdd"] = True  # a single exposure has no merge to average noise away
+    bad, icc = [], {}
     for m in metas:
-        d = decode(m.path, m.orientation, raw_cfg=raw_cfg)
+        try:
+            d = decode(m.path, m.orientation, raw_cfg=raw_cfg)
+        except DecodeError as exc:  # a corrupt frame must not sink the readable rest of the series
+            bad.append(f"{m.name} ({exc})")
+            log.warning("[%s] skipping undecodable frame %s: %s", name, m.name, exc)
+            if len(bad) == len(metas):
+                raise
+            continue
         frames.append(Frame(m, d))
+        if d.icc:
+            icc.setdefault(d.icc, []).append(m.name)
+    for desc, names in icc.items():
+        warnings.append(f"converted from ICC profile '{desc}' to sRGB: {', '.join(names)}")
+        log.warning("[%s] embedded ICC profile '%s' (not sRGB) converted to sRGB: %s", name, desc, ", ".join(names))
+    if bad:
+        warnings.append(f"skipped undecodable frame(s): {'; '.join(bad)}")
     # all frames must share one size (portrait/landscape mixes are separate series)
     shapes = {f.shape[:2] for f in frames}
     if len(shapes) > 1:
@@ -188,41 +204,51 @@ def load_series(name: str, metas: list[FrameMeta], cfg: dict) -> Series:
     else:
         exif_exp = None
 
-    crf_info = {"model": "linear"}
-    lin_fn = None
-    if encodings == {"linear"}:
-        lin_fn = None
-    elif "unknown" in encodings:
-        # 16-bit TIFF of unknown encoding: decide linear vs sRGB
-        choice = "srgb"
-        if exif_exp and len(frames) > 1:
-            sub = [c[::4, ::4] for c in smalls_codes]
-            score_lin = _pairs_inconsistency(sub, exif_exp, np.linspace(0, 1, 1024, dtype=np.float32), 1024, 1)
-            score_srgb = _pairs_inconsistency(sub, exif_exp, inverse_crf_lut(1024), 1024, 1)
-            choice = "linear" if score_lin < score_srgb else "srgb"
+    # each frame is linearised according to its own encoding (RAW+JPEG mixes must not push the
+    # linear RAW data through the inverse sRGB curve); parameters are fitted per encoding
+    params, infos = {}, {}
+    for enc in sorted(encodings):
+        idx = [i for i, f in enumerate(frames) if f.decoded.encoding == enc]
+        codes = [smalls_codes[i] for i in idx]
+        exps = [exif_exp[i] for i in idx] if exif_exp else None
+        if enc == "linear":
+            params[enc], infos[enc] = None, {"model": "linear"}
+        elif enc == "unknown":
+            # 16-bit TIFF of unknown encoding: decide linear vs sRGB
+            if exps and len(idx) > 1:
+                sub = [c[::4, ::4] for c in codes]
+                score_lin = _pairs_inconsistency(sub, exps, np.linspace(0, 1, 1024, dtype=np.float32), 1024, 1)
+                score_srgb = _pairs_inconsistency(sub, exps, inverse_crf_lut(1024), 1024, 1)
+                choice = "linear" if score_lin < score_srgb else "srgb"
+            else:
+                med = float(np.median(np.concatenate([c.mean(-1).ravel() for c in codes])))
+                choice = "linear" if med < 0.12 else "srgb"
+            infos[enc] = {"model": choice, "decided_by": "exif-consistency" if exps else "histogram"}
+            params[enc] = (0.0, 1.0) if choice == "srgb" else None
         else:
-            med = float(np.median(np.concatenate([s.mean(-1).ravel() for s in smalls_codes])))
-            choice = "linear" if med < 0.12 else "srgb"
-        crf_info = {"model": choice, "decided_by": "exif-consistency" if exif_exp else "histogram"}
-        if choice == "srgb":
-            lin_fn = (0.0, 1.0)
+            mode = mode_of(icfg.get("crf", "auto"))
+            k, g = 0.0, 1.0
+            if mode == "auto" and exps and len(idx) >= 2:
+                k, g, score = fit_crf(codes, exps)
+                base = _pairs_inconsistency([c[::4, ::4] for c in codes], exps, inverse_crf_lut(1024), 1024, 1)
+                if not (score < 0.9 * base):  # keep plain sRGB unless the fit is clearly better
+                    k, g = 0.0, 1.0
+                infos[enc] = {"model": "srgb+s-curve", "k": k, "g": g, "fit_score": score, "srgb_score": base}
+            else:
+                infos[enc] = {"model": "srgb"}
+            params[enc] = (k, g)
+    if len(infos) == 1:
+        crf_info = next(iter(infos.values()))
     else:
-        mode = str(icfg.get("crf", "auto")).lower()
-        k, g = 0.0, 1.0
-        if mode == "auto" and exif_exp and len(frames) >= 2:
-            k, g, score = fit_crf(smalls_codes, exif_exp)
-            base = _pairs_inconsistency([c[::4, ::4] for c in smalls_codes], exif_exp, inverse_crf_lut(1024), 1024, 1)
-            if not (score < 0.9 * base):  # keep plain sRGB unless the fit is clearly better
-                k, g = 0.0, 1.0
-            crf_info = {"model": "srgb+s-curve", "k": k, "g": g, "fit_score": score, "srgb_score": base}
-        else:
-            crf_info = {"model": "srgb"}
-        lin_fn = (k, g)
+        crf_info = {"model": "mixed", "per_encoding": infos}
+        warnings.append(f"series mixes pixel encodings ({', '.join(f'{f.meta.name}: {f.decoded.encoding}' for f in frames)})"
+                        " - e.g. RAW with JPEG frames; each frame linearised by its own encoding")
 
     for f, sc in zip(frames, smalls_codes):
-        if lin_fn is not None:
+        p = params[f.decoded.encoding]
+        if p is not None:
             n = int(f.decoded.max_value) + 1
-            f.lut = inverse_crf_lut(n, *lin_fn)
+            f.lut = inverse_crf_lut(n, *p)
             idx = np.clip(np.round(sc * (n - 1)).astype(np.int32), 0, n - 1)
             f.small = f.lut[idx]
         else:

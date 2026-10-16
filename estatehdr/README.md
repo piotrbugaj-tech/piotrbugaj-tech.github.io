@@ -36,8 +36,10 @@ służy do tego `estatehdr.bat` z tymi samymi poleceniami. Bez skryptu:
 Wyniki dla każdej serii trafiają do folderu wyjściowego:
 - `<seria>_full.jpg`: wymiary jak wejście;
 - `<seria>_mls.jpg`: dłuższy bok 2048 px;
-- `report.json`: parametry, ostrzeżenia, czasy i pamięć;
-- `groups.json`: grupowanie, do ręcznej korekty;
+- `report.json`: parametry, ostrzeżenia, czasy i pamięć. Zapisywany po każdej serii (`"complete": false` i lista
+  `pending`), a na końcu z `"complete": true`. Lista `skipped` pokazuje pliki pominięte celowo (np. JPEG obok
+  RAW, poprzednie wyniki EstateHDR), a `unreadable` pliki nieczytelne;
+- `groups.json`: grupowanie, do ręcznej korekty (ścieżki względem folderu sesji);
 - `estatehdr.log`;
 - `.previews/`: podglądy przed/po dla UI.
 
@@ -65,9 +67,20 @@ Przykłady:
 ./estatehdr.sh process ~/sesje/x --set tonemap.target_key=0.6 --set white_balance.target_cct=6300
 ```
 
-Batch nigdy się nie zatrzymuje na pojedynczym problemie. Uszkodzony plik, niepełna seria albo brak EXIF trafiają
-do `report.json` jako błąd lub ostrzeżenie tej serii, a reszta jest przetwarzana. Kod wyjścia 2 oznacza, że
+Batch nigdy się nie zatrzymuje na pojedynczym problemie:
+- uszkodzony plik trafia do `unreadable` i nie jest dołączany do serii (z serii odpada tylko nieczytelna klatka);
+- niepełna seria albo brak EXIF dają ostrzeżenie tej serii;
+- awaria procesu roboczego (np. brak pamięci) dotyczy tylko serii, która ją wywołała. Pozostałe serie są
+  przeliczane ponownie, pojedynczo.
+
+Kody wyjścia: 0 – wszystko w porządku; 1 – w folderze nie ma obsługiwanych zdjęć; 2 – nie ma takiego folderu albo
 któraś seria się nie udała.
+
+Fotografowanie RAW+JPEG: pliki o tej samej nazwie w jednym folderze (`IMG_1.CR2` + `IMG_1.JPG`) to jedna klatka,
+używany jest RAW. Serie o tej samej nazwie (np. `IMG_0001` w dwóch podfolderach) dostają przyrostek `_2`, `_3`,
+więc wyniki się nie nadpisują. Folder wyjściowy wewnątrz sesji jest pomijany przy ponownym uruchomieniu.
+Zdjęcia z profilem ICC innym niż sRGB (Adobe RGB, ProPhoto, Display P3) są konwertowane do sRGB (LittleCMS),
+z ostrzeżeniem w raporcie.
 
 ## 3. Interfejs webowy
 
@@ -112,8 +125,11 @@ workerów wynika z budżetu RAM.
 | `airy` | jasny, lekki | klucz 0.62, mocniej podniesione cienie, jaśniejszy widok za oknem, mniej kontrastu i nasycenia |
 | `premium` | „magazynowy” | więcej kontrastu, wibracji i detalu, ciemniejszy, nasycony widok za oknem |
 
-Wszystkie parametry są w jednym pliku [config.yaml](config.yaml), z komentarzami po polsku. Własny plik
-(`--config`) nadpisuje tylko podane klucze, a `--set` nadpisuje pojedyncze wartości. Najczęściej używane:
+Wszystkie parametry są w jednym pliku [config.yaml](config.yaml), z komentarzami po polsku. Kolejność (późniejsze
+wygrywa): `config.yaml` → ustawienia wybranego presetu → własny plik `--config` → `--set klucz=wartość`.
+Z własnego pliku liczą się tylko wartości **różne od domyślnych**: można skopiować cały `config.yaml`, zmienić kilka
+liczb, a presety dalej działają. Własny plik może też zmienić same presety (sekcja `presets`). Przełączniki
+`auto | off` akceptują też `false`. Najczęściej używane:
 
 | Klucz | Znaczenie |
 |---|---|

@@ -1,0 +1,14 @@
+# tools/calibrate.py (synthetic GT + targets), preset neutral - przebieg 3 (kontynuacja przebiegu 2),
+# wszystkie wartości różne od config.yaml sprzed kalibracji
+white_balance:
+  target_cct: 7400.0
+  global_strength: 0.5
+  mixed_light_strength: 1.0
+  tint_strength: 1.0
+  max_local_shift: 1.375
+tonemap:
+  target_key: 0.7
+  compress_shadows: 0.64
+  compress_highlights: 0.64
+windows:
+  exterior_target: 0.595
