@@ -186,6 +186,162 @@ def detect_sky(img_small: np.ndarray, only_in: np.ndarray | None = None) -> tupl
     return sky.astype(np.float32), info
 
 
+def _local_chromaticity(img: np.ndarray, weight: np.ndarray, sigma: float) -> tuple[np.ndarray, np.ndarray]:
+    """Chromaticity (rgb / sum) of every pixel and the chromaticity of the nearest weighted
+    pixels (normalised convolution at growing scales, so far-away pixels get the closest
+    estimate instead of noise)."""
+    ch = (img / (img.sum(2, keepdims=True) + 1e-4)).astype(np.float32)
+    h, w = weight.shape
+    # smooth estimate: computed at 1/4 of the sigma in pixels (large blurs are slow otherwise)
+    s = max(1.0, sigma / 4.0)
+    sw, sh = max(2, round(w / s)), max(2, round(h / s))
+    wl = cv2.resize(weight.astype(np.float32), (sw, sh), interpolation=cv2.INTER_AREA)
+    cl = cv2.resize(ch * weight[..., None].astype(np.float32), (sw, sh), interpolation=cv2.INTER_AREA)
+    out = np.empty((sh, sw, 3), np.float32)
+    got = np.zeros((sh, sw), np.float32)
+    for f in (4.0, 12.0, 36.0):
+        num = cv2.GaussianBlur(cl, (0, 0), f)
+        den = cv2.GaussianBlur(wl, (0, 0), f)
+        fill = got < 1e-3
+        out[fill] = (num / (den[..., None] + 1e-6))[fill]
+        got = np.maximum(got, den)
+    out[got < 1e-6] = ch[weight > 0].mean(0)
+    return ch, cv2.resize(out, (w, h), interpolation=cv2.INTER_LINEAR)
+
+
+def _open_top(lab: np.ndarray, i: int, stat, sky: np.ndarray, skylike: np.ndarray, green: np.ndarray) -> bool:
+    """Is component i open towards the sky?  Above its upper outline there is the frame top, the
+    sky, sky seen through a crown (sky-coloured pixels between twigs) or foliage.  A pale facade
+    under a pale sky has a roof or an eave above it instead."""
+    h = lab.shape[0]
+    x0, y0, ww, hh = (int(v) for v in stat[:4])
+    a0 = max(0, y0 - 3)
+    c = lab[a0:y0 + hh, x0:x0 + ww] == i
+    cols = np.nonzero(c.any(0))[0]
+    top = c.argmax(0)[cols] + a0
+    xs = cols + x0
+    near = np.zeros(len(cols), bool)
+    for k in (1, 2, 3):
+        near |= sky[np.maximum(top - k, 0), xs] > 0.5
+    if ((top == 0) | near).mean() >= 0.7:
+        return True
+    d = max(3, int(0.04 * h))
+    sl, gr, n = 0.0, 0.0, 0
+    for x, t in zip(xs, top):
+        s0, s1 = max(0, t - 3 - d), max(0, t - 3)
+        if s1 > s0:
+            sl += float(skylike[s0:s1, x].mean())
+            gr += float(green[s0:s1, x].mean())
+            n += 1
+    return n == 0 or sl / n >= 0.2 or gr / n >= 0.3
+
+
+def extend_sky_mask(img_small: np.ndarray, mask: np.ndarray) -> tuple[np.ndarray, dict]:
+    """Daytime sky left outside a detected sky mask (behind/below tree crowns, cut off by
+    branches) for modules that must replace *all* of the sky (twilight).
+
+    Added pixels match the colour model of the detected sky (Mahalanobis distance, or near-white
+    haze/cloud) and the chromaticity of the nearest detected sky, and lie above the roof line:
+    above the bottom-connected solid (non-sky-coloured) masses — buildings, ground, trunks —
+    after an opening that removes branches and wires.  Low-texture regions must be large and
+    open towards the sky (frame top, sky, sky seen through a crown or foliage above them, not a
+    roof or an eave: a pale facade under a pale sky is not added);
+    textured (twig) pixels are added only next to them or as bright gaps among dark twigs next to
+    the sky.  Returns (mask float32, info)."""
+    h, w = mask.shape
+    sky = mask > 0.5
+    info: dict = {}
+    if sky.sum() < 50:
+        return mask, info
+    y = img_small @ LUMA
+    tex = cv2.blur(_grad(y), (5, 5))
+    px = img_small[sky]
+    mu = px.mean(0)
+    cov = np.cov(px[:: max(1, len(px) // 20000)].T) + np.eye(3) * 4e-4
+    d = img_small.reshape(-1, 3) - mu
+    m2 = np.einsum("ij,jk,ik->i", d, np.linalg.inv(cov), d).reshape(h, w)
+    r, g, b = img_small[..., 0], img_small[..., 1], img_small[..., 2]
+    green = (g > r * 1.05) & (g > b * 1.05)
+    ylo = float(np.percentile(y[sky], 5))
+    ys = float(np.median(y[sky]))
+    chroma = (np.maximum(np.maximum(r, g), b) - np.minimum(np.minimum(r, g), b)) / (y + 1e-3)
+    cloud = (chroma < 0.12) & (y > max(0.35, 0.55 * ys))
+    ch, lch = _local_chromaticity(img_small, sky, 0.03 * max(h, w))
+    near_col = np.sqrt(((ch - lch) ** 2).sum(2)) < 0.03   # same hue as the closest real sky (no grey roofs under a blue sky)
+    loose = ((m2 < 16.0) | cloud) & (y >= 0.9 * ylo) & ~green
+    col = loose & near_col
+    rows = np.arange(h)[:, None]
+    rows_with = np.nonzero(sky.any(1))[0]
+    horizon = int(rows_with.max()) if len(rows_with) else 0
+    k = max(5, int(0.03 * max(h, w))) | 1
+    disk_k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))
+
+    def above_roof(skylike):
+        """Rows above the roof line.  Per column, the roof line is the top of the solid (not
+        sky-like) run reaching up from the bottom of the frame: masses connected to the bottom
+        (buildings, ground, trunks) after an opening that removes branches and wires, with
+        enclosed holes (windows reflecting the sky) filled.  A crown touching a roof does not
+        hide the sky below it: the run stops at the first sky-like gap."""
+        solid = cv2.morphologyEx((~(skylike | sky)).astype(np.uint8), cv2.MORPH_OPEN, disk_k)
+        n, lab = cv2.connectedComponents(solid, connectivity=8)
+        keep = np.zeros(n, bool)
+        keep[np.unique(lab[-max(2, int(0.02 * h)):])] = True
+        keep[0] = False
+        cs, _ = cv2.findContours(keep[lab].astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        filled = np.zeros((h, w), np.uint8)
+        cv2.drawContours(filled, cs, -1, 1, -1)
+        run = np.flip(np.minimum.accumulate(np.flip(filled > 0, 0), 0), 0)
+        first = np.where(run.any(0), run.argmax(0), h)
+        return (rows < first[None, :]) & (rows <= horizon + 0.1 * h)
+
+    zone = above_roof(col)
+    # large smooth sky-coloured regions above the roof line
+    seed = (col & (tex < 0.03) & zone & ~sky).astype(np.uint8)
+    n, lab, st, _ = cv2.connectedComponentsWithStats(seed, connectivity=8)
+    big = st[:, cv2.CC_STAT_AREA] >= 0.002 * h * w
+    big[0] = False
+    for i in np.nonzero(big)[0]:
+        big[i] = _open_top(lab, i, st[i], sky, loose, green)
+    add = big[lab]
+    n_added = int(big.sum())
+    rr = max(3, int(0.02 * max(h, w)))
+    disk = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * rr + 1, 2 * rr + 1))
+    near_add = cv2.dilate(add.astype(np.uint8), disk) > 0
+    near_sky = cv2.dilate(sky.astype(np.uint8), disk) > 0
+    # sky seen between twigs: bright local maxima among much darker pixels
+    k7 = np.ones((7, 7), np.uint8)
+    twig = (y - cv2.erode(y, k7) > 0.3) & (cv2.dilate(y, k7) - y < 0.04) & col
+    dense = cv2.blur(twig.astype(np.float32), (15, 15)) > 0.15
+    extra = col & zone & ~sky & ~add & (y >= ylo) & (near_add | (near_sky & twig & dense))
+    out = sky | add | extra
+    # wisps of cloud and haze inside the sky (pale, bright, mostly surrounded by sky; may touch
+    # the roof line): enclosed holes are filled by detect_sky, these touch the foreground
+    pale = (((b - r) / (y + 1e-3) > 0.0) | (chroma < 0.15)) & (y >= max(ylo, 0.6 * ys)) & ~green
+    hole = (~out & zone & pale).astype(np.uint8)
+    n, lab, st, _ = cv2.connectedComponentsWithStats(hole, connectivity=8)
+    k3 = np.ones((3, 3), np.uint8)
+    for i in range(1, n):
+        x0, y0, ww, hh, area = st[i]
+        if area > 0.01 * h * w:
+            continue
+        a0, a1, c0, c1 = max(0, y0 - 2), min(h, y0 + hh + 2), max(0, x0 - 2), min(w, x0 + ww + 2)
+        cc = lab[a0:a1, c0:c1] == i
+        ring = (cv2.dilate(cc.astype(np.uint8), k3) > 0) & ~cc
+        if ring.any() and out[a0:a1, c0:c1][ring].mean() >= 0.6:
+            out[a0:a1, c0:c1] |= cc
+    # daytime-sky-like regions above the roof line that are still not covered (seam risk),
+    # relative to the sky area
+    left = (loose & (tex < 0.03) & above_roof(loose) & ~(cv2.dilate(out.astype(np.uint8), k7) > 0)).astype(np.uint8)
+    n, lab, st, _ = cv2.connectedComponentsWithStats(left, connectivity=8)
+    big = st[:, cv2.CC_STAT_AREA] >= 0.001 * h * w
+    big[0] = False
+    for i in np.nonzero(big)[0]:
+        big[i] = _open_top(lab, i, st[i], out, loose, green)
+    info.update(added_frac=round(float((out & ~sky).mean()), 4), added_regions=n_added,
+                leftover=round(float(big[lab].sum() / max(out.sum(), 1)), 4))
+    return out.astype(np.float32), info
+
+
 def _sky_in_windows(img, y, grad, win_mask):
     """Sky inside window views of an interior: bright, smooth, non-green, at the top of each view."""
     h, w = y.shape

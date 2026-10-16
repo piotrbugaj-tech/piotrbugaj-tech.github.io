@@ -60,6 +60,90 @@ def test_twilight_exterior(cfg):
         assert out[facade].mean() < img[facade].mean()  # darker dusk facade
 
 
+def test_twilight_lights_only_facade_windows(cfg):
+    """Lit regions are the 8 windows and the door of the synthetic house: none on the lawn (its
+    dark patches used to glow), the trees or the roof."""
+    rad, lab = render_exterior(480, 320, supersample=1)
+    img = tone_map(rad.copy(), dict(cfg["tonemap"]), analysis_side=480)
+    door = (lab == 1) & (rad[..., 0] > 2 * rad[..., 2])  # dark brown door inside the wall label
+    target = (lab == 5) | door
+    out, info = twilight.twilight(img.copy(), cfg, "x")
+    m, _ = sky.detect_sky(img)
+    glass, boxes = twilight.find_facade_windows(img, sky.extend_sky_mask(img, m)[0])
+    assert info["windows_lit"] == len(boxes)
+    lit = glass > 0.5
+    n, reg = cv2.connectedComponents(lit.astype(np.uint8))
+    on_target = [((reg == i) & target).sum() > 0.5 * (reg == i).sum() for i in range(1, n)]
+    assert n - 1 >= 7 and np.mean(on_target) >= 0.8, (n - 1, on_target)
+    assert not (lit & (lab == 3)).any()                     # nothing lit on the grass
+    nw, wl = cv2.connectedComponents((lab == 5).astype(np.uint8))
+    found = sum((lit & (wl == j)).sum() > 0.5 * (wl == j).sum() for j in range(1, nw))
+    assert found >= 7, found                                # recall: real windows are lit
+    # rendered: warm glow in the windows, none on the lawn
+    lawn = cv2.erode((lab == 3).astype(np.uint8), np.ones((5, 5), np.uint8)) > 0
+    warm = (out[..., 0] > 0.6) & (out[..., 0] > 1.4 * out[..., 2])
+    assert warm[lab == 5].mean() > 0.5 and not warm[lawn].any()
+
+
+def test_twilight_replaces_sky_cut_off_by_a_crown(cfg):
+    """Sky separated from the detected sky by a crown and a branch (only part of the sky is
+    detected, as behind a tree) is added to the twilight sky mask, and nothing else is."""
+    rad, lab = render_exterior(480, 320, supersample=1)
+    img = tone_map(rad.copy(), dict(cfg["tonemap"]), analysis_side=480)
+    gt = lab == 9
+    occ = np.zeros(lab.shape, bool)
+    occ[:22, 250:] = True                                   # dense crown along the top
+    occ[:, 248:252] = True                                  # a branch down to the roof
+    rng = np.random.default_rng(3)
+    leaf = np.array([0.16, 0.20, 0.12], np.float32) * rng.uniform(0.6, 1.4, occ.shape + (1,)).astype(np.float32)
+    img[occ & gt] = leaf[occ & gt]
+    cut = gt & ~occ & (np.arange(480)[None, :] >= 252) & (np.arange(320)[:, None] < 80)
+    m, _ = sky.detect_sky(img)
+    assert (m > 0.5)[cut].mean() < 0.1                      # the detector alone misses it
+    ext, einfo = sky.extend_sky_mask(img, m)
+    added = (ext > 0.5) & (m < 0.5)
+    assert (ext > 0.5)[cut].mean() > 0.9, einfo
+    gtd = cv2.dilate(gt.astype(np.uint8), np.ones((3, 3), np.uint8)) > 0
+    assert not (added & (~gtd | occ)).any()                 # no foreground, no crown added
+    out, info = twilight.twilight(img.copy(), cfg, "x")
+    assert info.get("sky_swap", True) and info["sky_extension"]["added_frac"] > 0.03
+    core = cut & ~(cv2.dilate(occ.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0)
+    left = gt & ~occ & (np.arange(480)[None, :] < 200) & (np.arange(320)[:, None] > 22) & (np.arange(320)[:, None] < 60)
+    # replaced like the rest of the sky (twilight colours), not left as daytime sky
+    assert np.abs(out[core].mean(0) - out[left].mean(0)).max() < 0.12
+    assert np.abs(out[core].mean(0) - img[core].mean(0)).max() > 0.2
+
+
+def test_sky_extension_skips_pale_facade(cfg):
+    """A white facade under a pale sky is sky-coloured and smooth, but it has a roof above it:
+    the twilight sky extension must not turn it into sky."""
+    rad, lab = render_exterior(480, 320, supersample=1)
+    img = tone_map(rad.copy(), dict(cfg["tonemap"]), analysis_side=480)
+    wall = lab == 1
+    img[wall] = np.clip(0.9 + np.random.default_rng(0).normal(0, 0.005, (wall.sum(), 3)), 0, 1)
+    m, _ = sky.detect_sky(img)
+    ext, _ = sky.extend_sky_mask(img, m)
+    assert ((ext > 0.5) & wall).sum() < 0.01 * wall.sum()
+
+
+def test_twilight_keeps_sky_when_much_daytime_sky_is_left(cfg, monkeypatch):
+    """When daytime sky would stay outside the mask next to the twilight gradient, the sky is
+    not swapped (no seam): the whole frame gets the dusk grade and the reason is reported."""
+    img, lab = _exterior_display(cfg)
+    orig = sky.extend_sky_mask
+
+    def partial(im, mask):
+        m, info = orig(im, mask)
+        return m, {**info, "leftover": 0.6}
+    monkeypatch.setattr(sky, "extend_sky_mask", partial)
+    out, info = twilight.twilight(img.copy(), cfg, "x")
+    assert info["sky_swap"] is False and "daytime sky" in info["sky_swap_reason"] and "sky" not in info
+    gt = cv2.erode((lab == 9).astype(np.uint8), np.ones((5, 5), np.uint8)) > 0
+    blue = out[..., 2] - out[..., 0]
+    assert out[gt].mean() < img[gt].mean() - 0.1           # darkened like the rest
+    assert blue[gt].std() < 0.05                            # uniform: no gradient / seam inside the sky
+
+
 def test_object_removal_restores_texture():
     rng = np.random.default_rng(0)
     yy, xx = np.mgrid[0:240, 0:320]
