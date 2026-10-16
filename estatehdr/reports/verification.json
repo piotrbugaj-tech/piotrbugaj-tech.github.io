@@ -59,13 +59,19 @@
     "frame": "IMG_0005.tif",
     "true_shift_px": 10.049713791669763,
     "mean_err_px": 0.2214109305026884,
-    "max_err_px": 0.468704242653098
+    "max_err_px": 0.468704242653098,
+    "model": "affine",
+    "model_llr": -13.521,
+    "model_corner_diff_px": 1.313
    },
    {
     "frame": "IMG_0007.tif",
     "true_shift_px": 4.244803722059691,
     "mean_err_px": 0.2682021951926524,
-    "max_err_px": 0.6900664372810841
+    "max_err_px": 0.6900664372810841,
+    "model": "affine",
+    "model_llr": -4.57,
+    "model_corner_diff_px": 1.274
    }
   ],
   "living_room": [
@@ -73,25 +79,37 @@
     "frame": "IMG_0000.jpg",
     "true_shift_px": 0.24415022116508028,
     "mean_err_px": 0.4422655609653837,
-    "max_err_px": 0.8959053544816384
+    "max_err_px": 0.8959053544816384,
+    "model": "affine",
+    "model_llr": 2.798,
+    "model_corner_diff_px": 0.923
    },
    {
     "frame": "IMG_0001.jpg",
     "true_shift_px": 1.6028600775262283,
     "mean_err_px": 0.2926964396967244,
-    "max_err_px": 0.45921197557004906
+    "max_err_px": 0.45921197557004906,
+    "model": "affine",
+    "model_llr": 2.465,
+    "model_corner_diff_px": 1.539
    },
    {
     "frame": "IMG_0003.jpg",
     "true_shift_px": 1.0397015050820846,
     "mean_err_px": 0.3721312812571509,
-    "max_err_px": 0.8202387438817191
+    "max_err_px": 0.8202387438817191,
+    "model": "affine",
+    "model_llr": 1.459,
+    "model_corner_diff_px": 0.79
    },
    {
     "frame": "IMG_0004.jpg",
     "true_shift_px": 0.9073944584043221,
     "mean_err_px": 0.44828416037873026,
-    "max_err_px": 1.022680092252405
+    "max_err_px": 1.022680092252405,
+    "model": "affine",
+    "model_llr": 1.509,
+    "model_corner_diff_px": 1.832
    }
   ]
  },
@@ -526,23 +544,29 @@
   },
   "alignment_20px": {
    "spec": "SPEC 4: mean grid error <= 0.8 px hand-held (shifts up to 20 px), 2400x1600",
-   "definition": "GT bedroom (3 TIFF16, -2/0/+2 EV) and living room (5 JPEG, -4..+4 EV) frames; each non-reference frame is re-warped (Lanczos, written back with its EXIF; JPEG q95) so that its total GT motion relative to the untouched middle frame is a known homography (ALIGN20_MOVES): translation 15-20 px, rotation 0.25-0.35 deg, perspective h31/h32 1-2e-6 /px about the centre (a real hand-held rotation giving 17 px with this 84 deg lens has ~1e-5 /px). align.align_series at full resolution with the configured model (align.model); error = distance between estimated and GT mapping of a 9x7 grid (50 px margin), as in experiment C. Diagnostics: similarity_only = the same motion without the perspective term; homography_model = the full motion with align.model=homography.",
-   "align_model": "affine",
+   "definition": "GT bedroom (3 TIFF16, -2/0/+2 EV) and living room (5 JPEG, -4..+4 EV) frames; each non-reference frame is re-warped (Lanczos, written back with its EXIF; JPEG q95) so that its total GT motion relative to the untouched middle frame is a known homography (ALIGN20_MOVES): translation 15-20 px, rotation 0.25-0.35 deg, perspective h31/h32 1-2e-6 /px about the centre (a real hand-held rotation giving 17 px with this 84 deg lens has ~1e-5 /px). align.align_series at full resolution with the configured model (align.model); error = distance between estimated and GT mapping of a 9x7 grid (50 px margin), as in experiment C; per frame the model used (align.model auto: the per-frame choice, with its log-likelihood ratio). Diagnostics: similarity_only = the same motion without the perspective term (configured model); affine_model / homography_model = the full motion with align.model=affine / homography.",
+   "align_model": "auto",
    "per_scene": {
     "bedroom": [
      {
       "frame": "IMG_0005.tif",
       "true_shift_px": 18.034937695292328,
       "true_shift_max_px": 24.581313945100323,
-      "mean_err_px": 1.4342146078493228,
-      "max_err_px": 5.29381274157409
+      "mean_err_px": 0.6508347186269925,
+      "max_err_px": 2.4145305735224056,
+      "model": "homography",
+      "model_llr": 182.704,
+      "model_corner_diff_px": 4.32
      },
      {
       "frame": "IMG_0007.tif",
       "true_shift_px": 17.857418887099687,
       "true_shift_max_px": 25.48344156853261,
-      "mean_err_px": 1.3765068998946417,
-      "max_err_px": 5.073231237362861
+      "mean_err_px": 0.8406751246086167,
+      "max_err_px": 2.04373218201733,
+      "model": "homography",
+      "model_llr": 43.256,
+      "model_corner_diff_px": 6.551
      }
     ],
     "living_room": [
@@ -550,41 +574,57 @@
       "frame": "IMG_0000.jpg",
       "true_shift_px": 18.034937695292328,
       "true_shift_max_px": 24.581313945100323,
-      "mean_err_px": 1.3322889173354757,
-      "max_err_px": 5.003192278842357
+      "mean_err_px": 0.23568697137068484,
+      "max_err_px": 0.9706005741609226,
+      "model": "homography",
+      "model_llr": 39.758,
+      "model_corner_diff_px": 6.25
      },
      {
       "frame": "IMG_0001.jpg",
       "true_shift_px": 17.857418887099687,
       "true_shift_max_px": 25.48344156853261,
-      "mean_err_px": 1.163125723643117,
-      "max_err_px": 4.200900059856946
+      "mean_err_px": 0.31969169452585533,
+      "max_err_px": 0.9645834573179063,
+      "model": "homography",
+      "model_llr": 14.623,
+      "model_corner_diff_px": 5.905
      },
      {
       "frame": "IMG_0003.jpg",
       "true_shift_px": 17.89943474608479,
       "true_shift_max_px": 24.22763003026513,
-      "mean_err_px": 1.142055372434857,
-      "max_err_px": 5.377135153590527
+      "mean_err_px": 0.32258913994365834,
+      "max_err_px": 0.705140962280928,
+      "model": "homography",
+      "model_llr": 7.46,
+      "model_corner_diff_px": 5.793
      },
      {
       "frame": "IMG_0004.jpg",
       "true_shift_px": 18.63520185213546,
       "true_shift_max_px": 26.843797025969813,
       "mean_err_px": 1.012020252221649,
-      "max_err_px": 4.094941817229595
+      "max_err_px": 4.094941817229595,
+      "model": "affine",
+      "model_llr": 0.5,
+      "model_corner_diff_px": 2.133
      }
     ]
    },
    "summary": {
-    "mean_err_px": 1.2433686288965105,
-    "worst_frame_mean_err_px": 1.4342146078493228,
-    "max_err_px": 5.377135153590527,
+    "mean_err_px": 0.5635829835495761,
+    "worst_frame_mean_err_px": 1.012020252221649,
+    "max_err_px": 4.094941817229595,
     "true_shift_px_range": [
      17.857418887099687,
      18.63520185213546
     ],
-    "pass": false
+    "pass": false,
+    "models": {
+     "affine": 1,
+     "homography": 5
+    }
    },
    "similarity_only": {
     "per_scene": {
@@ -594,14 +634,20 @@
        "true_shift_px": 19.150537757206873,
        "true_shift_max_px": 25.182644009427882,
        "mean_err_px": 0.18408085145762035,
-       "max_err_px": 0.42992643417387133
+       "max_err_px": 0.42992643417387133,
+       "model": "affine",
+       "model_llr": -13.312,
+       "model_corner_diff_px": 2.184
       },
       {
        "frame": "IMG_0007.tif",
        "true_shift_px": 18.719828766440465,
        "true_shift_max_px": 25.585427155027595,
        "mean_err_px": 0.3342982616372967,
-       "max_err_px": 0.7332172119329531
+       "max_err_px": 0.7332172119329531,
+       "model": "affine",
+       "model_llr": -7.91,
+       "model_corner_diff_px": 4.292
       }
      ],
      "living_room": [
@@ -610,28 +656,40 @@
        "true_shift_px": 19.150537757206873,
        "true_shift_max_px": 25.182644009427882,
        "mean_err_px": 0.17135789548795083,
-       "max_err_px": 0.3585109250725346
+       "max_err_px": 0.3585109250725346,
+       "model": "affine",
+       "model_llr": 1.068,
+       "model_corner_diff_px": 1.625
       },
       {
        "frame": "IMG_0001.jpg",
        "true_shift_px": 18.719828766440465,
        "true_shift_max_px": 25.585427155027595,
        "mean_err_px": 0.1631792990513953,
-       "max_err_px": 0.3903726851784107
+       "max_err_px": 0.3903726851784107,
+       "model": "affine",
+       "model_llr": -0.925,
+       "model_corner_diff_px": 1.371
       },
       {
        "frame": "IMG_0003.jpg",
        "true_shift_px": 18.82867671988456,
        "true_shift_max_px": 24.302782015001142,
        "mean_err_px": 0.33296689047164696,
-       "max_err_px": 0.756450016516431
+       "max_err_px": 0.756450016516431,
+       "model": "affine",
+       "model_llr": 0.172,
+       "model_corner_diff_px": 0.553
       },
       {
        "frame": "IMG_0004.jpg",
        "true_shift_px": 19.329432037534453,
        "true_shift_max_px": 26.702769302676877,
        "mean_err_px": 0.501450279206078,
-       "max_err_px": 0.999875937027482
+       "max_err_px": 0.999875937027482,
+       "model": "affine",
+       "model_llr": -0.232,
+       "model_corner_diff_px": 1.488
       }
      ]
     },
@@ -643,7 +701,79 @@
       18.719828766440465,
       19.329432037534453
      ],
-     "pass": true
+     "pass": true,
+     "models": {
+      "affine": 6
+     }
+    }
+   },
+   "affine_model": {
+    "per_scene": {
+     "bedroom": [
+      {
+       "frame": "IMG_0005.tif",
+       "true_shift_px": 18.034937695292328,
+       "true_shift_max_px": 24.581313945100323,
+       "mean_err_px": 1.4342146078493228,
+       "max_err_px": 5.29381274157409,
+       "model": "affine"
+      },
+      {
+       "frame": "IMG_0007.tif",
+       "true_shift_px": 17.857418887099687,
+       "true_shift_max_px": 25.48344156853261,
+       "mean_err_px": 1.3765068998946417,
+       "max_err_px": 5.073231237362861,
+       "model": "affine"
+      }
+     ],
+     "living_room": [
+      {
+       "frame": "IMG_0000.jpg",
+       "true_shift_px": 18.034937695292328,
+       "true_shift_max_px": 24.581313945100323,
+       "mean_err_px": 1.3322889173354757,
+       "max_err_px": 5.003192278842357,
+       "model": "affine"
+      },
+      {
+       "frame": "IMG_0001.jpg",
+       "true_shift_px": 17.857418887099687,
+       "true_shift_max_px": 25.48344156853261,
+       "mean_err_px": 1.163125723643117,
+       "max_err_px": 4.200900059856946,
+       "model": "affine"
+      },
+      {
+       "frame": "IMG_0003.jpg",
+       "true_shift_px": 17.89943474608479,
+       "true_shift_max_px": 24.22763003026513,
+       "mean_err_px": 1.142055372434857,
+       "max_err_px": 5.377135153590527,
+       "model": "affine"
+      },
+      {
+       "frame": "IMG_0004.jpg",
+       "true_shift_px": 18.63520185213546,
+       "true_shift_max_px": 26.843797025969813,
+       "mean_err_px": 1.012020252221649,
+       "max_err_px": 4.094941817229595,
+       "model": "affine"
+      }
+     ]
+    },
+    "summary": {
+     "mean_err_px": 1.2433686288965105,
+     "worst_frame_mean_err_px": 1.4342146078493228,
+     "max_err_px": 5.377135153590527,
+     "true_shift_px_range": [
+      17.857418887099687,
+      18.63520185213546
+     ],
+     "pass": false,
+     "models": {
+      "affine": 6
+     }
     }
    },
    "homography_model": {
@@ -654,14 +784,16 @@
        "true_shift_px": 18.034937695292328,
        "true_shift_max_px": 24.581313945100323,
        "mean_err_px": 0.6091167663819326,
-       "max_err_px": 2.187357494818812
+       "max_err_px": 2.187357494818812,
+       "model": "homography"
       },
       {
        "frame": "IMG_0007.tif",
        "true_shift_px": 17.857418887099687,
        "true_shift_max_px": 25.48344156853261,
        "mean_err_px": 0.8399618851911286,
-       "max_err_px": 2.0405600135558033
+       "max_err_px": 2.0405600135558033,
+       "model": "homography"
       }
      ],
      "living_room": [
@@ -670,28 +802,32 @@
        "true_shift_px": 18.034937695292328,
        "true_shift_max_px": 24.581313945100323,
        "mean_err_px": 0.23573263426578428,
-       "max_err_px": 0.9709058231284194
+       "max_err_px": 0.9709058231284194,
+       "model": "homography"
       },
       {
        "frame": "IMG_0001.jpg",
        "true_shift_px": 17.857418887099687,
        "true_shift_max_px": 25.48344156853261,
        "mean_err_px": 0.3268555842527358,
-       "max_err_px": 0.9857310420750841
+       "max_err_px": 0.9857310420750841,
+       "model": "homography"
       },
       {
        "frame": "IMG_0003.jpg",
        "true_shift_px": 17.89943474608479,
        "true_shift_max_px": 24.22763003026513,
        "mean_err_px": 0.3224434596154749,
-       "max_err_px": 0.7051331430038377
+       "max_err_px": 0.7051331430038377,
+       "model": "homography"
       },
       {
        "frame": "IMG_0004.jpg",
        "true_shift_px": 18.63520185213546,
        "true_shift_max_px": 26.843797025969813,
        "mean_err_px": 0.509124439092298,
-       "max_err_px": 1.7836210365953242
+       "max_err_px": 1.7836210365953242,
+       "model": "homography"
       }
      ]
     },
@@ -703,7 +839,10 @@
       17.857418887099687,
       18.63520185213546
      ],
-     "pass": false
+     "pass": false,
+     "models": {
+      "homography": 6
+     }
     }
    }
   },
@@ -1027,5 +1166,81 @@
   "last_run_parts": [
    "exposures"
   ]
+ },
+ "alignment_models": {
+  "definition": "Experiment C (key 'alignment': configured align.model, per frame the model it used) repeated with explicit align.model values on the same loaded series: per scene / frame mean and max grid error [px] vs GT.",
+  "configured": "auto",
+  "affine": {
+   "bedroom": [
+    {
+     "frame": "IMG_0005.tif",
+     "mean_err_px": 0.2214109305026884,
+     "max_err_px": 0.468704242653098
+    },
+    {
+     "frame": "IMG_0007.tif",
+     "mean_err_px": 0.2682021951926524,
+     "max_err_px": 0.6900664372810841
+    }
+   ],
+   "living_room": [
+    {
+     "frame": "IMG_0000.jpg",
+     "mean_err_px": 0.4422655609653837,
+     "max_err_px": 0.8959053544816384
+    },
+    {
+     "frame": "IMG_0001.jpg",
+     "mean_err_px": 0.2926964396967244,
+     "max_err_px": 0.45921197557004906
+    },
+    {
+     "frame": "IMG_0003.jpg",
+     "mean_err_px": 0.3721312812571509,
+     "max_err_px": 0.8202387438817191
+    },
+    {
+     "frame": "IMG_0004.jpg",
+     "mean_err_px": 0.44828416037873026,
+     "max_err_px": 1.022680092252405
+    }
+   ]
+  },
+  "homography": {
+   "bedroom": [
+    {
+     "frame": "IMG_0005.tif",
+     "mean_err_px": 0.5138372341354206,
+     "max_err_px": 1.5913118134432522
+    },
+    {
+     "frame": "IMG_0007.tif",
+     "mean_err_px": 0.6170035866997954,
+     "max_err_px": 1.7512508588646516
+    }
+   ],
+   "living_room": [
+    {
+     "frame": "IMG_0000.jpg",
+     "mean_err_px": 0.37508972728115897,
+     "max_err_px": 1.5069616710571632
+    },
+    {
+     "frame": "IMG_0001.jpg",
+     "mean_err_px": 0.30954336471881055,
+     "max_err_px": 0.943647794527646
+    },
+    {
+     "frame": "IMG_0003.jpg",
+     "mean_err_px": 0.34288504479270987,
+     "max_err_px": 0.7540287169657991
+    },
+    {
+     "frame": "IMG_0004.jpg",
+     "mean_err_px": 0.35058346087645426,
+     "max_err_px": 0.826723040391363
+    }
+   ]
+  }
  }
 }
