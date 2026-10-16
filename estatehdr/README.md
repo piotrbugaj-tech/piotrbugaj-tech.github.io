@@ -159,135 +159,181 @@ w środowisku, w którym powstał projekt, nie było GPU, więc **przyspieszenia
 
 ## 6. Jakość: pomiary
 
-Wszystkie liczby pochodzą z uruchomień w tym repozytorium (4 rdzenie CPU, bez GPU), na finalnej konfiguracji.
-Pełne tabele i obrazy są w [reports/](reports/). Dane testowe opisuje §7.
+<!-- METRICS:START -->
+Wszystkie liczby w tej sekcji generuje `tools/update_readme_metrics.py` z plików w [reports/](reports/)
+(4 rdzenie CPU, bez GPU, finalna konfiguracja). Dane testowe opisuje §7.
 
 ### 6.1 Kalibracja: przed i po (pełny pipeline, sceny syntetyczne z GT)
 
 Ten sam kod, różnią się tylko parametry: przed = [config_before_full.yaml](reports/calibration/config_before_full.yaml),
-po = `config.yaml`. Średnie z 3 wnętrz z prawdą referencyjną (6 serii dla metryk bez GT). Pełna tabela per seria:
-[reports/calibration/full_pipeline.md](reports/calibration/full_pipeline.md).
+po = `config.yaml`. Metryki z GT to średnie z 3 wnętrz z prawdą referencyjną, pozostałe z 6 serii. Pełna
+tabela per seria: [reports/calibration/full_pipeline.md](reports/calibration/full_pipeline.md).
 
 | Metryka (cel ze SPEC) | neutral przed → po | airy przed → po | premium przed → po |
 |---|---|---|---|
-| Neutralność ścian ΔE2000, GT (≤ 3.0) | 5.57 → **3.09** | 5.55 → **3.07** | 5.60 → **3.16** |
-| Jasność ścian L*, GT (neutral 78–88, airy 84–92, premium 74–86) | 62.6 → **75.6** | 67.7 → **87.1** | 61.1 → **76.1** |
-| Jasność widoku za oknem L* (55–80, premium 45–70) | 75.0 → 71.5 | 79.7 → 76.3 | 71.3 → 66.3 |
+| Neutralność ścian ΔE2000, GT (≤ 3.0) | 5.53 → **3.06** | 5.52 → **3.03** | 5.58 → **3.14** |
+| Jasność ścian L*, GT (neutral 78–88, airy 84–92, premium 74–86) | 62.7 → **75.6** | 67.7 → **87.1** | 61.0 → **76.0** |
+| Jasność widoku za oknem L*, GT (55–80, premium 45–70) | 75.0 → 72.0 | 79.6 → 76.4 | 71.5 → 66.5 |
 | Odzyskiwalne przepalenia okna, % (< 5) | 0.0 → 0.0 | 0.0 → 0.0 | 0.0 → 0.0 |
-| Przepalenia poza źródłami światła, %, GT (< 0.5) | 0.03 → 0.03 | 0.02 → 0.03 | 0.04 → 0.04 |
-| Zaczernienia, % (< 0.5) | 0.00 → 0.00 | 0.00 → 0.00 | 0.02 → 0.02 |
-| Halo przy oknie ΔL* (< 4) | −0.6 → −0.8 | −0.9 → −0.4 | −0.7 → −0.4 |
-| Pionowość, mediana [°] (≤ 0.5) | 0.08 → 0.06 | 0.06 → 0.07 | 0.07 → 0.09 |
-| Detal widoku okna / GT (≥ 0.6) | 1.06 → 1.03 | 0.94 → 1.11 | 1.22 → 1.21 |
-| MS-SSIM do „idealnej edycji” GT | 0.93 → 0.90 | 0.93 → 0.86 | 0.93 → 0.90 |
-| ΔE2000 do „idealnej edycji” GT | 10.2 → 13.9 | 11.6 → 19.1 | 10.1 → 13.7 |
+| Przepalenia poza źródłami światła, %, GT (< 0.5) | 0.03 → 0.03 | 0.02 → 0.02 | 0.04 → 0.03 |
+| Zaczernienia, % (< 0.5) | 0.00 → 0.00 | 0.00 → 0.00 | 0.01 → 0.02 |
+| Halo przy oknie ΔL* (< 4) | -0.7 → -0.9 | -0.9 → -0.5 | -0.8 → -0.5 |
+| Pionowość, mediana [°] (≤ 0.5) | 0.07 → 0.10 | 0.08 → 0.10 | 0.07 → 0.10 |
+| Detal widoku okna / GT (≥ 0.6) | 1.06 → 1.04 | 0.94 → 1.12 | 1.22 → 1.22 |
+| Neutralność jasnych powierzchni ΔE (auto) | 4.91 → 3.90 | 4.76 → 3.81 | 4.90 → 3.93 |
+| Mediana jasności | 0.57 → 0.69 | 0.62 → 0.82 | 0.55 → 0.69 |
 
-Kalibracja poprawia cele ze SPEC (neutralność i jasność ścian). Zgodność z „idealną edycją” spada, bo w danych
-syntetycznych ma ona ściany L* 46–54, a cele SPEC wymagają jasnych, białych ścian (D-32).
-Funkcja celu (`neutral`): 8.78 → 4.77 → 2.99. Przebiegi: [reports/calibration/](reports/calibration/).
+Kalibracja poprawia cele ze SPEC: neutralność i jasność ścian. Funkcja celu (`neutral`):
+8.78 → 4.77 (przebieg 2) → 2.99 (przebieg 3). Przebiegi: [reports/calibration/](reports/calibration/).
 
-**Walidacja na danych nieużytych w kalibracji** (preset `neutral`, przed → po):
+**Walidacja na danych nieużytych w kalibracji** (preset `neutral`, przed → po, kod z dnia kalibracji;
+[validation.json](reports/calibration/validation.json)):
 
 | Zbiór | Mediana jasności | ΔE jasnych powierzchni (auto) | Przepalenia poza nieodzyskiwalnymi, % |
 |---|---|---|---|
-| HDR+ (6 serii z prawdziwą treścią wnętrz) | 0.58 → 0.71 | 6.70 → **5.96** | 0.58 → 0.61 |
-| OpenCV: Memorial Church (Debevec) i St. Louis (noc) | 0.43 → 0.50 | 7.16 → 7.41 | 1.38 → 2.01 |
-| Portfolio: 21 gotowych zdjęć (tryb jednej klatki), zmiana względem wejścia | — | ΔE do wejścia 4.60 → 4.57* | 0.40 → 0.43 |
+| HDR+ (6 serii z prawdziwą treścią wnętrz) | 0.58 → 0.71 | 6.70 → 5.96 | 0.58 → 0.61 |
+| OpenCV: Memorial Church (Debevec) i St. Louis (noc) | 0.43 → 0.50 | 7.16 → 7.41 | 1.38 → 2.00 |
 
-\* Po zmianie zakresu klucza w trybie jednej klatki (D-32). Bez tej zmiany ΔE wynosiło 6.74.
+Gotowe zdjęcia (tryb jednej klatki) sprawdza osobno test „nie psuć” (6.5).
 
 ### 6.2 Porównania przed i po dla każdego presetu
 
-[reports/comparisons/README.md](reports/comparisons/README.md) zawiera 18 zestawień (klatka referencyjna | neutral |
-airy | premium) i tabele metryk dla każdej serii. Średnie:
+[reports/comparisons/README.md](reports/comparisons/README.md) zawiera 17 zestawień (klatka referencyjna | neutral | airy | premium)
+i tabele metryk per seria. „Przed” to klatka referencyjna prosto z aparatu, „po” to wynik presetu. Średnie:
 
-| Zbiór | Preset | Mediana jasności | Przepalenia*, % | Neutralność ΔE (auto) | Ściany L* (GT) | Widok L* (GT) |
-|---|---|---|---|---|---|---|
-| syntetyczne (6 serii) | neutral / airy / premium | 0.69 / 0.82 / 0.69 | 1.16 / 1.14 / 1.17 | 3.89 / 3.81 / 3.91 | 75.6 / 87.1 / 76.1 | 71.5 / 76.3 / 66.3 |
-| HDR+ (6 serii) | neutral / airy / premium | 0.71 / 0.84 / 0.71 | 0.61 / 0.67 / 0.70 | 5.96 / 5.29 / 6.06 | — | — |
-| OpenCV (2 serie) | neutral / airy / premium | 0.50 / 0.58 / 0.50 | 2.01 / 2.74 / 2.19 | 7.41 / 7.29 / 7.48 | — | — |
-| portfolio (3 zdjęcia) | neutral / airy / premium | 0.69 / 0.70 / 0.70 | 0.57 / 0.56 / 0.66 | 2.49 / 2.30 / 2.64 | — | — |
+| Zbiór | Wersja | Mediana jasności | Przepalenia*, % | Zaczernienia, % | Neutralność ΔE (auto) | Pionowość [°] | Ściany L* (GT) | Widok L** |
+|---|---|---|---|---|---|---|---|---|
+| syntetyczne (6) | przed | 0.31 | 10.66 | 0.01 | 8.74 | 2.06 | — | — |
+| syntetyczne (6) | neutral | 0.69 | 0.41 | 0.00 | 3.90 | 0.10 | 75.6 | 72.0 |
+| syntetyczne (6) | airy | 0.82 | 0.42 | 0.00 | 3.81 | 0.10 | 87.1 | 76.4 |
+| syntetyczne (6) | premium | 0.69 | 0.46 | 0.02 | 3.93 | 0.10 | 76.0 | 66.5 |
+| HDR+ (6) | przed | 0.33 | 6.66 | 0.00 | 9.41 | 2.44 | — | — |
+| HDR+ (6) | neutral | 0.71 | 0.56 | 0.00 | 6.03 | 1.61 | — | 77.4 |
+| HDR+ (6) | airy | 0.85 | 0.46 | 0.00 | 5.17 | 1.68 | — | 81.8 |
+| HDR+ (6) | premium | 0.71 | 0.63 | 0.01 | 6.06 | 1.67 | — | 74.0 |
+| OpenCV (2) | przed | 0.30 | 8.78 | 0.00 | 12.64 | 3.51 | — | — |
+| OpenCV (2) | neutral | 0.50 | 1.98 | 0.05 | 7.40 | 2.94 | — | 61.0 |
+| OpenCV (2) | airy | 0.58 | 2.36 | 0.05 | 6.83 | 1.70 | — | 64.6 |
+| OpenCV (2) | premium | 0.50 | 2.17 | 0.08 | 7.47 | 4.30 | — | 58.5 |
+| portfolio (3) | przed | 0.68 | 0.07 | 0.03 | 4.51 | 0.25 | — | — |
+| portfolio (3) | neutral | 0.69 | 0.39 | 1.29 | 2.48 | 0.19 | — | — |
+| portfolio (3) | airy | 0.70 | 0.44 | 0.07 | 2.29 | 0.19 | — | — |
+| portfolio (3) | premium | 0.70 | 0.48 | 1.89 | 2.61 | 0.18 | — | — |
 
-\* Piksele ≥ 254/255 poza obszarami przepalonymi w każdej klatce, łącznie z lampami i oknami.
+\* Piksele ≥ 254/255 poza obszarami przepalonymi we wszystkich klatkach (łącznie z lampami i oknami).
+W wierszu „przed” liczone są wszystkie, bo pojedyncza klatka nic nie wie o pozostałych.
+\** Średnie L* widoku za oknem z maski okien pipeline'u, bez pikseli przepalonych.
+
+Pionowość na zdjęciach bez architektonicznych pionów (portret, zbliżenie, kopuła z rybiego oka) nie oznacza
+krzywych ścian (§9).
 
 ![syntetyczne](reports/comparisons/syntetyczne__IMG_0000.jpg)
 ![HDR+](reports/comparisons/hdrplus__HDRP_0000.jpg)
 
 ### 6.3 Etapy pipeline'u względem prawdy referencyjnej
 
-Pomiary z [tools/verify_hypotheses.py](tools/verify_hypotheses.py) ([reports/verification.json](reports/verification.json)),
-sceny syntetyczne 2400×1600:
+Pomiary z [tools/verify_hypotheses.py](tools/verify_hypotheses.py) ([verification.json](reports/verification.json))
+i [tools/eval_modules.py](tools/eval_modules.py) ([modules_eval.json](reports/modules_eval.json)) na scenach
+syntetycznych 2400×1600:
 
-| Etap (kryterium SPEC) | Wynik |
+| Etap | Wynik |
 |---|---|
-| Grupowanie (100% z EXIF i bez) | 6/6 serii dokładnie z EXIF i 6/6 bez EXIF. Uszkodzony plik trafia do `unreadable` |
-| Wyrównanie (≤ 0.6 px statyw, ≤ 0.8 px z ręki) | średni błąd 0.22–0.45 px (z ręki, przesunięcia do 10 px) |
-| Merge (3 z N) | mediana błędu log2 radiancji: wszystkie klatki 0.008–0.010, 3 skrajne 0.014–0.018 |
-| Okna (< 5% odzyskiwalnych przepaleń, L* 55–80, detal ≥ 0.6×) | odzyskiwalne przepalenia 0%, L* widoku 70.6–71.9, detal 0.98–1.12× GT, halo −3.1…+0.7 L*. Okna przepalone już w najciemniejszej klatce (13% i 43% powierzchni) zostają białe |
-| Geometria (piony ≤ 0.5°, \|k1 − k1_GT\| ≤ 0.02) | k1 0.060 / 0.040 / 0.069 przy prawdzie 0.06 / 0.04 / 0.08; korekta pochylenia z błędem 0.07–0.60°, przechyłu ≤ 0.1°; mediana odchylenia pionów po korekcie 0.04–0.14°; crop 2.3–3.2% |
-| Aberracja chromatyczna (resztkowa ≤ 0.3 px) | prawda: R +0.12%, B −0.12%. Dane liniowe (TIFF 16-bit, radiancja GT): oszacowanie R +0.09…+0.11%, czyli 75–90% korekty. Serie JPEG: +0.04…+0.05%, bo subsampling 4:2:0 rozmywa przesunięcie kolorów już w pliku (ten sam obraz jako 4:4:4 daje +0.075%, jako 4:2:0 +0.045%). Resztkowe CA na brzegu ok. 0.4 px (dane liniowe) i ok. 1 px (JPEG 4:2:0), więc **kryterium SPEC nie jest spełnione** |
-| Odszumianie (σ niższe niż w klatce) | 6 zaszumionych pojedynczych RAW z HDR+: σ niższe we wszystkich 6, o 3–33%. Mniej niż przed kalibracją (20–35%), bo jaśniejszy klucz tonalny uwidacznia szum cieni |
-| Niebo (IoU ≥ 0.85) | IoU 0.936 (syntetyczny exterior); 12/14 exteriorów HDR+ wykrytych, 1 fałszywe na 104 wnętrzach |
+| Grupowanie | 6/6 serii dokładnie z EXIF i 6/6 bez EXIF (same piksele). Uszkodzony plik trafia do `unreadable` |
+| Wyrównanie | średni błąd siatki: statyw 0.29–0.45 px, z ręki 0.22–0.27 px przy przesunięciach 4–10 px |
+| Merge: 3 klatki z N | mediana błędu log2 radiancji: wszystkie klatki 0.008–0.010, 3 skrajne 0.014–0.018, 3 środkowe 0.012–0.013 |
+| Okna | odzyskiwalne przepalenia 0%, L* widoku 70.7–72.1, detal 0.99–1.12× GT, halo -3.3–0.7 L*. Okna przepalone już w najciemniejszej klatce (13% i 43% powierzchni okna) zostają białe |
+| Geometria | k1 0.058 / 0.040 / 0.068 przy prawdzie 0.06 / 0.04 / 0.08; błąd korekty pochylenia 0.06–0.61°, przechyłu 0.00–0.09°; mediana odchylenia pionów po korekcie 0.06–0.17° |
+| Aberracja chromatyczna | prawda: skala R +0.12%, B −0.12%. Resztka w rogu kadru: dane liniowe 0.33–0.65 px, JPEG 4:2:0 0.76–1.08 px (subsampling rozmywa przesunięcie kolorów już w pliku), pełny pipeline na seriach syntetycznych 0.42–1.11 px |
+| Odszumianie | 6 zaszumionych pojedynczych RAW z HDR+: σ szumu niższe w 6/6, o 31–71% |
+| Niebo | IoU 0.94 (syntetyczny exterior); wykryte na 12/14 exteriorach HDR+, fałszywie na 2/104 wnętrzach portfolio |
 
 ### 6.4 Moduły opcjonalne
 
 | Moduł | Pomiar |
 |---|---|
-| Usuwanie obiektów | 26 obrazów z dziurą o znanej treści: ΔE2000 do oryginału 1.12 (exemplar) vs 1.43 (Telea) na jednorodnym tle, 5.07 vs 6.50 przy losowym położeniu. Poza maską piksele bez zmian (test) |
-| Wymiana nieba | patrz 6.3; zdjęcie nieba użytkownika komponowane w pełnej rozdzielczości (test) |
-| Twilight | deterministyczny relighting; test: niebo w stylu, świecące okna, fasada ciemniejsza |
-| Trawa | test: trawnik zieleńszy, kolory poza trawnikiem bez zmian |
+| Usuwanie obiektów | 26 wycinków zdjęć portfolio; eliptyczną dziurę (16% boku) wypełnia metoda, a wynik jest porównany z oryginałem (ΔE2000 w dziurze). Jednorodne tło: 3.38 (exemplar) vs 3.69 (Telea), exemplar lepszy w 19/26. Losowe miejsce: 7.99 vs 8.73, lepszy w 18/26. Poza maską i otoczką piksele bez zmian (test) |
+| Wymiana nieba | detekcja: patrz 6.3; zdjęcie nieba użytkownika jest komponowane w pełnej rozdzielczości (test) |
+| Twilight | syntetyczny dom (8 okien i drzwi): zapalonych 9 obszarów, wszystkie na oknach albo drzwiach, nic na trawniku (test, D-45) |
+| Trawa | trawnik zieleńszy, kolory poza trawnikiem bez zmian (test) |
 
-### 6.5 Test „nie psuć” (tryb jednej klatki, 104 gotowe zdjęcia z portfolio)
+### 6.5 Test „nie psuć” (tryb jednej klatki, gotowe zdjęcia z portfolio)
 
-104/104 bez błędu. Wynik względem wejścia: SSIM mediana **0.967** (p10 0.914), MS-SSIM 0.948, ΔE2000 mediana
-**4.57** (p90 6.35), pionowość 0.19° (mediana). Cel SPEC: SSIM ≥ 0.85, ΔE ≤ 6 (średnia 4.90).
-Plik: [reports/portfolio_do_no_harm.json](reports/portfolio_do_no_harm.json).
+104/104 zdjęć bez błędu. Wynik względem wejścia:
+- SSIM: mediana **0.966**, p10 0.885, minimum 0.772;
+  poniżej 0.85: 7/104 zdjęć (najniższe: k106.CNSQFHIF (0.77), 02.DlAjPzxZ (0.79), k017.CcND4ej8 (0.81));
+- ΔE2000: mediana **4.40**, średnia 4.85, p90 6.48;
+- przepalenia poza nieodzyskiwalnymi średnio 0.29%, zaczernienia średnio 0.16% (maksimum 3.41%);
+- pionowość: mediana 0.19°.
+
+Cel SPEC: SSIM ≥ 0.85 i średnie ΔE ≤ 6. Najniższe SSIM mają głównie zdjęcia, którym pipeline prostuje piony:
+zamierzona zmiana geometrii obniża SSIM. Plik: [reports/portfolio_do_no_harm.json](reports/portfolio_do_no_harm.json).
 
 ### 6.6 Wydajność i pamięć
 
+Maszyna: 4 rdzenie CPU, bez GPU (OpenCL niedostępny), 15 GB RAM. Jedna seria na jednym workerze.
+
 | Seria | Czas | Szczyt RAM | Najdłuższe etapy |
 |---|---|---|---|
-| 3 × 24 Mpx (6000×4000) | 79 s | 2.25 GB | tone mapping, merge, wyrównanie |
-| 3 × 60 Mpx (9504×6336) | 137 s | 2.71 GB | tone mapping 42 s, merge 35 s, wyrównanie 22 s, geometria 18 s |
+| 3x24Mpx JPEG (6000×4000) | 79 s | 2.26 GB | tone mapping 26 s, wyrównanie 21 s, merge 12 s, geometria 6 s |
+| 3x60Mpx JPEG (9504×6336) | 147 s | 2.73 GB | tone mapping 45 s, merge 34 s, geometria 23 s, wyrównanie 22 s |
+| 3x60Mpx TIFF 16-bit (9504×6336) | 149 s | 3.31 GB | tone mapping 43 s, merge 34 s, wyrównanie 22 s, geometria 20 s |
 
-Cel SPEC: ≤ 6 GB na workera. Szczegóły: [reports/perf.json](reports/perf.json). 104 zdjęcia portfolio (2 workery):
-502 s.
+Batch: 104 zdjęć portfolio w trybie jednej klatki, 2 workery, 418 s.
+Szczegóły: [reports/perf.json](reports/perf.json).
 
 ### 6.7 Kryteria akceptacji ze SPEC: podsumowanie
 
-**Spełnione:**
-- grupowanie 100% z EXIF i bez EXIF;
-- wyrównanie;
-- duchy;
-- przepalenia i zaczernienia poza światłami;
-- halo;
-- odzyskiwalne przepalenia okien i jasność widoku;
-- detal okien;
-- piony i dystorsja;
-- szum niższy niż w klatce;
-- test „nie psuć” (SSIM ≥ 0.85, ΔE ≤ 6);
-- maska nieba (IoU ≥ 0.85);
-- eksport (sRGB ICC, EXIF, wymiary);
-- pamięć ≤ 6 GB na 60 Mpx;
-- jasność ścian dla airy i premium.
+Ta tabela też powstaje z raportów. 32 kryteriów: niespełnione 4, spełnione częściowo 3, bez pomiaru 3.
+„Tak (test)” oznacza, że kryterium sprawdza test automatyczny, bez osobnej liczby w raporcie. Przyczyny braków
+opisuje §9.
 
-**Niespełnione albo na granicy:**
-- neutralność ścian ΔE 3.07–3.16 przy celu ≤ 3.0 (≤ 5 przy żarówkach jest spełnione);
-- jasność ścian w `neutral` L* 75.6 przy celu 78–88. Klucz tonalny jest celowo ograniczony do 0.70, bo
-  jaśniejszy wyglądał na prawdziwych zdjęciach na wyprany (D-32);
-- resztkowa aberracja chromatyczna 0.4–1 px przy celu ≤ 0.3 px (6.3).
+| Kryterium | Cel (SPEC) | Wynik | Spełnione |
+|---|---|---|---|
+| Odporność batcha | błędny plik nie zatrzymuje batcha | uszkodzony plik, niepełna seria, brak EXIF, awaria workera (`tests/test_robustness.py`) | tak (test) |
+| Grupowanie | 100% z EXIF i bez | 6/6 i 6/6 | tak |
+| Ekspozycje względne | ±0.1 EV od GT | `test_exposures_without_exif` | tak (test) |
+| Wyrównanie | ≤ 0.6 px statyw, ≤ 0.8 px z ręki (przesunięcia do 20 px) | 0.29–0.45 px i 0.22–0.27 px; sprawdzone przesunięcia do 10 px | częściowo |
+| Duchy | < 2% maski ducha odbiega o > 0.5 EV | `test_deghosting_moving_object` | tak (test) |
+| Przepalenia poza światłami | < 0.5% | 0.02–0.03% | tak |
+| Zaczernienia | < 0.5% | 0.00–0.02% | tak |
+| Halo okno/ściana | < 4 L* | maks. 3.3 L* | tak |
+| Jasność ścian `neutral` | L* 78–88 | 75.6 | **nie** |
+| Jasność ścian `airy` | L* 84–92 | 87.1 | tak |
+| Jasność ścian `premium` | L* 74–86 | 76.0 | tak |
+| Okna: odzyskiwalne przepalenia | < 5% | 0.0% | tak |
+| Okna: L* widoku | 55–80 (premium 45–70) | neutral 72.0, airy 76.4, premium 66.5 | tak |
+| Okna: detal | ≥ 0.6× GT | 1.04–1.22× | tak |
+| Okna: IoU maski | ≥ 0.8 | test sprawdza > 0.6 | nie zmierzone |
+| Neutralność ścian | ΔE ≤ 3.0 | neutral 3.06, airy 3.03, premium 3.14 | **nie** |
+| Neutralność w strefie żarówek | ΔE ≤ 5.0 | — | nie zmierzone |
+| Ściana akcentowa | ΔH < 10° | `test_white_balance_removes_cast` (akcent zostaje czerwony) | tak (test) |
+| Piony | mediana ≤ 0.5° | 0.06–0.17° | tak |
+| Dystorsja | \|k1 − k1_GT\| ≤ 0.02 | maks. 0.012 | tak |
+| Winieta | resztka w rogu ≤ 8% | płaskie sceny ≤ 8% (test); wnętrza syntetyczne: korekta odrzucana przez strażniki (D-44) | częściowo |
+| Aberracja chromatyczna | ≤ 0.3 px na brzegu | liniowe 0.33–0.65 px, pipeline 0.42–1.11 px | **nie** |
+| Szum | σ niższe niż w klatce | 6/6 RAW, o 31–71% | tak |
+| Ostrość | ≥ 0.9× wejścia | — | nie zmierzone |
+| Jedna klatka: przepalenia i zaczernienia | spadają | przepalenia 0.07 → 0.39%, zaczernienia 0.03 → 1.29% (portfolio, 6.2) | **nie** |
+| „Nie psuć” (portfolio) | SSIM ≥ 0.85, średnie ΔE ≤ 6 | SSIM mediana 0.966, 7/104 zdjęć poniżej 0.85; ΔE średnie 4.85 | częściowo |
+| Maska nieba | IoU ≥ 0.85 | 0.94 | tak |
+| Twilight | niebo w stylu, okna świecą, fasada ciemniejsza | `test_twilight_*` | tak (test) |
+| Usuwanie obiektów | poza maską bez zmian (poza otoczką 8 px) | `test_object_removal_*` | tak (test) |
+| Eksport | sRGB ICC, wymiary, EXIF | `test_exports_sizes_profile_exif`, `test_jpeg_has_srgb_icc_and_exif` | tak (test) |
+| Czas 3×24 Mpx | ≤ 90 s (4 rdzenie) | 79 s | tak |
+| Pamięć 3×60 Mpx | ≤ 6 GB na workera | 3.31 GB | tak |
 
 ### 6.8 Testy automatyczne
 
-`./estatehdr.sh test`: **82 testy**, wszystkie przechodzą (ok. 100 s). Pokrycie:
-- wejście i EXIF, profile ICC, uszkodzone pliki;
+`./estatehdr.sh test`: **? testów** w `tests/`. Pokrycie:
+- wejście, EXIF, profile ICC, mapy cieniowania DNG, uszkodzone pliki;
 - grupowanie;
 - ekspozycje i krzywa odpowiedzi, wyrównanie względem GT, merge i duchy;
-- okna, WB, tone mapping, odszumianie, CA, winieta, dystorsja, piony, tryb nocny;
-- moduły;
-- batch: izolacja błędów i awarii workera, równoległość;
-- eksport (ICC, EXIF, rozmiary), CLI, web UI, ścieżka GPU (UMat) zgodna z CPU.
+- okna, WB, tone mapping (kolejność jasności, czerń scen o małym kontraście), odszumianie, CA, winieta,
+  dystorsja, piony, tryb nocny;
+- tryb jednej klatki (przepalenia, szum), moduły (usuwanie lokalne, niebo, twilight, trawa);
+- batch: izolacja błędów i awarii workera, logi, kody wyjścia;
+- eksport (ICC v2, EXIF, rozmiary), CLI, web UI, ścieżka GPU (UMat) zgodna z CPU.
+<!-- METRICS:END -->
 
 ## 7. Kalibracja
 

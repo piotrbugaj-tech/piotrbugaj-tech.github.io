@@ -6,11 +6,11 @@ Wejście: `data/synthetic/input`. Konfiguracja przed: `reports/calibration/confi
 
 | metryka | przed | po | zmiana |
 |---|---|---|---|
-| przepalenia poza nieodzyskiwalnymi [%] | 0.390 | 0.395 | gorzej |
+| przepalenia poza nieodzyskiwalnymi [%] | 0.390 | 0.412 | gorzej |
 | zaczernienia [%] | 0.002 | 0.003 | gorzej |
 | mediana jasności | 0.570 | 0.687 |  |
-| pionowość, mediana [°] | 0.070 | 0.080 | gorzej |
-| neutralność jasnych powierzchni ΔE (auto) | 4.907 | 3.892 | lepiej |
+| pionowość, mediana [°] | 0.070 | 0.097 | gorzej |
+| neutralność jasnych powierzchni ΔE (auto) | 4.907 | 3.896 | lepiej |
 | neutralność ścian ΔE (GT) | 5.530 | 3.064 | lepiej |
 | jasność ścian L* (GT; cel SPEC: neutral 78-88, airy 84-92, premium 74-86) | 62.672 | 75.635 |  |
 | jasność widoku okna L* (cel 55-80) | 75.031 | 71.990 |  |
@@ -80,11 +80,11 @@ Wejście: `data/synthetic/input`. Konfiguracja przed: `reports/calibration/confi
 | IMG_0015 | median_luma | 0.561 | 0.707 |
 | IMG_0015 | vert_med_deg | 0.021 | 0.027 |
 | IMG_0015 | wall_dE_auto | 3.763 | 0.966 |
-| IMG_0018 | clipped_excl_% | 2.119 | 2.199 |
+| IMG_0018 | clipped_excl_% | 2.119 | 2.300 |
 | IMG_0018 | crushed_% | 0.001 | 0.001 |
-| IMG_0018 | median_luma | 0.516 | 0.559 |
-| IMG_0018 | vert_med_deg | 0.047 | 0.043 |
-| IMG_0018 | wall_dE_auto | 7.002 | 7.757 |
+| IMG_0018 | median_luma | 0.516 | 0.562 |
+| IMG_0018 | vert_med_deg | 0.047 | 0.147 |
+| IMG_0018 | wall_dE_auto | 7.002 | 7.778 |
 | IMG_0018 | win_L | 76.037 | 72.885 |
 | NOEXIF_0000 | clipped_excl_% | 0.129 | 0.106 |
 | NOEXIF_0000 | crushed_% | 0.000 | 0.002 |
@@ -97,11 +97,11 @@ Wejście: `data/synthetic/input`. Konfiguracja przed: `reports/calibration/confi
 
 | metryka | przed | po | zmiana |
 |---|---|---|---|
-| przepalenia poza nieodzyskiwalnymi [%] | 0.389 | 0.404 | gorzej |
+| przepalenia poza nieodzyskiwalnymi [%] | 0.389 | 0.421 | gorzej |
 | zaczernienia [%] | 0.000 | 0.001 | = |
-| mediana jasności | 0.625 | 0.822 |  |
-| pionowość, mediana [°] | 0.082 | 0.068 | lepiej |
-| neutralność jasnych powierzchni ΔE (auto) | 4.758 | 3.810 | lepiej |
+| mediana jasności | 0.625 | 0.823 |  |
+| pionowość, mediana [°] | 0.082 | 0.098 | gorzej |
+| neutralność jasnych powierzchni ΔE (auto) | 4.758 | 3.813 | lepiej |
 | neutralność ścian ΔE (GT) | 5.521 | 3.028 | lepiej |
 | jasność ścian L* (GT; cel SPEC: neutral 78-88, airy 84-92, premium 74-86) | 67.695 | 87.107 |  |
 | jasność widoku okna L* (cel 55-80) | 79.594 | 76.420 |  |
@@ -171,11 +171,11 @@ Wejście: `data/synthetic/input`. Konfiguracja przed: `reports/calibration/confi
 | IMG_0015 | median_luma | 0.616 | 0.844 |
 | IMG_0015 | vert_med_deg | 0.025 | 0.067 |
 | IMG_0015 | wall_dE_auto | 3.594 | 0.952 |
-| IMG_0018 | clipped_excl_% | 2.145 | 2.222 |
+| IMG_0018 | clipped_excl_% | 2.145 | 2.326 |
 | IMG_0018 | crushed_% | 0.000 | 0.000 |
-| IMG_0018 | median_luma | 0.574 | 0.695 |
-| IMG_0018 | vert_med_deg | 0.057 | 0.048 |
-| IMG_0018 | wall_dE_auto | 6.734 | 7.520 |
+| IMG_0018 | median_luma | 0.574 | 0.697 |
+| IMG_0018 | vert_med_deg | 0.057 | 0.229 |
+| IMG_0018 | wall_dE_auto | 6.734 | 7.537 |
 | IMG_0018 | win_L | 80.196 | 76.032 |
 | NOEXIF_0000 | clipped_excl_% | 0.112 | 0.134 |
 | NOEXIF_0000 | crushed_% | 0.000 | 0.000 |
@@ -188,11 +188,11 @@ Wejście: `data/synthetic/input`. Konfiguracja przed: `reports/calibration/confi
 
 | metryka | przed | po | zmiana |
 |---|---|---|---|
-| przepalenia poza nieodzyskiwalnymi [%] | 0.399 | 0.443 | gorzej |
+| przepalenia poza nieodzyskiwalnymi [%] | 0.399 | 0.458 | gorzej |
 | zaczernienia [%] | 0.014 | 0.015 | gorzej |
 | mediana jasności | 0.552 | 0.693 |  |
-| pionowość, mediana [°] | 0.073 | 0.074 | gorzej |
-| neutralność jasnych powierzchni ΔE (auto) | 4.896 | 3.925 | lepiej |
+| pionowość, mediana [°] | 0.073 | 0.099 | gorzej |
+| neutralność jasnych powierzchni ΔE (auto) | 4.896 | 3.930 | lepiej |
 | neutralność ścian ΔE (GT) | 5.577 | 3.143 | lepiej |
 | jasność ścian L* (GT; cel SPEC: neutral 78-88, airy 84-92, premium 74-86) | 61.002 | 76.009 |  |
 | jasność widoku okna L* (cel 55-80) | 71.546 | 66.541 |  |
@@ -262,11 +262,11 @@ Wejście: `data/synthetic/input`. Konfiguracja przed: `reports/calibration/confi
 | IMG_0015 | median_luma | 0.543 | 0.713 |
 | IMG_0015 | vert_med_deg | 0.020 | 0.101 |
 | IMG_0015 | wall_dE_auto | 3.848 | 1.110 |
-| IMG_0018 | clipped_excl_% | 2.152 | 2.222 |
+| IMG_0018 | clipped_excl_% | 2.152 | 2.313 |
 | IMG_0018 | crushed_% | 0.013 | 0.010 |
-| IMG_0018 | median_luma | 0.496 | 0.561 |
-| IMG_0018 | vert_med_deg | 0.043 | 0.054 |
-| IMG_0018 | wall_dE_auto | 7.079 | 7.879 |
+| IMG_0018 | median_luma | 0.496 | 0.564 |
+| IMG_0018 | vert_med_deg | 0.043 | 0.201 |
+| IMG_0018 | wall_dE_auto | 7.079 | 7.909 |
 | IMG_0018 | win_L | 73.528 | 66.962 |
 | NOEXIF_0000 | clipped_excl_% | 0.130 | 0.160 |
 | NOEXIF_0000 | crushed_% | 0.007 | 0.007 |
