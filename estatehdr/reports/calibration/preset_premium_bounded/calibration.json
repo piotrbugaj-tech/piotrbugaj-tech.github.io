@@ -1,0 +1,141 @@
+{
+ "preset": "premium",
+ "mode": "synthetic",
+ "seconds": 469.5,
+ "loss_before": 2.7076593883722837,
+ "loss_after": 2.663373322354983,
+ "trajectory": [
+  {
+   "step": 0,
+   "loss": 2.7076593883722837,
+   "params": {
+    "tonemap.target_key": 0.7,
+    "tonemap.compress_shadows": 0.82,
+    "tonemap.compress_highlights": 0.57,
+    "windows.exterior_target": 0.495
+   },
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.7602493762969971,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.39989652633667,
+     "ssim": 0.251130611392439
+    },
+    "IMG_0005": {
+     "wall_dE": 0.7509160041809082,
+     "wall_L": 1.3692306518554687,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.033351230621338,
+     "ssim": 0.22805604504641086
+    },
+    "IMG_0008": {
+     "wall_dE": 0.419447660446167,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.6594947814941408,
+     "ssim": 0.2512052774463125
+    }
+   }
+  },
+  {
+   "step": 1,
+   "round": 1,
+   "param": "tonemap.compress_shadows",
+   "value": 0.8999999999999999,
+   "loss": 2.6761211056035825,
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.756422758102417,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.3946405410766602,
+     "ssim": 0.24461132138828057
+    },
+    "IMG_0005": {
+     "wall_dE": 0.7607393264770508,
+     "wall_L": 1.3162445068359374,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.0285364151000977,
+     "ssim": 0.2142042842990366
+    },
+    "IMG_0008": {
+     "wall_dE": 0.41475415229797363,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.6485212326049805,
+     "ssim": 0.24968877862831373
+    }
+   }
+  },
+  {
+   "step": 2,
+   "round": 2,
+   "param": "tonemap.compress_shadows",
+   "value": 0.86,
+   "loss": 2.663373322354983,
+   "terms": {
+    "IMG_0000": {
+     "wall_dE": 0.763322114944458,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.3953357696533204,
+     "ssim": 0.24639325266101775
+    },
+    "IMG_0005": {
+     "wall_dE": 0.7600717544555664,
+     "wall_L": 1.3358596801757812,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.0233007431030274,
+     "ssim": 0.20068442418085808
+    },
+    "IMG_0008": {
+     "wall_dE": 0.35700392723083496,
+     "wall_L": 0.0,
+     "win_L": 0.0,
+     "win_clip": 0.0,
+     "clip": 0.0,
+     "halo": 0.0,
+     "dE_ref": 1.6558908462524415,
+     "ssim": 0.252257454407643
+    }
+   }
+  }
+ ],
+ "params_before": {
+  "tonemap.target_key": 0.7,
+  "tonemap.compress_shadows": 0.82,
+  "tonemap.compress_highlights": 0.57,
+  "windows.exterior_target": 0.495
+ },
+ "params_after": {
+  "tonemap.target_key": 0.7,
+  "tonemap.compress_shadows": 0.86,
+  "tonemap.compress_highlights": 0.57,
+  "windows.exterior_target": 0.495
+ }
+}

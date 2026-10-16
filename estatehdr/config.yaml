@@ -204,11 +204,11 @@ presets:
     label: "Premium - więcej kontrastu i koloru, głębszy widok za oknami"
     overrides:
       tonemap:
-        target_key: 0.68
+        target_key: 0.70
         target_white: 0.96
         black_target: 0.02
-        compress_shadows: 0.66
-        compress_highlights: 0.59
+        compress_shadows: 0.86
+        compress_highlights: 0.57
         detail: 1.2
         contrast: 0.12
         vibrance: 0.18
