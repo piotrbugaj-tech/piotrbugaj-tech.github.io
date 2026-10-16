@@ -74,6 +74,12 @@ white_balance:
   max_local_shift: 1.375   # max lokalna zmiana chromatyczności (log); żarówka 2700 K vs dzień wymaga ~1.2
   grid: 64
   field_smooth: 0.015
+  # pewność lokalnej estymaty = wygładzona ufność komórek / typowa (p75): od support_hi pełna korekta
+  # lokalna, poniżej support_lo żadna (wcześniej korekta rosła liniowo z ufnością, a przy lampach
+  # ufność jest niższa, więc zostawała połowa dominanty: ΔE strefy żarówek 8-9)
+  support_lo: 0.15
+  support_hi: 0.6
+  fill_smooth: 0.15        # gdzie lokalnych danych mało (akcent, faktura): światło regionu (σ = ułamek siatki), 0 = sama korekta globalna
   local_lo_percentile: 10
   max_locus_dist: 0.35
   tint_strength: 1.0

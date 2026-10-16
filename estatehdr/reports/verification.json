@@ -348,19 +348,19 @@
    "without_exif": {
     "living_room": {
      "reference": "IMG_0002.jpg",
-     "max_abs_err_ev": 0.4485,
+     "max_abs_err_ev": 0.0233,
      "frames": [
       {
        "frame": "IMG_0000.jpg",
        "gt_ev": -4,
-       "est_ev": -4.433,
-       "err_ev": -0.433
+       "est_ev": -4.0233,
+       "err_ev": -0.0233
       },
       {
        "frame": "IMG_0001.jpg",
        "gt_ev": -2,
-       "est_ev": -2.2229,
-       "err_ev": -0.2229
+       "est_ev": -2.014,
+       "err_ev": -0.014
       },
       {
        "frame": "IMG_0002.jpg",
@@ -371,29 +371,36 @@
       {
        "frame": "IMG_0003.jpg",
        "gt_ev": 2,
-       "est_ev": 2.227,
-       "err_ev": 0.227
+       "est_ev": 2.0119,
+       "err_ev": 0.0119
       },
       {
        "frame": "IMG_0004.jpg",
        "gt_ev": 4,
-       "est_ev": 4.4485,
-       "err_ev": 0.4485
+       "est_ev": 4.0214,
+       "err_ev": 0.0214
       }
      ],
      "crf": {
-      "model": "srgb"
+      "model": "srgb+s-curve",
+      "k": 0.1147,
+      "g": 1.0,
+      "fit": "pixels only (no EXIF), g fixed",
+      "k_fitted": 0.1147,
+      "fit_score": 9.009665459323765e-06,
+      "srgb_score": 9.017136246587902e-05,
+      "pairs": 7
      }
     },
     "bedroom": {
      "reference": "IMG_0006.tif",
-     "max_abs_err_ev": 1.9979,
+     "max_abs_err_ev": 0.0027,
      "frames": [
       {
        "frame": "IMG_0005.tif",
        "gt_ev": -2,
-       "est_ev": -3.9326,
-       "err_ev": -1.9326
+       "est_ev": -2.0002,
+       "err_ev": -0.0002
       },
       {
        "frame": "IMG_0006.tif",
@@ -404,36 +411,40 @@
       {
        "frame": "IMG_0007.tif",
        "gt_ev": 2,
-       "est_ev": 3.9979,
-       "err_ev": 1.9979
+       "est_ev": 1.9973,
+       "err_ev": -0.0027
       }
      ],
      "crf": {
-      "model": "srgb",
-      "decided_by": "histogram"
+      "model": "linear",
+      "decided_by": "pixel-consistency",
+      "consistency": {
+       "linear_score": 1.028410298900694e-05,
+       "srgb_score": 0.0010249802371534859
+      }
      }
     },
     "kitchen": {
      "reference": "IMG_0011.jpg",
-     "max_abs_err_ev": 0.3124,
+     "max_abs_err_ev": 0.0193,
      "frames": [
       {
        "frame": "IMG_0008.jpg",
        "gt_ev": -3,
-       "est_ev": -3.3124,
-       "err_ev": -0.3124
+       "est_ev": -2.9807,
+       "err_ev": 0.0193
       },
       {
        "frame": "IMG_0009.jpg",
        "gt_ev": -2,
-       "est_ev": -2.219,
-       "err_ev": -0.219
+       "est_ev": -1.9869,
+       "err_ev": 0.0131
       },
       {
        "frame": "IMG_0010.jpg",
        "gt_ev": -1,
-       "est_ev": -1.1135,
-       "err_ev": -0.1135
+       "est_ev": -0.9949,
+       "err_ev": 0.0051
       },
       {
        "frame": "IMG_0011.jpg",
@@ -444,32 +455,39 @@
       {
        "frame": "IMG_0012.jpg",
        "gt_ev": 1,
-       "est_ev": 1.1105,
-       "err_ev": 0.1105
+       "est_ev": 0.9952,
+       "err_ev": -0.0048
       },
       {
        "frame": "IMG_0013.jpg",
        "gt_ev": 2,
-       "est_ev": 2.209,
-       "err_ev": 0.209
+       "est_ev": 1.9897,
+       "err_ev": -0.0103
       },
       {
        "frame": "IMG_0014.jpg",
        "gt_ev": 3,
-       "est_ev": 3.3038,
-       "err_ev": 0.3038
+       "est_ev": 2.9866,
+       "err_ev": -0.0134
       }
      ],
      "crf": {
-      "model": "srgb"
+      "model": "srgb+s-curve",
+      "k": 0.1273,
+      "g": 1.0,
+      "fit": "pixels only (no EXIF), g fixed",
+      "k_fitted": 0.1273,
+      "fit_score": 4.070695142003259e-06,
+      "srgb_score": 6.796009764807414e-05,
+      "pairs": 11
      }
     }
    },
    "summary": {
     "with_exif_max_abs_err_ev": 0.0,
-    "without_exif_max_abs_err_ev": 1.9979,
+    "without_exif_max_abs_err_ev": 0.0233,
     "pass_with_exif": true,
-    "pass_without_exif": false
+    "pass_without_exif": true
    }
   },
   "ghost": {
@@ -1002,9 +1020,9 @@
     "pass_every_image": false
    }
   },
-  "seconds": 182.0,
+  "seconds": 170.6,
   "last_run_parts": [
-   "single_frame"
+   "exposures"
   ]
  }
 }

@@ -1,10 +1,24 @@
 """Frame alignment for handheld brackets.
 
-For each frame a homography to the reference is estimated at analysis
+For each frame a transform to the reference is estimated at analysis
 resolution on exposure-normalised log-luminance (so different exposures look
 alike), using SIFT + RANSAC, refined with ECC and validated against the
-identity.  Translation-only MTB (Ward 2003) is the fallback.  Transforms map
-reference pixel coordinates to frame pixel coordinates at full resolution.
+identity, then polished by a second ECC stage at (up to) full resolution.
+Translation-only MTB (Ward 2003) is the fallback.  Transforms map reference
+pixel coordinates to frame pixel coordinates at full resolution.
+
+Motion model (``align.model``): translation / similarity / affine / homography,
+or ``auto`` (default): the affine model, unless the frame's data clearly
+support perspective.  For that the affine and the homography ECC estimates
+(both dense, on the same images) are compared on the SIFT matches, an
+independent, local measurement of the same motion that neither estimate is
+fitted to: the homography is chosen when the matches favour it with a
+likelihood ratio above ``auto_llr`` (log, default 3 = 20:1) and the two models
+differ by more than ``auto_min_px`` at a corner (full resolution).  A dense
+homography fit alone is not trusted, because ECC turns systematic differences
+between exposures (clipping / noise-floor contours, moving objects) into a
+spurious perspective term more easily than into an affine one.  Both ECC stages
+then run in the chosen model (``info["model"]``).
 """
 from __future__ import annotations
 
@@ -16,6 +30,11 @@ import numpy as np
 from .imgutil import chmax, luminance
 
 log = logging.getLogger(__name__)
+
+MODELS = ("translation", "similarity", "affine", "homography", "auto")
+# ECC has no similarity model: it runs affine and is projected back to a similarity
+_ECC_MODE = {"translation": cv2.MOTION_TRANSLATION, "similarity": cv2.MOTION_AFFINE,
+             "affine": cv2.MOTION_AFFINE, "homography": cv2.MOTION_HOMOGRAPHY}
 
 
 def _norm_log(img: np.ndarray, exposure: float, lo: float, hi: float):
@@ -50,10 +69,84 @@ def _scale_h(H: np.ndarray, s: float) -> np.ndarray:
     return np.linalg.inv(S) @ H @ S
 
 
+def _ecc(ga, gb, H: np.ndarray, model: str, mask: np.ndarray, gauss: int) -> np.ndarray:
+    """One ECC run from H in ``model``; raises cv2.error when ECC does not converge.
+    ECC's warp maps template (reference) coords to input (moving) coords, like H."""
+    mode = _ECC_MODE.get(model, cv2.MOTION_HOMOGRAPHY)
+    warp = (H / H[2, 2]).astype(np.float32)
+    if mode != cv2.MOTION_HOMOGRAPHY:
+        warp = warp[:2]
+    crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 30, 1e-5)
+    _, warp = cv2.findTransformECC(ga, gb, warp, mode, crit, mask, gauss)
+    if warp.shape[0] == 2:
+        warp = np.vstack([warp, [0, 0, 1]])
+    Hn = warp.astype(np.float64)
+    if model == "similarity":
+        a, b, c, d = Hn[0, 0], Hn[0, 1], Hn[1, 0], Hn[1, 1]
+        pp, qq = (a + d) / 2, (c - b) / 2
+        Hn[:2, :2] = [[pp, -qq], [qq, pp]]
+    return Hn / Hn[2, 2]
+
+
+def _fit_matches(pa: np.ndarray, pb: np.ndarray, model: str):
+    """RANSAC fit of ``model`` to point matches pa -> pb: (H or None, inlier mask or None)."""
+    if model == "translation":
+        d = np.median(pb - pa, 0)
+        H = np.array([[1, 0, d[0]], [0, 1, d[1]], [0, 0, 1]], np.float64)
+        return H, np.linalg.norm(pb - (pa + d), axis=1) < 2.0
+    if model in ("similarity", "affine"):
+        fit = cv2.estimateAffinePartial2D if model == "similarity" else cv2.estimateAffine2D
+        A, inl = fit(pa, pb, method=cv2.RANSAC, ransacReprojThreshold=2.0)
+        H = np.vstack([A, [0, 0, 1]]) if A is not None else None
+    else:
+        H, inl = cv2.findHomography(pa, pb, cv2.RANSAC, 2.0, maxIters=4000, confidence=0.999)
+    return H, (inl.ravel().astype(bool) if inl is not None else None)
+
+
+def _corner_diff(H1: np.ndarray, H2: np.ndarray, w: int, h: int) -> float:
+    """Largest distance between where H1 and H2 map the image corners."""
+    c = np.float64([[0, 0], [w, 0], [w, h], [0, h]]).reshape(-1, 1, 2)
+    return float(np.linalg.norm(cv2.perspectiveTransform(c, H1) - cv2.perspectiveTransform(c, H2), axis=2).max())
+
+
+def perspective_evidence(HA: np.ndarray, HH: np.ndarray, pa: np.ndarray, pb: np.ndarray, thr: float = 2.0) -> dict:
+    """How strongly point matches pa -> pb favour the homography HH over the affine HA.
+
+    Both transforms are fixed (estimated densely by ECC, not fitted to these matches), so this is a
+    test between two fully specified hypotheses on independent data and needs no complexity penalty
+    (as in cross-validation).  Matches within ``thr`` px of either prediction are used; with r the
+    match residual under HA and D = HH(p) - HA(p) the predicted difference, the Gaussian
+    log-likelihood ratio is llr = (sum|r|^2 - sum|r - D|^2) / (2 sigma^2), where sigma^2 is the
+    residual variance about the best fit r ~ beta * D (beta ~ 1 when the matches follow HH,
+    ~ 0 when they follow HA).  Few matches or matches only where the models agree give llr ~ 0."""
+    out = {"matches": 0, "llr": 0.0, "beta": None}
+    if pa is None or len(pa) < 8:
+        return out
+    qa = cv2.perspectiveTransform(pa.reshape(-1, 1, 2).astype(np.float64), HA).reshape(-1, 2)
+    qh = cv2.perspectiveTransform(pa.reshape(-1, 1, 2).astype(np.float64), HH).reshape(-1, 2)
+    inl = np.minimum(np.linalg.norm(qa - pb, axis=1), np.linalg.norm(qh - pb, axis=1)) < thr
+    n = int(inl.sum())
+    out["matches"] = n
+    if n < 8:
+        return out
+    r = (pb - qa)[inl]
+    D = (qh - qa)[inl]
+    dd = float((D * D).sum())
+    beta = float((r * D).sum() / max(dd, 1e-12))
+    sig2 = max(float(((r - beta * D) ** 2).sum()) / (2 * n - 1), 1e-6)
+    out.update(llr=float(((r * r).sum() - ((r - D) ** 2).sum()) / (2 * sig2)), beta=beta,
+               sigma_px=float(np.sqrt(sig2)), model_diff_rms_px=float(np.sqrt(dd / n)))
+    return out
+
+
 def estimate_transform(ref_small: np.ndarray, ref_exp: float, mov_small: np.ndarray, mov_exp: float,
-                       cfg: dict) -> tuple[np.ndarray, dict]:
-    """Homography mapping ref coords -> moving-frame coords (analysis resolution)."""
-    model = cfg.get("model", "affine")
+                       cfg: dict, scale: float = 1.0) -> tuple[np.ndarray, dict]:
+    """Homography mapping ref coords -> moving-frame coords (analysis resolution).
+
+    ``scale``: analysis / full resolution, so that ``auto_min_px`` is measured at full resolution.
+    ``info["model"]`` is the motion model used (the per-frame choice for ``model: auto``)."""
+    model = cfg.get("model", "auto")
+    base = "affine" if model == "auto" else model
     # common log-luminance window
     yr = np.log2(np.maximum(luminance(ref_small) / ref_exp, 1e-6))
     lo, hi = np.percentile(yr, 1), np.percentile(yr, 99.5)
@@ -62,6 +155,7 @@ def estimate_transform(ref_small: np.ndarray, ref_exp: float, mov_small: np.ndar
     b8, vb = _norm_log(mov_small, mov_exp, lo - 1, hi + 1)
     info = {"method": "identity"}
     H = np.eye(3)
+    pa = pb = None
     # --- feature matching ---------------------------------------------------
     try:
         sift = cv2.SIFT_create(nfeatures=int(cfg.get("features", 4000)), contrastThreshold=0.02)
@@ -74,21 +168,7 @@ def estimate_transform(ref_small: np.ndarray, ref_exp: float, mov_small: np.ndar
             if len(good) >= 12:
                 pa = np.float32([ka[m.queryIdx].pt for m in good])
                 pb = np.float32([kb[m.trainIdx].pt for m in good])
-                if model == "translation":
-                    d = np.median(pb - pa, 0)
-                    Hc = np.array([[1, 0, d[0]], [0, 1, d[1]], [0, 0, 1]], np.float64)
-                    inl = np.linalg.norm(pb - (pa + d), axis=1) < 2.0
-                elif model == "similarity":
-                    A, inl = cv2.estimateAffinePartial2D(pa, pb, method=cv2.RANSAC, ransacReprojThreshold=2.0)
-                    Hc = np.vstack([A, [0, 0, 1]]) if A is not None else None
-                    inl = inl.ravel().astype(bool) if inl is not None else None
-                elif model == "affine":
-                    A, inl = cv2.estimateAffine2D(pa, pb, method=cv2.RANSAC, ransacReprojThreshold=2.0)
-                    Hc = np.vstack([A, [0, 0, 1]]) if A is not None else None
-                    inl = inl.ravel().astype(bool) if inl is not None else None
-                else:
-                    Hc, inl = cv2.findHomography(pa, pb, cv2.RANSAC, 2.0, maxIters=4000, confidence=0.999)
-                    inl = inl.ravel().astype(bool) if inl is not None else None
+                Hc, inl = _fit_matches(pa, pb, base)
                 if Hc is not None and inl is not None and inl.sum() >= 10:
                     H = Hc
                     resid = np.median(np.abs(pb[inl] - pa[inl]), 0)
@@ -98,36 +178,36 @@ def estimate_transform(ref_small: np.ndarray, ref_exp: float, mov_small: np.ndar
         log.debug("SIFT alignment failed: %s", exc)
     # --- ECC refinement (on gradients; robust to remaining photometric differences)
     if cfg.get("ecc", True):
+        if cfg.get("ecc_input", "grad") == "log":
+            ga = cv2.GaussianBlur(a8.astype(np.float32), (0, 0), 1.0)
+            gb = cv2.GaussianBlur(b8.astype(np.float32), (0, 0), 1.0)
+        else:
+            ga, gb = _grad(a8), _grad(b8)
+        mask = vb.astype(np.uint8) * 255
         try:
-            if cfg.get("ecc_input", "grad") == "log":
-                ga = cv2.GaussianBlur(a8.astype(np.float32), (0, 0), 1.0)
-                gb = cv2.GaussianBlur(b8.astype(np.float32), (0, 0), 1.0)
-            else:
-                ga, gb = _grad(a8), _grad(b8)
-            # ECC's warp maps template (reference) coords to input (moving) coords, like H
-            warp = (H / H[2, 2]).astype(np.float32)
-            # ECC has no similarity model: use affine and project back to a similarity below
-            mode = {"translation": cv2.MOTION_TRANSLATION, "similarity": cv2.MOTION_AFFINE,
-                    "affine": cv2.MOTION_AFFINE}.get(model, cv2.MOTION_HOMOGRAPHY)
-            if mode != cv2.MOTION_HOMOGRAPHY:
-                warp = warp[:2]
-            crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 30, 1e-5)
-            _, warp = cv2.findTransformECC(ga, gb, warp, mode, crit, vb.astype(np.uint8) * 255, 5)
-            if warp.shape[0] == 2:
-                warp = np.vstack([warp, [0, 0, 1]])
-            H_ecc = warp.astype(np.float64)
-            if model == "similarity":
-                a, b, c, d = H_ecc[0, 0], H_ecc[0, 1], H_ecc[1, 0], H_ecc[1, 1]
-                pp, qq = (a + d) / 2, (c - b) / 2
-                H_ecc[:2, :2] = [[pp, -qq], [qq, pp]]
-            H_ecc /= H_ecc[2, 2]
-            H = H_ecc
+            H = _ecc(ga, gb, H, base, mask, 5)
             info["ecc"] = True
             if info["method"] == "identity":
                 info["method"] = "ecc"
         except cv2.error as exc:
             info["ecc"] = False
             log.debug("ECC refinement failed: %s", exc)
+        if model == "auto" and info["ecc"]:
+            # perspective only when the (independent) feature matches support it
+            h, w = a8.shape
+            sel = {}
+            try:
+                HH = _ecc(ga, gb, H, "homography", mask, 5)
+                sel = perspective_evidence(H, HH, pa, pb)
+                sel["corner_diff_px"] = _corner_diff(H, HH, w, h) / scale
+                if (sel["llr"] > float(cfg.get("auto_llr", 3.0))
+                        and sel["corner_diff_px"] > float(cfg.get("auto_min_px", 0.5))):
+                    H = HH
+                    info["model"] = "homography"
+            except cv2.error as exc:
+                log.debug("homography ECC failed: %s", exc)
+            info["model_select"] = {k: (round(v, 3) if isinstance(v, float) else v) for k, v in sel.items()}
+    info.setdefault("model", base)
     # --- validation against identity ----------------------------------------
     h, w = a8.shape
     warped = cv2.warpPerspective(b8, H, (w, h), flags=cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP)
@@ -146,6 +226,7 @@ def estimate_transform(ref_small: np.ndarray, ref_exp: float, mov_small: np.ndar
         # alignment made things worse or is implausibly large -> MTB translation fallback
         H = _mtb(ref_small, ref_exp, mov_small, mov_exp)
         info["method"] = "mtb-fallback"
+        info["model"] = base
     elif disp.max() < float(cfg.get("still_px", 0.25)):
         H = np.eye(3)
         info["method"] = "still"
@@ -304,25 +385,10 @@ def ecc_refine(ref_img, ref_exp, mov_img, mov_exp, H: np.ndarray, model: str) ->
     hi = max(hi, lo + 1)
     a8, va = _norm_log(ref_img, ref_exp, lo - 1, hi + 1)
     b8, vb = _norm_log(mov_img, mov_exp, lo - 1, hi + 1)
-    ga, gb = _grad(a8), _grad(b8)
-    mode = {"translation": cv2.MOTION_TRANSLATION, "similarity": cv2.MOTION_AFFINE,
-            "affine": cv2.MOTION_AFFINE}.get(model, cv2.MOTION_HOMOGRAPHY)
-    warp = (H / H[2, 2]).astype(np.float32)
-    if mode != cv2.MOTION_HOMOGRAPHY:
-        warp = warp[:2]
-    crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 30, 1e-5)
     try:
-        _, warp = cv2.findTransformECC(ga, gb, warp, mode, crit, vb.astype(np.uint8) * 255, 3)
+        return _ecc(_grad(a8), _grad(b8), H, model, vb.astype(np.uint8) * 255, 3), True
     except cv2.error:
         return H, False
-    if warp.shape[0] == 2:
-        warp = np.vstack([warp, [0, 0, 1]])
-    Hn = warp.astype(np.float64)
-    if model == "similarity":
-        a, b, c, d = Hn[0, 0], Hn[0, 1], Hn[1, 0], Hn[1, 1]
-        pp, qq = (a + d) / 2, (c - b) / 2
-        Hn[:2, :2] = [[pp, -qq], [qq, pp]]
-    return Hn / Hn[2, 2], True
 
 
 def align_series(series, cfg: dict) -> list[dict]:
@@ -337,7 +403,7 @@ def align_series(series, cfg: dict) -> list[dict]:
             f.homography = np.eye(3)
             infos.append({"frame": f.meta.name, "method": "reference" if i == series.ref else "disabled"})
             continue
-        H, info = estimate_transform(ref.small, ref.exposure, f.small, f.exposure, cfg)
+        H, info = estimate_transform(ref.small, ref.exposure, f.small, f.exposure, cfg, s)
         Hf = _scale_h(H, s)
         fine_side = int(cfg.get("fine_max_side", 3200))
         if fine_side > ref.small.shape[1] and info["method"] not in ("still",) and cfg.get("fine_ecc", True):
@@ -346,7 +412,8 @@ def align_series(series, cfg: dict) -> list[dict]:
             mov_img, sc = _fine_image(f, fine_side)
             S = np.diag([sc, sc, 1.0])
             Hs = S @ Hf @ np.linalg.inv(S)
-            Hs2, ok = ecc_refine(ref_fine[0], ref.exposure, mov_img, f.exposure, Hs, cfg.get("model", "affine"))
+            # the fine stage keeps the frame's model (auto: the per-frame choice of the coarse stage)
+            Hs2, ok = ecc_refine(ref_fine[0], ref.exposure, mov_img, f.exposure, Hs, info["model"])
             if ok:
                 d = np.abs(cv2.perspectiveTransform(np.float32([[[0, 0]], [[mov_img.shape[1], mov_img.shape[0]]]]), Hs2)
                            - cv2.perspectiveTransform(np.float32([[[0, 0]], [[mov_img.shape[1], mov_img.shape[0]]]]), Hs)).max()
@@ -365,8 +432,8 @@ def align_series(series, cfg: dict) -> list[dict]:
         f.homography = Hf
         info["frame"] = f.meta.name
         infos.append(info)
-        log.info("[%s] align %s: %s (%.2f px, ncc %.3f vs %.3f)", series.name, f.meta.name, info["method"],
-                 info.get("corner_disp_px", 0) / s, info.get("ncc", 0), info.get("ncc_identity", 0))
+        log.info("[%s] align %s: %s, %s (%.2f px, ncc %.3f vs %.3f)", series.name, f.meta.name, info["method"],
+                 info.get("model", "-"), info.get("corner_disp_px", 0) / s, info.get("ncc", 0), info.get("ncc_identity", 0))
     return infos
 
 

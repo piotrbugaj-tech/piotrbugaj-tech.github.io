@@ -7,8 +7,14 @@ colour reference (radiance is expressed in its scale), as AutoHDR documents.
 
 Local (mixed light): per-cell illuminant estimates, kept only when they are
 close to the Planckian locus (tungsten <-> daylight); colourful surfaces such as
-a sage-green or pink wall are far from the locus and therefore ignored.  The
-sparse field is interpolated (normalised convolution), smoothed, limited in
+a sage-green or pink wall are far from the locus and therefore ignored.  Lamps and
+daylight lie on the locus in *camera* chroma, so the locus tests use the camera
+chroma (image after the global gains + those gains): the locus is curved, and a
+global shift along it near daylight moves tungsten-lit walls off it.  For the same
+reason "colourful" means far from the locus, not saturated: a white wall under a
+2700 K lamp is as saturated in camera RGB as a coloured object.  The sparse field
+is interpolated (normalised convolution); where the local evidence is thin the
+field falls back to the regional (large-scale) estimate, then it is limited in
 magnitude and applied as a smooth gain field (luminance preserved).
 Window regions (the exterior seen through glass) get their own, daylight-
 oriented correction so the view does not turn blue when the room is warm.
@@ -68,13 +74,38 @@ def project_to_locus(uv: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray
     return pts[i], np.sqrt(d[np.arange(len(uv)), i]), ks[i]
 
 
+_LUT = None
+_LUT_U0, _LUT_V0, _LUT_STEP = -1.5, -4.5, 0.005  # (u, v) grid of the locus-distance table
+
+
+def locus_distance(u: np.ndarray, v: np.ndarray) -> np.ndarray:
+    """Distance of every (u, v) of a 2-D image from the Planckian locus 1800-15000 K (lookup table:
+    rasterised locus + distance transform, error ~0.002 mean; outside the table the edge is used)."""
+    global _LUT
+    if _LUT is None:
+        nu, nv = int(round(4.0 / _LUT_STEP)) + 1, int(round(6.0 / _LUT_STEP)) + 1
+        img = np.full((nv, nu), 255, np.uint8)
+        pts = []
+        for k in np.geomspace(1800, 15000, 2000):
+            c = kelvin_rgb(k)
+            pts.append(((math.log(c[0] / c[1]) - _LUT_U0) / _LUT_STEP, (math.log(c[2] / c[1]) - _LUT_V0) / _LUT_STEP))
+        cv2.polylines(img, [np.round(pts).astype(np.int32).reshape(-1, 1, 2)], False, 0, 1)
+        _LUT = cv2.distanceTransform(img, cv2.DIST_L2, cv2.DIST_MASK_PRECISE).astype(np.float32) * _LUT_STEP
+    mx = ((u - _LUT_U0) / _LUT_STEP).astype(np.float32)
+    my = ((v - _LUT_V0) / _LUT_STEP).astype(np.float32)
+    return cv2.remap(_LUT, mx, my, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
+
+
 def _uv(img: np.ndarray):
     r, g, b = img[..., 0] + EPS, img[..., 1] + EPS, img[..., 2] + EPS
     return np.log(r / g), np.log(b / g)
 
 
-def _candidates(img: np.ndarray, exclude: np.ndarray | None, lo_pct: float = 35.0):
-    """Bright, smooth, unclipped interior pixels (analysis resolution)."""
+def _candidates(img: np.ndarray, exclude: np.ndarray | None, lo_pct: float = 35.0,
+                colourfulness: np.ndarray | None = None):
+    """Bright, smooth, unclipped interior pixels (analysis resolution).  ``colourfulness``: per-pixel
+    weight replacing the saturation weight (the local field applies its own, based on the distance
+    from the Planckian locus, and passes ones)."""
     y = luminance(img)
     ly = np.log2(y + EPS)
     # texture/edge measure: high-pass of log luminance.  A plain gradient would also reject the
@@ -89,10 +120,13 @@ def _candidates(img: np.ndarray, exclude: np.ndarray | None, lo_pct: float = 35.
     cand = ok & (ly > lo) & (ly < hi) & (grad < np.percentile(grad[ok], 60))
     # brighter diffuse surfaces are more likely white walls/ceilings (wood, fabric are darker)
     w = np.clip((ly - lo) / max(hi - lo, 1e-3), 0, 1) ** 2
-    # strongly saturated pixels are coloured objects, not white surfaces under coloured light
-    mx, mn = chmax(img), chmin(img)
-    sat = (mx - mn) / (mx + EPS)
-    w = w * np.clip(1.0 - (sat - 0.25) / 0.35, 0.05, 1.0)
+    if colourfulness is None:
+        # strongly saturated pixels are coloured objects, not white surfaces under coloured light
+        mx, mn = chmax(img), chmin(img)
+        sat = (mx - mn) / (mx + EPS)
+        w = w * np.clip(1.0 - (sat - 0.25) / 0.35, 0.05, 1.0)
+    else:
+        w = w * colourfulness
     # floors (wood, carpet) are rarely white: fade out the lower part of the frame
     H = img.shape[0]
     ramp = np.clip((0.85 - np.arange(H) / H) / 0.3, 0.05, 1.0).astype(np.float32)
@@ -128,20 +162,36 @@ def estimate_illuminant(img: np.ndarray, exclude: np.ndarray | None = None) -> t
     return est, info
 
 
-def local_field(img: np.ndarray, est_global: np.ndarray, exclude: np.ndarray | None, cfg: dict) -> tuple[np.ndarray, dict]:
-    """Smooth (H,W,2) field of local illuminant deviation from the global estimate (log-chroma)."""
+def _normconv(field: np.ndarray, conf: np.ndarray, sig: float) -> tuple[np.ndarray, np.ndarray]:
+    """Normalised convolution of a sparse (cy,cx,2) field: (filled field, smoothed confidence)."""
+    num0 = cv2.GaussianBlur((field[..., 0] * conf).astype(np.float32), (0, 0), sig)
+    num1 = cv2.GaussianBlur((field[..., 1] * conf).astype(np.float32), (0, 0), sig)
+    den = cv2.GaussianBlur(conf.astype(np.float32), (0, 0), sig) + 1e-6
+    return np.stack([num0 / den, num1 / den], -1), den
+
+
+def local_field(img: np.ndarray, shift: np.ndarray, exclude: np.ndarray | None, cfg: dict) -> tuple[np.ndarray, dict]:
+    """Smooth (H,W,2) field of the local illuminant (log-chroma) of ``img``, the image after the
+    global gains ``shift`` (camera chroma = image chroma + shift; zeros for a camera-space image)."""
     H, W = img.shape[:2]
     n = int(cfg.get("grid", 24))
     cy = max(4, int(round(n * H / max(H, W))))
     cx = max(4, int(round(n * W / max(H, W))))
+    shift = np.asarray(shift, np.float64)
     u, v = _uv(img)
-    cand, w = _candidates(img, exclude, float(cfg.get("local_lo_percentile", 10)))
-    w = np.maximum(w, 0.15)  # dim walls lit only by a lamp still count (brightness is just a prior)
+    max_loc = float(cfg.get("max_locus_dist", 0.35))
+    # colourful = far from the locus in camera chroma (a saturation weight would also reject white
+    # walls under a 2700 K lamp: saturation 0.6-0.75 there, weight 0.05)
+    d_px = locus_distance(u + shift[0], v + shift[1])
+    colourful = np.clip(1.0 - (d_px - 0.1) / max(max_loc - 0.1, 1e-3), 0.05, 1.0)
+    cand, w = _candidates(img, exclude, float(cfg.get("local_lo_percentile", 10)), np.ones_like(colourful))
+    # dim walls lit only by a lamp still count (brightness and position are just priors); the floor
+    # must not also lift the colourfulness penalty (a sage wall would count like a dim white one)
+    w = np.maximum(w, 0.15) * colourful
     field = np.zeros((cy, cx, 2), np.float64)
     conf = np.zeros((cy, cx), np.float64)
     ys = np.linspace(0, H, cy + 1).astype(int)
     xs = np.linspace(0, W, cx + 1).astype(int)
-    max_loc = float(cfg.get("max_locus_dist", 0.35))
     tint = float(cfg.get("tint_strength", 0.5))
     for i in range(cy):
         for j in range(cx):
@@ -152,26 +202,38 @@ def local_field(img: np.ndarray, est_global: np.ndarray, exclude: np.ndarray | N
             vv = v[ys[i]:ys[i + 1], xs[j]:xs[j + 1]][c]
             ww = w[ys[i]:ys[i + 1], xs[j]:xs[j + 1]][c] + 1e-3
             e = np.array([np.average(uu, weights=ww), np.average(vv, weights=ww)])
-            p, dist, _ = project_to_locus(e[None])
+            ec = e + shift  # camera chroma: lamps and daylight lie on the locus there
+            p, dist, _ = project_to_locus(ec[None])
             if dist[0] > max_loc:
                 continue  # strongly colourful surface, not a white lit by a coloured lamp
             # spread of chroma inside the cell: a uniform surface is more trustworthy
             spread = float(np.sqrt(np.average((uu - e[0]) ** 2 + (vv - e[1]) ** 2, weights=ww)))
             # full correction along the Planckian locus (lamp vs daylight), partial for the tint
             # (green bounce from lawns, magenta LEDs) which may also be a coloured wall
-            field[i, j] = p[0] + tint * (e - p[0]) - est_global
+            field[i, j] = p[0] + tint * (ec - p[0]) - shift
             conf[i, j] = c.sum() * min(1.0, ww.mean() * 4) / (1.0 + 10 * spread) * np.exp(-(dist[0] / 0.35) ** 2)
     if conf.max() <= 0:
         return np.zeros((H, W, 2), np.float32), {"cells": 0}
     # normalised convolution to fill and smooth
-    sig = max(0.7, float(cfg.get("field_smooth", 0.04)) * max(cy, cx))
-    num0 = cv2.GaussianBlur((field[..., 0] * conf).astype(np.float32), (0, 0), sig)
-    num1 = cv2.GaussianBlur((field[..., 1] * conf).astype(np.float32), (0, 0), sig)
-    den = cv2.GaussianBlur(conf.astype(np.float32), (0, 0), sig) + 1e-6
-    f = np.stack([num0 / den, num1 / den], -1)
-    # cells with no support fade to zero deviation
-    support = np.clip(den / (np.percentile(den, 75) + 1e-6), 0, 1)
-    f *= support[..., None]
+    f, den = _normconv(field, conf, max(0.7, float(cfg.get("field_smooth", 0.04)) * max(cy, cx)))
+    # certainty of the local estimate: smoothed confidence relative to a typical well-covered cell.
+    # Full trust from support_hi up: next to a lamp the confidence is lower (fewer candidates around
+    # the lamp, chroma gradient), and scaling the correction by it left half of the cast there
+    lo, hi = float(cfg.get("support_lo", 0.15)), float(cfg.get("support_hi", 0.6))
+
+    def certainty(d):
+        t = np.clip((d / (np.percentile(d, 75) + 1e-6) - lo) / max(hi - lo, 1e-3), 0, 1)
+        return t * t * (3 - 2 * t)
+
+    support = certainty(den)
+    fill = float(cfg.get("fill_smooth", 0.15))
+    if fill > 0:
+        # thin local evidence (textured floors, a coloured accent wall): the room's regional light
+        # from the trusted cells around, not only the global correction (which is a compromise)
+        fc, dc = _normconv(field, conf, fill * max(cy, cx))
+        f = f * support[..., None] + fc * ((1 - support) * certainty(dc))[..., None]
+    else:  # cells with no support fade to zero deviation
+        f = f * support[..., None]
     mag = np.sqrt((f ** 2).sum(-1, keepdims=True))
     lim = float(cfg.get("max_local_shift", 0.35))
     f = f * np.minimum(1.0, lim / (mag + 1e-9))
@@ -222,7 +284,7 @@ def white_balance(rad: np.ndarray, rad_small: np.ndarray, win, cfg: dict) -> tup
     ml = float(wcfg.get("mixed_light_strength", 0.6))
     field_small = np.zeros(rad_small.shape[:2] + (2,), np.float32)
     if ml > 0:
-        fs, linfo = local_field(small, np.zeros(2), exclude, wcfg)
+        fs, linfo = local_field(small, g, exclude, wcfg)
         field_small = fs * ml
         info["local"] = linfo
     # exterior (window views): bring to neutral daylight independently of the room light
