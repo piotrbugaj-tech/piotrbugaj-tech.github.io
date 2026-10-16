@@ -210,5 +210,801 @@
    "sigma_before": 0.03693243369446475,
    "sigma_after": 0.010804363310842223
   }
- ]
+ ],
+ "spec_extras": {
+  "batch_dir": "output/verify_final",
+  "batch_report_time": "2026-10-16 13:12",
+  "exposures": {
+   "spec": "SPEC 3: relative exposures within +-0.1 EV of GT",
+   "definition": "Pipeline (series.load_series) relative exposure of each frame vs the pipeline's reference frame, log2(frame.exposure), minus the GT difference ev_frame - ev_ref (params.json); err_ev per frame, max |err| per series.  with_exif: original files (EXIF ratios are used; pixels only veto > 0.4 EV disagreements).  without_exif: same pixels, EXIF removed (JPEG: EXIF segment stripped, TIFF: rewritten without tags), so exposures come from pixel ratios only.  crf = fitted response (SPEC 3 second criterion: fit_score < srgb_score means the recovered curve is more consistent).",
+   "with_exif": {
+    "living_room": {
+     "reference": "IMG_0002.jpg",
+     "max_abs_err_ev": 0.0,
+     "frames": [
+      {
+       "frame": "IMG_0000.jpg",
+       "gt_ev": -4,
+       "est_ev": -4.0,
+       "err_ev": -0.0
+      },
+      {
+       "frame": "IMG_0001.jpg",
+       "gt_ev": -2,
+       "est_ev": -2.0,
+       "err_ev": 0.0
+      },
+      {
+       "frame": "IMG_0002.jpg",
+       "gt_ev": 0,
+       "est_ev": 0.0,
+       "err_ev": 0.0
+      },
+      {
+       "frame": "IMG_0003.jpg",
+       "gt_ev": 2,
+       "est_ev": 2.0,
+       "err_ev": -0.0
+      },
+      {
+       "frame": "IMG_0004.jpg",
+       "gt_ev": 4,
+       "est_ev": 4.0,
+       "err_ev": -0.0
+      }
+     ],
+     "crf": {
+      "model": "srgb+s-curve",
+      "k": 0.12,
+      "g": 1.0,
+      "fit_score": 0.025873937238900583,
+      "srgb_score": 0.22470232167868423
+     }
+    },
+    "bedroom": {
+     "reference": "IMG_0006.tif",
+     "max_abs_err_ev": 0.0,
+     "frames": [
+      {
+       "frame": "IMG_0005.tif",
+       "gt_ev": -2,
+       "est_ev": -2.0,
+       "err_ev": 0.0
+      },
+      {
+       "frame": "IMG_0006.tif",
+       "gt_ev": 0,
+       "est_ev": 0.0,
+       "err_ev": 0.0
+      },
+      {
+       "frame": "IMG_0007.tif",
+       "gt_ev": 2,
+       "est_ev": 2.0,
+       "err_ev": -0.0
+      }
+     ],
+     "crf": {
+      "model": "linear",
+      "decided_by": "exif-consistency"
+     }
+    },
+    "kitchen": {
+     "reference": "IMG_0011.jpg",
+     "max_abs_err_ev": 0.0,
+     "frames": [
+      {
+       "frame": "IMG_0008.jpg",
+       "gt_ev": -3,
+       "est_ev": -3.0,
+       "err_ev": 0.0
+      },
+      {
+       "frame": "IMG_0009.jpg",
+       "gt_ev": -2,
+       "est_ev": -2.0,
+       "err_ev": 0.0
+      },
+      {
+       "frame": "IMG_0010.jpg",
+       "gt_ev": -1,
+       "est_ev": -1.0,
+       "err_ev": 0.0
+      },
+      {
+       "frame": "IMG_0011.jpg",
+       "gt_ev": 0,
+       "est_ev": 0.0,
+       "err_ev": 0.0
+      },
+      {
+       "frame": "IMG_0012.jpg",
+       "gt_ev": 1,
+       "est_ev": 1.0,
+       "err_ev": -0.0
+      },
+      {
+       "frame": "IMG_0013.jpg",
+       "gt_ev": 2,
+       "est_ev": 2.0,
+       "err_ev": -0.0
+      },
+      {
+       "frame": "IMG_0014.jpg",
+       "gt_ev": 3,
+       "est_ev": 3.0,
+       "err_ev": 0.0
+      }
+     ],
+     "crf": {
+      "model": "srgb+s-curve",
+      "k": 0.12,
+      "g": 1.0,
+      "fit_score": 0.019051425368178627,
+      "srgb_score": 0.09803778382325938
+     }
+    }
+   },
+   "without_exif": {
+    "living_room": {
+     "reference": "IMG_0002.jpg",
+     "max_abs_err_ev": 0.4485,
+     "frames": [
+      {
+       "frame": "IMG_0000.jpg",
+       "gt_ev": -4,
+       "est_ev": -4.433,
+       "err_ev": -0.433
+      },
+      {
+       "frame": "IMG_0001.jpg",
+       "gt_ev": -2,
+       "est_ev": -2.2229,
+       "err_ev": -0.2229
+      },
+      {
+       "frame": "IMG_0002.jpg",
+       "gt_ev": 0,
+       "est_ev": 0.0,
+       "err_ev": 0.0
+      },
+      {
+       "frame": "IMG_0003.jpg",
+       "gt_ev": 2,
+       "est_ev": 2.227,
+       "err_ev": 0.227
+      },
+      {
+       "frame": "IMG_0004.jpg",
+       "gt_ev": 4,
+       "est_ev": 4.4485,
+       "err_ev": 0.4485
+      }
+     ],
+     "crf": {
+      "model": "srgb"
+     }
+    },
+    "bedroom": {
+     "reference": "IMG_0006.tif",
+     "max_abs_err_ev": 1.9979,
+     "frames": [
+      {
+       "frame": "IMG_0005.tif",
+       "gt_ev": -2,
+       "est_ev": -3.9326,
+       "err_ev": -1.9326
+      },
+      {
+       "frame": "IMG_0006.tif",
+       "gt_ev": 0,
+       "est_ev": 0.0,
+       "err_ev": 0.0
+      },
+      {
+       "frame": "IMG_0007.tif",
+       "gt_ev": 2,
+       "est_ev": 3.9979,
+       "err_ev": 1.9979
+      }
+     ],
+     "crf": {
+      "model": "srgb",
+      "decided_by": "histogram"
+     }
+    },
+    "kitchen": {
+     "reference": "IMG_0011.jpg",
+     "max_abs_err_ev": 0.3124,
+     "frames": [
+      {
+       "frame": "IMG_0008.jpg",
+       "gt_ev": -3,
+       "est_ev": -3.3124,
+       "err_ev": -0.3124
+      },
+      {
+       "frame": "IMG_0009.jpg",
+       "gt_ev": -2,
+       "est_ev": -2.219,
+       "err_ev": -0.219
+      },
+      {
+       "frame": "IMG_0010.jpg",
+       "gt_ev": -1,
+       "est_ev": -1.1135,
+       "err_ev": -0.1135
+      },
+      {
+       "frame": "IMG_0011.jpg",
+       "gt_ev": 0,
+       "est_ev": 0.0,
+       "err_ev": 0.0
+      },
+      {
+       "frame": "IMG_0012.jpg",
+       "gt_ev": 1,
+       "est_ev": 1.1105,
+       "err_ev": 0.1105
+      },
+      {
+       "frame": "IMG_0013.jpg",
+       "gt_ev": 2,
+       "est_ev": 2.209,
+       "err_ev": 0.209
+      },
+      {
+       "frame": "IMG_0014.jpg",
+       "gt_ev": 3,
+       "est_ev": 3.3038,
+       "err_ev": 0.3038
+      }
+     ],
+     "crf": {
+      "model": "srgb"
+     }
+    }
+   },
+   "summary": {
+    "with_exif_max_abs_err_ev": 0.0,
+    "without_exif_max_abs_err_ev": 1.9979,
+    "pass_with_exif": true,
+    "pass_without_exif": false
+   }
+  },
+  "ghost": {
+   "spec": "SPEC 4: < 2% of ghost-mask pixels deviate by > 0.5 EV from the reference",
+   "definition": "Bedroom (3 hand-held TIFF frames, moving object). GT = radiance_capture.tif with the object drawn at the reference frame's position (synthetic.moving_object, as generated), in reference-frame geometry. Ghost mask = union of the object's footprints (blurred mask > 0.5) of all frames. The series is loaded, aligned and merged by the pipeline at full resolution (2400x1600); the radiance scale is normalised by the median log2 luminance ratio merged/GT over unclipped pixels outside the ghost mask (dilated 15 px) and outside windows. Deviation = max over R,G,B of |log2(merged_c / GT_c)| after that scale: the object (navy) is about as bright as what it covers, so a transparent trace is mainly a colour shift (frac_dev_gt_0.5ev_luminance = the same with luminance only, much less sensitive). Reported: fraction of ghost-mask pixels deviating > 0.5 EV (also split by the object's reference position / the other frames' positions, and the rate on non-ghost pixels = noise floor of the metric); pixels saturated in GT even in the darkest frame or with the merge's clipped map >= 0.01 are excluded (excluded_clipped_px). deghost_off = the same merge with deghost.enabled=false (shows that the metric detects ghosts).",
+   "reference": "IMG_0006.tif",
+   "deghost_on": {
+    "ghost_mask_px": 150420,
+    "excluded_clipped_px": 0,
+    "frac_dev_gt_0.5ev": 0.004533971546336923,
+    "frac_dev_gt_0.5ev_at_ref_position": 0.009932189868368567,
+    "frac_dev_gt_0.5ev_at_other_positions": 0.001834862385321101,
+    "frac_dev_gt_0.5ev_outside_ghost": 0.00405902714985619,
+    "frac_dev_gt_0.5ev_luminance": 0.0004720117005717325,
+    "median_dev_ev": 0.042806386947631836,
+    "p95_dev_ev": 0.11458446085453033,
+    "pipeline_ghost_fraction": 0.031898430178069356
+   },
+   "deghost_off": {
+    "ghost_mask_px": 150420,
+    "excluded_clipped_px": 0,
+    "frac_dev_gt_0.5ev": 0.1455192128706289,
+    "frac_dev_gt_0.5ev_at_ref_position": 0.4158556043079378,
+    "frac_dev_gt_0.5ev_at_other_positions": 0.010351017151974472,
+    "frac_dev_gt_0.5ev_outside_ghost": 0.0040638197669254465,
+    "frac_dev_gt_0.5ev_luminance": 0.009254088552054248,
+    "median_dev_ev": 0.11830425262451172,
+    "p95_dev_ev": 0.8897228240966797,
+    "pipeline_ghost_fraction": 0.0
+   },
+   "summary": {
+    "frac_dev_gt_0.5ev": 0.004533971546336923,
+    "frac_dev_gt_0.5ev_deghost_off": 0.1455192128706289,
+    "pass": true
+   }
+  },
+  "alignment_20px": {
+   "spec": "SPEC 4: mean grid error <= 0.8 px hand-held (shifts up to 20 px), 2400x1600",
+   "definition": "GT bedroom (3 TIFF16, -2/0/+2 EV) and living room (5 JPEG, -4..+4 EV) frames; each non-reference frame is re-warped (Lanczos, written back with its EXIF; JPEG q95) so that its total GT motion relative to the untouched middle frame is a known homography (ALIGN20_MOVES): translation 15-20 px, rotation 0.25-0.35 deg, perspective h31/h32 1-2e-6 /px about the centre (a real hand-held rotation giving 17 px with this 84 deg lens has ~1e-5 /px). align.align_series at full resolution with the configured model (align.model); error = distance between estimated and GT mapping of a 9x7 grid (50 px margin), as in experiment C. Diagnostics: similarity_only = the same motion without the perspective term; homography_model = the full motion with align.model=homography.",
+   "align_model": "affine",
+   "per_scene": {
+    "bedroom": [
+     {
+      "frame": "IMG_0005.tif",
+      "true_shift_px": 18.034937695292328,
+      "true_shift_max_px": 24.581313945100323,
+      "mean_err_px": 1.4342146078493228,
+      "max_err_px": 5.29381274157409
+     },
+     {
+      "frame": "IMG_0007.tif",
+      "true_shift_px": 17.857418887099687,
+      "true_shift_max_px": 25.48344156853261,
+      "mean_err_px": 1.3765068998946417,
+      "max_err_px": 5.073231237362861
+     }
+    ],
+    "living_room": [
+     {
+      "frame": "IMG_0000.jpg",
+      "true_shift_px": 18.034937695292328,
+      "true_shift_max_px": 24.581313945100323,
+      "mean_err_px": 1.3322889173354757,
+      "max_err_px": 5.003192278842357
+     },
+     {
+      "frame": "IMG_0001.jpg",
+      "true_shift_px": 17.857418887099687,
+      "true_shift_max_px": 25.48344156853261,
+      "mean_err_px": 1.163125723643117,
+      "max_err_px": 4.200900059856946
+     },
+     {
+      "frame": "IMG_0003.jpg",
+      "true_shift_px": 17.89943474608479,
+      "true_shift_max_px": 24.22763003026513,
+      "mean_err_px": 1.142055372434857,
+      "max_err_px": 5.377135153590527
+     },
+     {
+      "frame": "IMG_0004.jpg",
+      "true_shift_px": 18.63520185213546,
+      "true_shift_max_px": 26.843797025969813,
+      "mean_err_px": 1.012020252221649,
+      "max_err_px": 4.094941817229595
+     }
+    ]
+   },
+   "summary": {
+    "mean_err_px": 1.2433686288965105,
+    "worst_frame_mean_err_px": 1.4342146078493228,
+    "max_err_px": 5.377135153590527,
+    "true_shift_px_range": [
+     17.857418887099687,
+     18.63520185213546
+    ],
+    "pass": false
+   },
+   "similarity_only": {
+    "per_scene": {
+     "bedroom": [
+      {
+       "frame": "IMG_0005.tif",
+       "true_shift_px": 19.150537757206873,
+       "true_shift_max_px": 25.182644009427882,
+       "mean_err_px": 0.18408085145762035,
+       "max_err_px": 0.42992643417387133
+      },
+      {
+       "frame": "IMG_0007.tif",
+       "true_shift_px": 18.719828766440465,
+       "true_shift_max_px": 25.585427155027595,
+       "mean_err_px": 0.3342982616372967,
+       "max_err_px": 0.7332172119329531
+      }
+     ],
+     "living_room": [
+      {
+       "frame": "IMG_0000.jpg",
+       "true_shift_px": 19.150537757206873,
+       "true_shift_max_px": 25.182644009427882,
+       "mean_err_px": 0.17135789548795083,
+       "max_err_px": 0.3585109250725346
+      },
+      {
+       "frame": "IMG_0001.jpg",
+       "true_shift_px": 18.719828766440465,
+       "true_shift_max_px": 25.585427155027595,
+       "mean_err_px": 0.1631792990513953,
+       "max_err_px": 0.3903726851784107
+      },
+      {
+       "frame": "IMG_0003.jpg",
+       "true_shift_px": 18.82867671988456,
+       "true_shift_max_px": 24.302782015001142,
+       "mean_err_px": 0.33296689047164696,
+       "max_err_px": 0.756450016516431
+      },
+      {
+       "frame": "IMG_0004.jpg",
+       "true_shift_px": 19.329432037534453,
+       "true_shift_max_px": 26.702769302676877,
+       "mean_err_px": 0.501450279206078,
+       "max_err_px": 0.999875937027482
+      }
+     ]
+    },
+    "summary": {
+     "mean_err_px": 0.28122224621866465,
+     "worst_frame_mean_err_px": 0.501450279206078,
+     "max_err_px": 0.999875937027482,
+     "true_shift_px_range": [
+      18.719828766440465,
+      19.329432037534453
+     ],
+     "pass": true
+    }
+   },
+   "homography_model": {
+    "per_scene": {
+     "bedroom": [
+      {
+       "frame": "IMG_0005.tif",
+       "true_shift_px": 18.034937695292328,
+       "true_shift_max_px": 24.581313945100323,
+       "mean_err_px": 0.6091167663819326,
+       "max_err_px": 2.187357494818812
+      },
+      {
+       "frame": "IMG_0007.tif",
+       "true_shift_px": 17.857418887099687,
+       "true_shift_max_px": 25.48344156853261,
+       "mean_err_px": 0.8399618851911286,
+       "max_err_px": 2.0405600135558033
+      }
+     ],
+     "living_room": [
+      {
+       "frame": "IMG_0000.jpg",
+       "true_shift_px": 18.034937695292328,
+       "true_shift_max_px": 24.581313945100323,
+       "mean_err_px": 0.23573263426578428,
+       "max_err_px": 0.9709058231284194
+      },
+      {
+       "frame": "IMG_0001.jpg",
+       "true_shift_px": 17.857418887099687,
+       "true_shift_max_px": 25.48344156853261,
+       "mean_err_px": 0.3268555842527358,
+       "max_err_px": 0.9857310420750841
+      },
+      {
+       "frame": "IMG_0003.jpg",
+       "true_shift_px": 17.89943474608479,
+       "true_shift_max_px": 24.22763003026513,
+       "mean_err_px": 0.3224434596154749,
+       "max_err_px": 0.7051331430038377
+      },
+      {
+       "frame": "IMG_0004.jpg",
+       "true_shift_px": 18.63520185213546,
+       "true_shift_max_px": 26.843797025969813,
+       "mean_err_px": 0.509124439092298,
+       "max_err_px": 1.7836210365953242
+      }
+     ]
+    },
+    "summary": {
+     "mean_err_px": 0.473872461466559,
+     "worst_frame_mean_err_px": 0.8399618851911286,
+     "max_err_px": 2.187357494818812,
+     "true_shift_px_range": [
+      17.857418887099687,
+      18.63520185213546
+     ],
+     "pass": false
+    }
+   }
+  },
+  "window_iou": {
+   "spec": "SPEC 6: IoU of the window mask with GT >= 0.8",
+   "definition": "Pipeline window mask (windows.detect on the merged, lens-corrected radiance at analysis resolution, as pipeline.finish does), upsampled to 2400x1600 and thresholded at 0.5, vs GT labels in capture (= reference frame) geometry: iou_glass vs glass (label 4); iou_glass_frame vs glass plus its frame/mullions (components of labels 4|5 containing glass; the door is excluded).",
+   "living_room": {
+    "iou_glass": 0.9899527519194533,
+    "iou_glass_frame": 0.8111247467108079,
+    "pred_frac": 0.037006510416666666,
+    "gt_glass_frac": 0.0366984375,
+    "gt_glass_frame_frac": 0.045623697916666664,
+    "windows_detected": 1
+   },
+   "bedroom": {
+    "iou_glass": 0.9962573560190087,
+    "iou_glass_frame": 0.8777974170398218,
+    "pred_frac": 0.1374765625,
+    "gt_glass_frac": 0.13699270833333332,
+    "gt_glass_frame_frac": 0.15661536458333333,
+    "windows_detected": 1
+   },
+   "kitchen": {
+    "iou_glass": 0.9862048958114502,
+    "iou_glass_frame": 0.7548664331484858,
+    "pred_frac": 0.025984114583333332,
+    "gt_glass_frac": 0.02572083333333333,
+    "gt_glass_frame_frac": 0.034422135416666666,
+    "windows_detected": 1
+   },
+   "summary": {
+    "min_iou_glass": 0.9862048958114502,
+    "min_iou_glass_frame": 0.7548664331484858,
+    "pass_glass": true
+   }
+  },
+  "white_balance": {
+   "spec": "SPEC 7: wall dE2000 from neutral <= 3.0 globally and <= 5.0 in the tungsten zone; accent wall dH < 10 deg",
+   "definition": "Batch output (full JPEG, 2048 px) registered to reference_ideal.png with quality.metrics.register (as quality/evaluate.py). Walls = labels_ideal wall|ceiling (1|2), registered-valid, eroded 9x9. Tungsten zone = wall pixels where the scene's tungsten point lights give > 50% of the reflected light: the scene is re-rendered in the ideal camera at 600x400 with lights only and with everything but the lights (window sky/ground light, sun, ambient inter-reflection term - its colour is dominated by the sky term, so it counts as daylight), share = Y_lights / (Y_lights + Y_rest), upsampled bilinearly. dE = mean CIEDE2000 of those output pixels from a neutral grey of the same L* (quality.metrics.neutrality). zone_dE_in_reference = the same on reference_ideal (sanity, ~0). Accent = bedroom accent wall (label 8, eroded 9x9): dH = hue angle of the mean a*,b* (CIELAB) of the output minus that of reference_ideal, degrees.",
+   "living_room": {
+    "series": "IMG_0000",
+    "render_label_agreement": 0.9952208333333333,
+    "walls_dE": 3.144409418106079,
+    "zone_frac_of_walls": 0.21458913274886304,
+    "zone_px": 277591,
+    "zone_dE": 8.102131843566895,
+    "zone_dE_p90": 13.992019653320312,
+    "zone_a_mean": 3.549254894256592,
+    "zone_b_mean": 9.018656730651855,
+    "zone_dE_in_reference": 1.147005968960002e-05,
+    "daylight_walls_dE": 1.7898657321929932
+   },
+   "bedroom": {
+    "series": "IMG_0005",
+    "render_label_agreement": 0.995825,
+    "walls_dE": 3.1908984184265137,
+    "zone_frac_of_walls": 0.1613541215436766,
+    "zone_px": 240999,
+    "zone_dE": 9.009941101074219,
+    "zone_dE_p90": 14.718650817871094,
+    "zone_a_mean": 5.494205474853516,
+    "zone_b_mean": 8.050232887268066,
+    "zone_dE_in_reference": 1.1633099347818643e-05,
+    "daylight_walls_dE": 2.071324110031128,
+    "accent": {
+     "px": 41088,
+     "hue_out_deg": -130.0621462911136,
+     "hue_ref_deg": 151.74357901209902,
+     "dH_deg": 78.19427469678737,
+     "chroma_out": 5.3335957527160645,
+     "chroma_ref": 8.171622276306152,
+     "dE2000_mean": 9.48178482055664
+    }
+   },
+   "kitchen": {
+    "series": "IMG_0008",
+    "render_label_agreement": 0.9957458333333333,
+    "walls_dE": 2.8560068607330322,
+    "zone_frac_of_walls": 0.31284816149903893,
+    "zone_px": 300460,
+    "zone_dE": 4.884970664978027,
+    "zone_dE_p90": 10.045916557312012,
+    "zone_a_mean": 1.6256006956100464,
+    "zone_b_mean": 5.296040058135986,
+    "zone_dE_in_reference": 7.026396815490443e-06,
+    "daylight_walls_dE": 1.932255744934082
+   },
+   "summary": {
+    "walls_dE_max": 3.1908984184265137,
+    "zone_dE_max": 9.009941101074219,
+    "accent_dH_deg": 78.19427469678737,
+    "pass_walls_3": false,
+    "pass_zone_5": false,
+    "pass_accent_10": false
+   }
+  },
+  "sharpness": {
+   "spec": "SPEC 9: edge sharpness >= 0.9x input",
+   "definition": "Contrast-invariant acutance A = G / C on display luma (sRGB, Rec.709 weights): G = largest slope (Sobel/8, luma per px) within 3x3, C = local step height (max - min) within 9x9; for a blurred step A ~ 1.02 / (10-90% rise width) (approx_rise_10_90_px; approximate, the 9x9 window truncates wide edges), independent of the step's contrast, so local tone mapping and the window pull (which change edge contrast, not edge width) do not count as sharpening or blurring. The pipeline's reference frame as shot (linear TIFF: before-preview rendering) is passed through the exact geometry.apply plan of the output (rebuilt from report.json; the crop fraction it reproduces is in geometry_crop_check), so both images share geometry and resampling. Edges = input pixels on edge centre lines (3x3 slope maximum) with slope >= 95th percentile and C >= 0.1, excluding pixels within 4 px of clipped input/output pixels, GT window glass+frame (dilated 7 px; GT scenes only) and an 8 px border; acutance_ratio = median over edges of A_out / A_in (edges with C_out < 0.03, i.e. flattened, counted separately); acutance_ratio_output_blurred_sigma1 = the same for the output blurred with a 1 px Gaussian (control: the measure does respond to blur). gradient_ratio_same_edges = median G_out / G_in on the same edges (contrast-dependent, the literal 'gradient energy'); quality_sharpness_ratio = quality.metrics.sharpness (mean slope of the 5% strongest gradients of the whole image) output / input: it rises and falls with tonal contrast (shadow lifting, window pull), which is why the acutance ratio is the criterion.",
+   "living_room": {
+    "series": "IMG_0000",
+    "reference_frame": "IMG_0002.jpg",
+    "edge_px": 5659,
+    "edge_px_flattened_in_output": 31,
+    "acutance_in_median": 0.22745731472969055,
+    "acutance_out_median": 0.2787359952926636,
+    "approx_rise_10_90_px_in": 4.484357833862305,
+    "approx_rise_10_90_px_out": 3.659376621246338,
+    "acutance_ratio": 1.0015873908996582,
+    "acutance_ratio_output_blurred_sigma1": 0.872062087059021,
+    "gradient_ratio_same_edges": 0.9246643781661987,
+    "quality_sharpness_ratio": 1.0819341988234261,
+    "geometry_crop_check": [
+     0.03501734520267119,
+     0.03501734520267119
+    ]
+   },
+   "bedroom": {
+    "series": "IMG_0005",
+    "reference_frame": "IMG_0006.tif",
+    "edge_px": 1824,
+    "edge_px_flattened_in_output": 0,
+    "acutance_in_median": 0.14801901578903198,
+    "acutance_out_median": 0.15650615096092224,
+    "approx_rise_10_90_px_in": 6.8910064697265625,
+    "approx_rise_10_90_px_out": 6.51731538772583,
+    "acutance_ratio": 0.9857584238052368,
+    "acutance_ratio_output_blurred_sigma1": 0.8320695161819458,
+    "gradient_ratio_same_edges": 1.9870247840881348,
+    "quality_sharpness_ratio": 1.5143735416149648,
+    "geometry_crop_check": [
+     0.023597727389597867,
+     0.023597727389597867
+    ]
+   },
+   "kitchen": {
+    "series": "IMG_0008",
+    "reference_frame": "IMG_0011.jpg",
+    "edge_px": 7364,
+    "edge_px_flattened_in_output": 66,
+    "acutance_in_median": 0.3637809157371521,
+    "acutance_out_median": 0.3587630093097687,
+    "approx_rise_10_90_px_in": 2.8038854598999023,
+    "approx_rise_10_90_px_out": 2.84310245513916,
+    "acutance_ratio": 0.9705047011375427,
+    "acutance_ratio_output_blurred_sigma1": 0.8364311456680298,
+    "gradient_ratio_same_edges": 0.8122100830078125,
+    "quality_sharpness_ratio": 1.1204162321365132,
+    "geometry_crop_check": [
+     0.030426403052425277,
+     0.030426403052425277
+    ]
+   },
+   "exterior": {
+    "series": "IMG_0015",
+    "reference_frame": "IMG_0016.jpg",
+    "edge_px": 6890,
+    "edge_px_flattened_in_output": 0,
+    "acutance_in_median": 0.41351670026779175,
+    "acutance_out_median": 0.41730397939682007,
+    "approx_rise_10_90_px_in": 2.4666476249694824,
+    "approx_rise_10_90_px_out": 2.444261312484741,
+    "acutance_ratio": 1.0356242656707764,
+    "acutance_ratio_output_blurred_sigma1": 0.7903934121131897,
+    "gradient_ratio_same_edges": 1.9061726331710815,
+    "quality_sharpness_ratio": 1.8724606514284916,
+    "geometry_crop_check": [
+     0.07416952378137764,
+     0.07416952378137764
+    ]
+   },
+   "single": {
+    "series": "IMG_0018",
+    "reference_frame": "IMG_0018.jpg",
+    "edge_px": 4504,
+    "edge_px_flattened_in_output": 5,
+    "acutance_in_median": 0.18817687034606934,
+    "acutance_out_median": 0.21792961657047272,
+    "approx_rise_10_90_px_in": 5.420432090759277,
+    "approx_rise_10_90_px_out": 4.680409908294678,
+    "acutance_ratio": 1.0423657894134521,
+    "acutance_ratio_output_blurred_sigma1": 0.8481218814849854,
+    "gradient_ratio_same_edges": 1.7716941833496094,
+    "quality_sharpness_ratio": 1.4024693693212988,
+    "geometry_crop_check": [
+     -0.020952224188707014,
+     -0.020952224188707014
+    ]
+   },
+   "NOEXIF_0000": {
+    "series": "NOEXIF_0000",
+    "reference_frame": "NOEXIF_0001.jpg",
+    "edge_px": 4875,
+    "edge_px_flattened_in_output": 59,
+    "acutance_in_median": 0.16777510941028595,
+    "acutance_out_median": 0.18887954950332642,
+    "approx_rise_10_90_px_in": 6.079566955566406,
+    "approx_rise_10_90_px_out": 5.400267124176025,
+    "acutance_ratio": 1.0416481494903564,
+    "acutance_ratio_output_blurred_sigma1": 0.8844325542449951,
+    "gradient_ratio_same_edges": 1.084766149520874,
+    "quality_sharpness_ratio": 1.3427826942499004,
+    "geometry_crop_check": [
+     -0.027479827741922813,
+     -0.027479827741922813
+    ]
+   },
+   "summary": {
+    "min_acutance_ratio": 0.9705047011375427,
+    "pass": true
+   }
+  },
+  "single_frame": {
+   "spec": "SPEC 10: single-frame pseudo-HDR reduces clipped and crushed pixels",
+   "definition": "Reference frame (the pipeline's choice, as the before preview) of every synthetic series and every HDR+ series (data/public/hdrplus_semi) processed alone (grouping.mode=single, preset neutral, 2 workers). Full-size input as shot (linear TIFF: before-preview rendering) vs full-size output JPEG: clipped_pct = % pixels with any channel >= 254/255, crushed_pct = % pixels with Rec.709 luma <= 1/255 (quality.metrics.histogram_stats). Means over images.",
+   "images": {
+    "synthetic/living_room": {
+     "frame": "IMG_0002.jpg",
+     "clipped_pct_before": 10.15453125,
+     "clipped_pct_after": 2.9203645833333334,
+     "crushed_pct_before": 0.00013020833333333333,
+     "crushed_pct_after": 0.012005208333333333
+    },
+    "synthetic/bedroom": {
+     "frame": "IMG_0006.tif",
+     "clipped_pct_before": 16.846249999999998,
+     "clipped_pct_after": 7.509973958333334,
+     "crushed_pct_before": 0.049140625,
+     "crushed_pct_after": 0.09484374999999999
+    },
+    "synthetic/kitchen": {
+     "frame": "IMG_0011.jpg",
+     "clipped_pct_before": 8.882916666666667,
+     "clipped_pct_after": 5.68734375,
+     "crushed_pct_before": 0.0,
+     "crushed_pct_after": 0.016744791666666665
+    },
+    "synthetic/exterior": {
+     "frame": "IMG_0016.jpg",
+     "clipped_pct_before": 15.905859375,
+     "clipped_pct_after": 14.567239583333333,
+     "crushed_pct_before": 0.0,
+     "crushed_pct_after": 0.0020833333333333333
+    },
+    "synthetic/single": {
+     "frame": "IMG_0018.jpg",
+     "clipped_pct_before": 5.938307291666667,
+     "clipped_pct_after": 2.207734375,
+     "crushed_pct_before": 0.008411458333333333,
+     "crushed_pct_after": 0.052916666666666674
+    },
+    "hdrplus/bar_windows": {
+     "frame": "HDRP_0001.jpg",
+     "clipped_pct_before": 13.167547162913133,
+     "clipped_pct_after": 10.96741859218095,
+     "crushed_pct_before": 0.012742821975236424,
+     "crushed_pct_after": 0.013809166910402652
+    },
+    "hdrplus/stair_window": {
+     "frame": "HDRP_0004.jpg",
+     "clipped_pct_before": 10.748566527737156,
+     "clipped_pct_after": 8.345855269572,
+     "crushed_pct_before": 0.006672272594325826,
+     "crushed_pct_after": 0.0041663619966851905
+    },
+    "hdrplus/modern_interior": {
+     "frame": "HDRP_0007.jpg",
+     "clipped_pct_before": 3.62312780296383,
+     "clipped_pct_after": 2.4369104635858436,
+     "crushed_pct_before": 0.009833223652140002,
+     "crushed_pct_after": 0.005278407429072828
+    },
+    "hdrplus/piano_room": {
+     "frame": "HDRP_0010.jpg",
+     "clipped_pct_before": 10.48765957000084,
+     "clipped_pct_after": 6.788392922755522,
+     "crushed_pct_before": 0.07968658142269254,
+     "crushed_pct_after": 0.05796058778449652
+    },
+    "hdrplus/library": {
+     "frame": "HDRP_0013.jpg",
+     "clipped_pct_before": 5.905128814468168,
+     "clipped_pct_after": 3.2754460368528813,
+     "crushed_pct_before": 0.002475443599493029,
+     "crushed_pct_after": 0.009901774397972116
+    },
+    "hdrplus/church": {
+     "frame": "HDRP_0016.jpg",
+     "clipped_pct_before": 1.5818739031490363,
+     "clipped_pct_after": 0.476243249647185,
+     "crushed_pct_before": 0.006542048774391101,
+     "crushed_pct_after": 0.0012612158706848517
+    }
+   },
+   "summary": {
+    "clipped_pct_before": 9.38561530586959,
+    "clipped_pct_after": 5.925720253144944,
+    "crushed_pct_before": 0.015966789425904144,
+    "crushed_pct_after": 0.02463375130811947,
+    "images": 11,
+    "failed": 0,
+    "clipped_down": 11,
+    "crushed_down": 4,
+    "crushed_up": [
+     "synthetic/living_room",
+     "synthetic/bedroom",
+     "synthetic/kitchen",
+     "synthetic/exterior",
+     "synthetic/single",
+     "hdrplus/bar_windows",
+     "hdrplus/library"
+    ],
+    "pass_mean": false,
+    "pass_every_image": false
+   }
+  },
+  "seconds": 182.0,
+  "last_run_parts": [
+   "single_frame"
+  ]
+ }
 }

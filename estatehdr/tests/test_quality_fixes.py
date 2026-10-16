@@ -114,3 +114,60 @@ def test_dng_gain_map_parsed_and_interpolated(tmp_path):
     gi = _gain_image(maps[0], 3, 3)  # pixel centres at 1/6, 1/2, 5/6
     assert np.isclose(gi[1, 1], 2.5) and gi[0, 0] < gi[2, 2]
     assert dng_gain_maps(str(tmp_path / "missing.dng")) == []
+
+
+def _fabric_photo(seed=5, h=480, w=720):
+    """A clean finished photo: brown fabric with fine, strong texture next to a flat wall."""
+    rng = np.random.default_rng(seed)
+    t = cv2.GaussianBlur(rng.normal(0, 1, (h, w)).astype(np.float32), (0, 0), 0.7)
+    t = t / t.std() * 0.25
+    img = np.clip(np.array([0.45, 0.33, 0.22], np.float32) * (1 + t[..., None]), 0, 1)
+    img[:, : w // 6] = 0.82 + rng.normal(0, 0.002, (h, w // 6, 1)).astype(np.float32)
+    return img.astype(np.float32)
+
+
+def _highpass(x):
+    y = x @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+    return float(np.std(y - cv2.GaussianBlur(y, (0, 0), 2.0)))
+
+
+def test_texture_of_finished_photo_is_not_denoised_away():
+    """D-49: fabric texture is not noise.  On a finished photo the noise is measured on the
+    flattest blocks, so the texture and its colour survive; the generic estimate would have taken
+    the texture for noise and smoothed / desaturated it."""
+    from estatehdr import denoise
+    cfg = load_config(None, "neutral", [])
+    img = _fabric_photo()
+    fab = (slice(None), slice(img.shape[1] // 6 + 8, None))
+    out = denoise.denoise(img.copy(), cfg, single=True, developed=True)
+    old = denoise.denoise(img.copy(), cfg, single=True, developed=False)
+    keep, keep_old = _highpass(out[fab]) / _highpass(img[fab]), _highpass(old[fab]) / _highpass(img[fab])
+    chroma = lambda x: float(np.abs(x - x.mean(-1, keepdims=True)).mean())  # noqa: E731
+    y = img @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+    assert denoise.estimate_sigma(y) > 0.015 > 0.004 > denoise.estimate_sigma_flat(y)  # texture read as noise
+    assert keep > 0.85 and chroma(out[fab]) > 0.95 * chroma(img[fab]), (keep, keep_old)
+    assert keep_old < 0.7  # the test is sensitive: the generic path smooths this texture away
+
+
+def test_noisy_finished_photo_is_still_denoised():
+    from estatehdr import denoise
+    cfg = load_config(None, "neutral", [])
+    rng = np.random.default_rng(1)
+    clean = np.dstack([np.tile(np.linspace(0.2, 0.8, 720, dtype=np.float32), (480, 1))] * 3)
+    noisy = np.clip(clean + rng.normal(0, 0.03, clean.shape).astype(np.float32), 0, 1)
+    out = denoise.denoise(noisy.copy(), cfg, single=True, developed=True)
+    assert np.std(out - clean) < 0.6 * np.std(noisy - clean)
+
+
+def test_finished_low_key_photo_keeps_its_white(synth, tmp_path):
+    """D-49: a soft, low-key edit (whites at ~0.8) is not stretched to full white; no new clipping."""
+    src = cv2.imread(os.path.join(synth["input"], "IMG_0011.jpg"))
+    low = np.clip(src.astype(np.float32) * 0.8, 0, 255).astype(np.uint8)
+    d = tmp_path / "in"
+    d.mkdir()
+    cv2.imwrite(str(d / "low.jpg"), low, [cv2.IMWRITE_JPEG_QUALITY, 95])
+    rep = run_batch(str(d), str(tmp_path / "o"), load_config(None, "neutral", ["grouping.mode=single", "runtime.workers=1"]))
+    out = cv2.imread(rep["series"][0]["outputs"]["full"]["path"])
+    yi, yo = (cv2.cvtColor(x, cv2.COLOR_BGR2GRAY) for x in (low, out))
+    assert np.percentile(yo, 99) <= np.percentile(yi, 99) + 0.12 * 255 * 0.5
+    assert (out.max(-1) >= 254).mean() <= (low.max(-1) >= 254).mean() + 0.005  # SPEC: < 0.5% clipped

@@ -189,13 +189,13 @@ Wejście: `data/synthetic/input`. Konfiguracja przed: `reports/calibration/confi
 | metryka | przed | po | zmiana |
 |---|---|---|---|
 | przepalenia poza nieodzyskiwalnymi [%] | 0.399 | 0.458 | gorzej |
-| zaczernienia [%] | 0.014 | 0.015 | gorzej |
+| zaczernienia [%] | 0.014 | 0.014 | = |
 | mediana jasności | 0.552 | 0.693 |  |
-| pionowość, mediana [°] | 0.073 | 0.099 | gorzej |
+| pionowość, mediana [°] | 0.073 | 0.101 | gorzej |
 | neutralność jasnych powierzchni ΔE (auto) | 4.896 | 3.930 | lepiej |
 | neutralność ścian ΔE (GT) | 5.577 | 3.143 | lepiej |
 | jasność ścian L* (GT; cel SPEC: neutral 78-88, airy 84-92, premium 74-86) | 61.002 | 76.009 |  |
-| jasność widoku okna L* (cel 55-80) | 71.546 | 66.541 |  |
+| jasność widoku okna L* (cel 55-80) | 71.546 | 66.529 |  |
 | przepalenia okna odzyskiwalne [%] | 0.000 | 0.000 | = |
 | detal okna / GT | 1.221 | 1.222 |  |
 | halo przy oknie ΔL* (cel < 4) | -0.784 | -0.509 |  |
@@ -262,12 +262,12 @@ Wejście: `data/synthetic/input`. Konfiguracja przed: `reports/calibration/confi
 | IMG_0015 | median_luma | 0.543 | 0.713 |
 | IMG_0015 | vert_med_deg | 0.020 | 0.101 |
 | IMG_0015 | wall_dE_auto | 3.848 | 1.110 |
-| IMG_0018 | clipped_excl_% | 2.152 | 2.313 |
-| IMG_0018 | crushed_% | 0.013 | 0.010 |
+| IMG_0018 | clipped_excl_% | 2.152 | 2.314 |
+| IMG_0018 | crushed_% | 0.013 | 0.004 |
 | IMG_0018 | median_luma | 0.496 | 0.564 |
-| IMG_0018 | vert_med_deg | 0.043 | 0.201 |
-| IMG_0018 | wall_dE_auto | 7.079 | 7.909 |
-| IMG_0018 | win_L | 73.528 | 66.962 |
+| IMG_0018 | vert_med_deg | 0.043 | 0.212 |
+| IMG_0018 | wall_dE_auto | 7.079 | 7.907 |
+| IMG_0018 | win_L | 73.528 | 66.898 |
 | NOEXIF_0000 | clipped_excl_% | 0.130 | 0.160 |
 | NOEXIF_0000 | crushed_% | 0.007 | 0.007 |
 | NOEXIF_0000 | median_luma | 0.555 | 0.716 |

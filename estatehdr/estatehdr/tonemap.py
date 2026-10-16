@@ -31,11 +31,13 @@ log = logging.getLogger(__name__)
 EPS = 1e-6
 
 
-def noise_floor(radiance: np.ndarray, k: float = 1.5, rows: int = 768) -> float:
+def noise_floor(radiance: np.ndarray, k: float = 1.5, rows: int = 768, robust: bool = False) -> float:
     """Linear luminance level of the sensor noise in the shadows (Immerkaer estimate on the darkest
     fifth of a full-resolution band).  Log luminance is taken of Y + floor, so pixels at or below
     the noise (zero-clipped RAW channels) do not become -20 EV outliers that local tone mapping
-    turns into black specks; merged brackets have little shadow noise and get a tiny floor."""
+    turns into black specks; merged brackets have little shadow noise and get a tiny floor.
+    ``robust``: low percentile over 32 px blocks of dark pixels instead of their mean, so the texture
+    of a finished photo (fabric, rug, foliage in the shadows) is not taken for noise (D-49)."""
     H, W = radiance.shape[:2]
     best = 0.0
     for c in (0.3, 0.5, 0.7):  # a few bands: noise is a sensor property, the scene is not
@@ -47,6 +49,18 @@ def noise_floor(radiance: np.ndarray, k: float = 1.5, rows: int = 768) -> float:
         yc = y[1:-1, 1:-1]
         dark = yc <= np.percentile(yc, 20)
         if dark.sum() < 1000:
+            continue
+        if robust:
+            bh, bw = resp.shape[0] // 32, resp.shape[1] // 32
+            if bh < 1 or bw < 2:
+                continue
+            crop = (slice(0, bh * 32), slice(0, bw * 32))
+            rs = cv2.resize(np.where(dark, resp, 0)[crop], (bw, bh), interpolation=cv2.INTER_AREA)
+            ds = cv2.resize(dark[crop].astype(np.float32), (bw, bh), interpolation=cv2.INTER_AREA)
+            ok = ds > 0.5
+            if ok.sum() < 4:
+                continue
+            best = max(best, float(np.sqrt(np.pi / 2) / 6.0 * np.percentile(rs[ok] / ds[ok], 10)))
             continue
         best = max(best, float(np.sqrt(np.pi / 2) / 6.0 * np.mean(resp[dark])))
     return max(EPS, k * best)
@@ -110,7 +124,8 @@ def tone_map(radiance: np.ndarray, cfg: dict, window_mask: np.ndarray | None = N
 
     extra_pulls: [(weight_map_small, target_srgb, strength, name)] for other regions (sun patches)."""
     H, W = radiance.shape[:2]
-    floor = noise_floor(radiance, float(cfg.get("noise_floor_k", 1.5))) if cfg.get("noise_floor", True) else EPS
+    floor = (noise_floor(radiance, float(cfg.get("noise_floor_k", 1.5)), robust=bool(cfg.get("noise_floor_robust", False)))
+             if cfg.get("noise_floor", True) else EPS)
     # full-resolution log luminance, computed strip by strip (the only full-res scalar map kept)
     L = np.empty((H, W), np.float32)
     acc = np.zeros(2)

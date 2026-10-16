@@ -176,8 +176,8 @@ tabela per seria: [reports/calibration/full_pipeline.md](reports/calibration/ful
 | Jasność widoku za oknem L*, GT (55–80, premium 45–70) | 75.0 → 72.0 | 79.6 → 76.4 | 71.5 → 66.5 |
 | Odzyskiwalne przepalenia okna, % (< 5) | 0.0 → 0.0 | 0.0 → 0.0 | 0.0 → 0.0 |
 | Przepalenia poza źródłami światła, %, GT (< 0.5) | 0.03 → 0.03 | 0.02 → 0.02 | 0.04 → 0.03 |
-| Zaczernienia, % (< 0.5) | 0.00 → 0.00 | 0.00 → 0.00 | 0.01 → 0.02 |
-| Halo przy oknie ΔL* (< 4) | -0.7 → -0.9 | -0.9 → -0.5 | -0.8 → -0.5 |
+| Zaczernienia, % (< 0.5) | 0.00 → 0.00 | 0.00 → 0.00 | 0.01 → 0.01 |
+| Halo przy oknie ΔL* (< 4) | −0.7 → −0.9 | −0.9 → −0.5 | −0.8 → −0.5 |
 | Pionowość, mediana [°] (≤ 0.5) | 0.07 → 0.10 | 0.08 → 0.10 | 0.07 → 0.10 |
 | Detal widoku okna / GT (≥ 0.6) | 1.06 → 1.04 | 0.94 → 1.12 | 1.22 → 1.22 |
 | Neutralność jasnych powierzchni ΔE (auto) | 4.91 → 3.90 | 4.76 → 3.81 | 4.90 → 3.93 |
@@ -206,7 +206,7 @@ i tabele metryk per seria. „Przed” to klatka referencyjna prosto z aparatu, 
 | syntetyczne (6) | przed | 0.31 | 10.66 | 0.01 | 8.74 | 2.06 | — | — |
 | syntetyczne (6) | neutral | 0.69 | 0.41 | 0.00 | 3.90 | 0.10 | 75.6 | 72.0 |
 | syntetyczne (6) | airy | 0.82 | 0.42 | 0.00 | 3.81 | 0.10 | 87.1 | 76.4 |
-| syntetyczne (6) | premium | 0.69 | 0.46 | 0.02 | 3.93 | 0.10 | 76.0 | 66.5 |
+| syntetyczne (6) | premium | 0.69 | 0.46 | 0.01 | 3.93 | 0.10 | 76.0 | 66.5 |
 | HDR+ (6) | przed | 0.33 | 6.66 | 0.00 | 9.41 | 2.44 | — | — |
 | HDR+ (6) | neutral | 0.71 | 0.56 | 0.00 | 6.03 | 1.61 | — | 77.4 |
 | HDR+ (6) | airy | 0.85 | 0.46 | 0.00 | 5.17 | 1.68 | — | 81.8 |
@@ -216,9 +216,9 @@ i tabele metryk per seria. „Przed” to klatka referencyjna prosto z aparatu, 
 | OpenCV (2) | airy | 0.58 | 2.36 | 0.05 | 6.83 | 1.70 | — | 64.6 |
 | OpenCV (2) | premium | 0.50 | 2.17 | 0.08 | 7.47 | 4.30 | — | 58.5 |
 | portfolio (3) | przed | 0.68 | 0.07 | 0.03 | 4.51 | 0.25 | — | — |
-| portfolio (3) | neutral | 0.69 | 0.39 | 1.29 | 2.48 | 0.19 | — | — |
+| portfolio (3) | neutral | 0.69 | 0.43 | 0.36 | 2.49 | 0.18 | — | — |
 | portfolio (3) | airy | 0.70 | 0.44 | 0.07 | 2.29 | 0.19 | — | — |
-| portfolio (3) | premium | 0.70 | 0.48 | 1.89 | 2.61 | 0.18 | — | — |
+| portfolio (3) | premium | 0.70 | 0.50 | 0.51 | 2.62 | 0.17 | — | — |
 
 \* Piksele ≥ 254/255 poza obszarami przepalonymi we wszystkich klatkach (łącznie z lampami i oknami).
 W wierszu „przed” liczone są wszystkie, bo pojedyncza klatka nic nie wie o pozostałych.
@@ -241,11 +241,11 @@ syntetycznych 2400×1600:
 | Grupowanie | 6/6 serii dokładnie z EXIF i 6/6 bez EXIF (same piksele). Uszkodzony plik trafia do `unreadable` |
 | Wyrównanie | średni błąd siatki: statyw 0.29–0.45 px, z ręki 0.22–0.27 px przy przesunięciach 4–10 px |
 | Merge: 3 klatki z N | mediana błędu log2 radiancji: wszystkie klatki 0.008–0.010, 3 skrajne 0.014–0.018, 3 środkowe 0.012–0.013 |
-| Okna | odzyskiwalne przepalenia 0%, L* widoku 70.7–72.1, detal 0.99–1.12× GT, halo -3.3–0.7 L*. Okna przepalone już w najciemniejszej klatce (13% i 43% powierzchni okna) zostają białe |
+| Okna | odzyskiwalne przepalenia 0%, L* widoku 70.7–72.1, detal 0.99–1.12× GT, halo −3.3…0.7 L*. Okna przepalone już w najciemniejszej klatce (13% i 43% powierzchni okna) zostają białe |
 | Geometria | k1 0.058 / 0.040 / 0.068 przy prawdzie 0.06 / 0.04 / 0.08; błąd korekty pochylenia 0.06–0.61°, przechyłu 0.00–0.09°; mediana odchylenia pionów po korekcie 0.06–0.17° |
 | Aberracja chromatyczna | prawda: skala R +0.12%, B −0.12%. Resztka w rogu kadru: dane liniowe 0.33–0.65 px, JPEG 4:2:0 0.76–1.08 px (subsampling rozmywa przesunięcie kolorów już w pliku), pełny pipeline na seriach syntetycznych 0.42–1.11 px |
 | Odszumianie | 6 zaszumionych pojedynczych RAW z HDR+: σ szumu niższe w 6/6, o 31–71% |
-| Niebo | IoU 0.94 (syntetyczny exterior); wykryte na 12/14 exteriorach HDR+, fałszywie na 2/104 wnętrzach portfolio |
+| Niebo | IoU 0.94 (syntetyczny exterior); wykryte na 12/14 exteriorach HDR+ i na 2/104 wnętrzach portfolio (niebo za szybą, §9) |
 
 ### 6.4 Moduły opcjonalne
 
@@ -258,12 +258,12 @@ syntetycznych 2400×1600:
 
 ### 6.5 Test „nie psuć” (tryb jednej klatki, gotowe zdjęcia z portfolio)
 
-104/104 zdjęć bez błędu. Wynik względem wejścia:
-- SSIM: mediana **0.966**, p10 0.885, minimum 0.772;
-  poniżej 0.85: 7/104 zdjęć (najniższe: k106.CNSQFHIF (0.77), 02.DlAjPzxZ (0.79), k017.CcND4ej8 (0.81));
-- ΔE2000: mediana **4.40**, średnia 4.85, p90 6.48;
-- przepalenia poza nieodzyskiwalnymi średnio 0.29%, zaczernienia średnio 0.16% (maksimum 3.41%);
-- pionowość: mediana 0.19°.
+104 z 104 zdjęć bez błędu. Wynik względem wejścia:
+- SSIM: mediana **0.970**, p10 0.930, minimum 0.743;
+  poniżej 0.85: 4/104 zdjęć (najniższe: k106.CNSQFHIF (0.74), 02.DlAjPzxZ (0.80), k017.CcND4ej8 (0.80));
+- ΔE2000: mediana **4.28**, średnia 4.68, p90 6.24;
+- przepalenia poza nieodzyskiwalnymi średnio 0.30%, zaczernienia średnio 0.07% (maksimum 0.60%);
+- pionowość: mediana 0.18°.
 
 Cel SPEC: SSIM ≥ 0.85 i średnie ΔE ≤ 6. Najniższe SSIM mają głównie zdjęcia, którym pipeline prostuje piony:
 zamierzona zmiana geometrii obniża SSIM. Plik: [reports/portfolio_do_no_harm.json](reports/portfolio_do_no_harm.json).
@@ -278,12 +278,12 @@ Maszyna: 4 rdzenie CPU, bez GPU (OpenCL niedostępny), 15 GB RAM. Jedna seria na
 | 3x60Mpx JPEG (9504×6336) | 147 s | 2.73 GB | tone mapping 45 s, merge 34 s, geometria 23 s, wyrównanie 22 s |
 | 3x60Mpx TIFF 16-bit (9504×6336) | 149 s | 3.31 GB | tone mapping 43 s, merge 34 s, wyrównanie 22 s, geometria 20 s |
 
-Batch: 104 zdjęć portfolio w trybie jednej klatki, 2 workery, 418 s.
+Batch: 104 zdjęcia portfolio w trybie jednej klatki, 2 workery, 395 s.
 Szczegóły: [reports/perf.json](reports/perf.json).
 
 ### 6.7 Kryteria akceptacji ze SPEC: podsumowanie
 
-Ta tabela też powstaje z raportów. 32 kryteriów: niespełnione 4, spełnione częściowo 3, bez pomiaru 3.
+Ta tabela też powstaje z raportów. 32 kryteria: niespełnione 4, spełnione częściowo 3, bez pomiaru 3.
 „Tak (test)” oznacza, że kryterium sprawdza test automatyczny, bez osobnej liczby w raporcie. Przyczyny braków
 opisuje §9.
 
@@ -295,7 +295,7 @@ opisuje §9.
 | Wyrównanie | ≤ 0.6 px statyw, ≤ 0.8 px z ręki (przesunięcia do 20 px) | 0.29–0.45 px i 0.22–0.27 px; sprawdzone przesunięcia do 10 px | częściowo |
 | Duchy | < 2% maski ducha odbiega o > 0.5 EV | `test_deghosting_moving_object` | tak (test) |
 | Przepalenia poza światłami | < 0.5% | 0.02–0.03% | tak |
-| Zaczernienia | < 0.5% | 0.00–0.02% | tak |
+| Zaczernienia | < 0.5% | 0.00–0.01% | tak |
 | Halo okno/ściana | < 4 L* | maks. 3.3 L* | tak |
 | Jasność ścian `neutral` | L* 78–88 | 75.6 | **nie** |
 | Jasność ścian `airy` | L* 84–92 | 87.1 | tak |
@@ -313,8 +313,8 @@ opisuje §9.
 | Aberracja chromatyczna | ≤ 0.3 px na brzegu | liniowe 0.33–0.65 px, pipeline 0.42–1.11 px | **nie** |
 | Szum | σ niższe niż w klatce | 6/6 RAW, o 31–71% | tak |
 | Ostrość | ≥ 0.9× wejścia | — | nie zmierzone |
-| Jedna klatka: przepalenia i zaczernienia | spadają | przepalenia 0.07 → 0.39%, zaczernienia 0.03 → 1.29% (portfolio, 6.2) | **nie** |
-| „Nie psuć” (portfolio) | SSIM ≥ 0.85, średnie ΔE ≤ 6 | SSIM mediana 0.966, 7/104 zdjęć poniżej 0.85; ΔE średnie 4.85 | częściowo |
+| Jedna klatka: przepalenia i zaczernienia | spadają | przepalenia 0.07 → 0.43%, zaczernienia 0.03 → 0.36% (portfolio, 6.2) | **nie** |
+| „Nie psuć” (portfolio) | SSIM ≥ 0.85, średnie ΔE ≤ 6 | SSIM mediana 0.970, 4/104 zdjęć poniżej 0.85; ΔE średnie 4.68 | częściowo |
 | Maska nieba | IoU ≥ 0.85 | 0.94 | tak |
 | Twilight | niebo w stylu, okna świecą, fasada ciemniejsza | `test_twilight_*` | tak (test) |
 | Usuwanie obiektów | poza maską bez zmian (poza otoczką 8 px) | `test_object_removal_*` | tak (test) |

@@ -92,10 +92,11 @@ class Prepared:
     timer: StageTimer
     night: bool = False        # night / late-dusk exterior (dark, smooth sky band at the top)
     own_black: float | None = None  # display black level of a finished rendering (its 0.5th percentile)
+    own_white: float | None = None  # ... and its white level (percentile tonemap.white_percentile)
 
     def copy(self) -> "Prepared":
         return Prepared(self.rad.copy(), self.clipped.copy(), self.ref_meta, self.single, self.developed,
-                        self.own_key, StageTimer(), self.night, self.own_black)
+                        self.own_key, StageTimer(), self.night, self.own_black, self.own_white)
 
 
 def detect_night(rad: np.ndarray, cfg: dict) -> tuple[bool, dict]:
@@ -136,7 +137,7 @@ def prepare(group: Group, cfg: Config, result: dict, progress=None) -> Prepared:
     result["reference"] = s.frames[s.ref].meta.name
     result["exposures_ev"] = [round(float(np.log2(f.exposure)), 2) for f in s.frames]
     single = len(s.frames) == 1
-    own_key = own_black = None
+    own_key = own_black = own_white = None
     developed = single and s.frames[0].decoded.encoding == "srgb"
     if developed and cfg.get("single_image", {}).get("key_from_input", True):
         # display key of the photographer's own rendering (median display luminance)
@@ -144,6 +145,8 @@ def prepare(group: Group, cfg: Config, result: dict, progress=None) -> Prepared:
         y_in = luminance(srgb_to_linear(im))
         own_key = float(linear_to_srgb(np.float32(np.median(y_in))))
         own_black = float(linear_to_srgb(np.float32(np.percentile(y_in, 0.5))))
+        own_white = float(linear_to_srgb(np.float32(np.percentile(
+            y_in, float(cfg.get("tonemap", {}).get("white_percentile", 99.0))))))
         result["input_key"] = round(own_key, 3)
     timer.mark("load")
     _p(progress, 0.15, "wyrównanie")
@@ -164,7 +167,7 @@ def prepare(group: Group, cfg: Config, result: dict, progress=None) -> Prepared:
     night, ninfo = detect_night(rad, cfg)
     result["scene"] = {"night": night, **ninfo}
     timer.mark("lens")
-    return Prepared(rad, clipped, ref_meta, single, developed, own_key, timer, night, own_black)
+    return Prepared(rad, clipped, ref_meta, single, developed, own_key, timer, night, own_black, own_white)
 
 
 def finish(prep: Prepared, group: Group, cfg: Config, result: dict, out_dir: str | None = None, progress=None,
@@ -199,7 +202,11 @@ def finish(prep: Prepared, group: Group, cfg: Config, result: dict, out_dir: str
         f *= float(ncfg.get("wb_strength", 0.5)) if prep.night else 1.0
         w = dict(cfg.get("white_balance", {}))
         w["global_strength"] = float(w.get("global_strength", 0.9)) * f
-        w["mixed_light_strength"] = float(w.get("mixed_light_strength", 0.6)) * f
+        fl = float(scfg.get("wb_mixed_light", f)) if prep.developed else f
+        w["mixed_light_strength"] = float(w.get("mixed_light_strength", 0.6)) * fl
+        if prep.developed and scfg.get("wb_target_cct") is not None:
+            # a finished rendering is already balanced by its author: its neutral stays neutral (D-49)
+            w["target_cct"] = float(scfg["wb_target_cct"])
         wb_cfg = {**cfg, "white_balance": w}
     rad, result["white_balance"] = color.white_balance(rad, rad_small, win, wb_cfg)
     rad_small, _ = resize_max(rad, side)
@@ -232,6 +239,13 @@ def finish(prep: Prepared, group: Group, cfg: Config, result: dict, out_dir: str
         if prep.own_black is not None:
             # keep the photographer's black: the darkest 0.5% stays where it was (no crushed shadows)
             tcfg["black_target"] = float(np.clip(prep.own_black, float(tcfg.get("black_target", 0.03)), 0.15))
+        if prep.own_white is not None:
+            # ... and its white: a soft, low-key edit is not stretched to full white (D-49)
+            tw = float(tcfg.get("target_white", 0.96))
+            wlo, whi = scfg.get("white_range", [-0.12, 0.0])
+            tcfg["target_white"] = float(np.clip(prep.own_white, tw + float(wlo), tw + float(whi)))
+        # texture of a finished photo is not sensor noise: robust shadow-noise floor (D-49)
+        tcfg["noise_floor_robust"] = True
         tcfg["compress_shadows"] = max(float(tcfg.get("compress_shadows", 0.7)),
                                        float(scfg.get("compress_shadows_min", 0.75)))
         result["single_key_target"] = round(tcfg["target_key"], 3)
@@ -254,7 +268,8 @@ def finish(prep: Prepared, group: Group, cfg: Config, result: dict, out_dir: str
     timer.mark("tonemap")
 
     _p(progress, 0.7, "odszumianie")
-    img = denoise.denoise(img, cfg, single=prep.single, raw_single=prep.single and not prep.developed)
+    img = denoise.denoise(img, cfg, single=prep.single, raw_single=prep.single and not prep.developed,
+                          developed=prep.developed)
     timer.mark("denoise")
     if win is not None and float(win.mask.max()) > 0.5:
         # window view as delivered (brightness, clipping, detail) - the quality report uses it on

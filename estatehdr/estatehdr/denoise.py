@@ -36,6 +36,27 @@ def estimate_sigma(y: np.ndarray) -> float:
     return float(np.sqrt(np.pi / 2) * conv[keep].mean() / 6.0)
 
 
+def estimate_sigma_flat(y: np.ndarray, block: int = 32, pct: float = 10.0) -> float:
+    """Noise sigma from the flattest parts of the image: Immerkaer response averaged in blocks,
+    low percentile over blocks that are neither black nor clipped.  Noise covers the whole frame,
+    texture does not, so a close-up of fabric, grass or a rug does not read as noise (D-49)."""
+    h, w = y.shape
+    step = max(1, int(np.sqrt(h * w / 4e6)))
+    ys = (y[::step, ::step] if step > 1 else y).astype(np.float32)
+    k = np.array([[1, -2, 1], [-2, 4, -2], [1, -2, 1]], np.float32)
+    resp = np.abs(cv2.filter2D(ys, -1, k, borderType=cv2.BORDER_REFLECT))
+    bh, bw = ys.shape[0] // block, ys.shape[1] // block
+    if bh < 2 or bw < 2:
+        return estimate_sigma(y)
+    crop = (slice(0, bh * block), slice(0, bw * block))
+    r = cv2.resize(resp[crop], (bw, bh), interpolation=cv2.INTER_AREA)
+    m = cv2.resize(ys[crop], (bw, bh), interpolation=cv2.INTER_AREA)
+    ok = (m > 0.03) & (m < 0.95)
+    if ok.sum() < 8:
+        return estimate_sigma(y)
+    return float(np.sqrt(np.pi / 2) * np.percentile(r[ok], pct) / 6.0)
+
+
 def noise_level_function(y: np.ndarray, bins: int = 16):
     """Noise sigma as a function of brightness (display values after tone mapping: lifted
     shadows are much noisier than the global estimate).  Immerkaer response on non-edge pixels,
@@ -65,9 +86,12 @@ def noise_level_function(y: np.ndarray, bins: int = 16):
     return lambda v: np.interp(v, xs, sig).astype(np.float32)
 
 
-def denoise(img: np.ndarray, cfg: dict, single: bool = False, raw_single: bool = False) -> np.ndarray:
+def denoise(img: np.ndarray, cfg: dict, single: bool = False, raw_single: bool = False,
+            developed: bool = False) -> np.ndarray:
     """``single``: one exposure (stronger filters); ``raw_single``: one undeveloped exposure (RAW,
-    linear TIFF) whose lifted shadows switch the strong mode on earlier than a finished JPEG's."""
+    linear TIFF) whose lifted shadows switch the strong mode on earlier than a finished JPEG's;
+    ``developed``: a finished rendering (JPEG) - its noise is measured on the flattest blocks only,
+    because texture of a clean photo must not be mistaken for noise (D-49)."""
     dcfg = cfg.get("denoise", {})
     if not dcfg.get("enabled", True):
         return img
@@ -75,19 +99,25 @@ def denoise(img: np.ndarray, cfg: dict, single: bool = False, raw_single: bool =
     s_l = float(dcfg.get("luma", 0.6)) * boost
     s_c = float(dcfg.get("chroma", 1.0)) * boost
     y = img @ LUMA
-    sigma = estimate_sigma(y)
+    sigma = estimate_sigma_flat(y) if developed else estimate_sigma(y)
     if sigma < 0.002:
         log.info("denoise: sigma %.4f - image clean, skipped", sigma)
         return img
     # strong mode when the global noise OR the noise of the darker part of the image is high:
-    # lifted shadows of a single frame can be 3x noisier than the global estimate suggests
-    sig_dark = float(noise_level_function(y)(np.float32(np.percentile(y, 25))))
-    dark_lim = float(dcfg.get("strong_dark_sigma_raw" if raw_single else "strong_dark_sigma", 0.02 if raw_single else 0.06))
-    if sigma > float(dcfg.get("strong_sigma", 0.015)) or sig_dark > dark_lim:
+    # lifted shadows of a single frame can be 3x noisier than the global estimate suggests.
+    # A finished rendering: only its flat-block noise counts (texture inflates the dark-bin estimate)
+    if developed:
+        strong = sigma > float(dcfg.get("strong_sigma_developed", 0.02))
+    else:
+        sig_dark = float(noise_level_function(y)(np.float32(np.percentile(y, 25))))
+        dark_lim = float(dcfg.get("strong_dark_sigma_raw" if raw_single else "strong_dark_sigma",
+                                  0.02 if raw_single else 0.06))
+        strong = sigma > float(dcfg.get("strong_sigma", 0.015)) or sig_dark > dark_lim
+    if strong:
         img = _strong(img, sigma, s_l, s_c, float(dcfg.get("nlm_strength", 1.1)), int(dcfg.get("nlm_template", 5)),
                       int(dcfg.get("nlm_search", 15)))
         y = img @ LUMA
-        sigma = estimate_sigma(y)
+        sigma = estimate_sigma_flat(y) if developed else estimate_sigma(y)
     # luminance: two scales of a self-guided filter
     eps = (2.0 * sigma * s_l) ** 2
     y1 = guided_filter(y, y, 2, eps)

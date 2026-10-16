@@ -133,15 +133,20 @@ denoise:
   luma: 0.6                # siła odszumiania luminancji (0-1+)
   chroma: 1.0
   strong_sigma: 0.015      # tryb silny (NLM po stabilizacji wariancji), gdy szum całego obrazu jest większy...
-  strong_dark_sigma: 0.06  # ...albo szum cieni (gotowe JPEG-i mają w cieniach do ok. 0.045 tekstury i artefaktów)
+  strong_dark_sigma: 0.06  # ...albo szum cieni
   strong_dark_sigma_raw: 0.02  # pojedyncza klatka RAW: podniesione cienie
+  strong_sigma_developed: 0.02 # gotowe JPEG-i: szum mierzony tylko na najgładszych blokach (faktura to nie szum, D-49)
 single_image:
   denoise_boost: 1.6       # tryb pojedynczego zdjęcia: mocniejsze odszumianie
   # pojedynczy, już wywołany plik (JPEG): fotograf ustalił ekspozycję i balans bieli -
   # klucz tonalny bierzemy z obrazu (w granicach), a WB działa słabiej
   key_from_input: true
-  key_range: [-0.15, 0.10] # dopuszczalne odchylenie klucza od tonemap.target_key (gotowe JPEG-i: bez rozjaśniania)
-  wb_strength: 0.4         # mnożnik siły WB (globalnego i lokalnego)
+  key_range: [-0.25, 0.10] # dopuszczalne odchylenie klucza od tonemap.target_key (gotowe JPEG-i: bez rozjaśniania,
+                           # ciemne, nastrojowe ujęcia rozjaśniane najwyżej do 0.45; D-49)
+  white_range: [-0.12, 0.0] # biel gotowego zdjęcia zostaje (najwyżej tonemap.target_white, najniżej o 0.12 mniej; D-49)
+  wb_strength: 0.8         # mnożnik siły globalnego WB ...
+  wb_target_cct: 6500      # ... względem neutralnej bieli autora (D-49: neutralne zostaje neutralne, dominanta znika w ~40%)
+  wb_mixed_light: 0.2      # mnożnik lokalnej korekty mieszanego światła (na zbliżeniach brała kolor tkanin za światło)
   compress_shadows_min: 0.8
   distortion: off          # gotowe JPEG-i są zwykle już skorygowane w edytorze: bez auto-dystorsji (piony zostają)
   # pojedynczy RAW: im głośniejsze cienie (szum / mediana sygnału, pełna rozdzielczość), tym słabiej
