@@ -31,7 +31,7 @@ SETS = [  # name, folder, overrides, synthetic GT root
 ]
 PORTFOLIO_PICK = ["01.BtS2Hkmp", "k007.C8MVnAJ9", "k040.wqWqsOuE"]
 COLS = ["clipped_%", "clipped_excl_%", "crushed_%", "median_luma", "vert_med_deg", "wall_dE_auto", "wall_dE_gt",
-        "wall_L_gt", "win_L", "win_clip_recov_%", "halo_dL", "ssim", "dE_ref"]
+        "wall_L_gt", "win_L", "win_clip_recov_%", "halo_dL", "ssim", "ms_ssim", "dE_ref"]
 
 
 def label(img, text):

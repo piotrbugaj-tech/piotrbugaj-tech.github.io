@@ -119,11 +119,14 @@ workerów wynika z budżetu RAM.
 
 ## 5. Presety i parametry
 
-| Preset | Charakter | Najważniejsze różnice |
+| Preset | Charakter | Najważniejsze różnice (wartości po kalibracji, D-32) |
 |---|---|---|
-| `neutral` (domyślny) | naturalny, „MLS” | klucz tonalny 0.56, umiarkowana kompresja, widok za oknem ≈ 0.62 |
-| `airy` | jasny, lekki | klucz 0.62, mocniej podniesione cienie, jaśniejszy widok za oknem, mniej kontrastu i nasycenia |
-| `premium` | „magazynowy” | więcej kontrastu, wibracji i detalu, ciemniejszy, nasycony widok za oknem |
+| `neutral` (domyślny) | naturalny, jasny wygląd do ogłoszeń (MLS) | klucz tonalny 0.70, kompresja cieni 0.64, widok za oknem ≈ 0.6, biel neutralna przy mieszanym świetle |
+| `airy` | jasny, lekki (high-key) | klucz 0.85, łagodniejsza kompresja lokalna (0.78), jaśniejszy widok za oknem, mniej kontrastu i nasycenia |
+| `premium` | „magazynowy” | ten sam klucz co neutral, ale słabiej podniesione cienie (0.86), więcej kontrastu, wibracji i detalu, ciemniejszy nasycony widok za oknem |
+
+Presety są skalibrowane każdy do swojego pasma jasności ścian ze SPEC (neutral L* 78–88, airy 84–92, premium
+74–86), z ograniczeniem kolejności: premium nie jest jaśniejszy od neutral, a neutral od airy.
 
 Wszystkie parametry są w jednym pliku [config.yaml](config.yaml), z komentarzami po polsku. Kolejność (późniejsze
 wygrywa): `config.yaml` → ustawienia wybranego presetu → własny plik `--config` → `--set klucz=wartość`.
@@ -164,11 +167,22 @@ z opisu produktu (SPEC.md, REVERSE.md §5) na scenach syntetycznych z prawdą re
 
 ```bash
 python tools/calibrate.py --input data/synthetic/input --synthetic-gt data/synthetic --preset neutral
+python tools/calibrate.py --input data/synthetic/input --synthetic-gt data/synthetic --preset airy \
+    --params tonemap.target_key,tonemap.compress_shadows,tonemap.compress_highlights,windows.exterior_target \
+    --bound tonemap.target_key=0.5:0.85                          # preset: tylko parametry tonu, własne granice
 python tools/calibrate.py --input SESJE --pairs WYNIKI_AUTOHDR      # gdy będą pary: 1:1 (ΔE2000, SSIM, LPIPS)
+python tools/compare_configs.py --input data/synthetic/input --synthetic-gt data/synthetic \
+    --before reports/calibration/config_before_full.yaml --preset neutral,airy,premium \
+    --out reports/calibration/full_pipeline.md                 # pełny pipeline przed / po kalibracji
 ```
 
-Wynik trafia do `reports/calibration/`: `calibrated.yaml` (do użycia z `--config`), `calibration.md` (tabela
-przed/po) i `calibration.json` (przebieg). Ocena jakości dowolnego folderu wyjściowego:
+Wynik trafia do `reports/calibration/`:
+- `calibrated.yaml` (do użycia z `--config`; dla airy/premium wartości trafiają do sekcji `presets`);
+- `calibration.md` (tabela przed/po) i `calibration.json` (przebieg).
+
+Przebiegi: `calibration.md` (neutral, przebieg 2), `continuation/` (neutral, przebieg 3), `preset_airy/`,
+`preset_premium/` (pierwszy przebieg, odrzucony, bo dał premium jaśniejszy od neutral) i
+`preset_premium_bounded/` (przyjęty). Ocena jakości dowolnego folderu wyjściowego:
 `python tools/evaluate.py WYJŚCIE [--synthetic-gt data/synthetic] [--pairs WYNIKI_AUTOHDR]`.
 Liczy histogram, % przepaleń i zaczernień, pionowość linii (°), neutralność ścian (ΔE), jasność i detal okien,
 halo, szum i ostrość, a przy parach także SSIM, MS-SSIM, gradient-SSIM, ΔE2000 i LPIPS (jeśli zainstalowany).
