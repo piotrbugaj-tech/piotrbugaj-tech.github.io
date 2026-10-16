@@ -82,7 +82,7 @@ def denoise(img: np.ndarray, cfg: dict, single: bool = False, raw_single: bool =
     # strong mode when the global noise OR the noise of the darker part of the image is high:
     # lifted shadows of a single frame can be 3x noisier than the global estimate suggests
     sig_dark = float(noise_level_function(y)(np.float32(np.percentile(y, 25))))
-    dark_lim = float(dcfg.get("strong_dark_sigma_raw" if raw_single else "strong_dark_sigma", 0.02 if raw_single else 0.03))
+    dark_lim = float(dcfg.get("strong_dark_sigma_raw" if raw_single else "strong_dark_sigma", 0.02 if raw_single else 0.06))
     if sigma > float(dcfg.get("strong_sigma", 0.015)) or sig_dark > dark_lim:
         img = _strong(img, sigma, s_l, s_c, float(dcfg.get("nlm_strength", 1.1)), int(dcfg.get("nlm_template", 5)),
                       int(dcfg.get("nlm_search", 15)))
@@ -127,7 +127,10 @@ def _strong(img: np.ndarray, sigma: float, s_l: float, s_c: float, k_h: float = 
     small = cv2.resize(img, (w // 2, h // 2), interpolation=cv2.INTER_AREA)
     nlf = noise_level_function(small @ LUMA)
     grid = np.linspace(0.0, 1.0, 1025, dtype=np.float32)
-    sg = np.maximum(nlf(grid), max(sigma * 0.25, 1e-3))
+    # sigma range capped at 6:1 so the shadows (largest sigma, flattest F) still get enough 8-bit
+    # codes for NLM; otherwise the darkest values collapse onto code 0 (crushed blacks)
+    sg = nlf(grid)
+    sg = np.maximum(sg, max(float(sg.max()) / 6.0, sigma * 0.25, 1e-3))
     F = np.concatenate([[0.0], np.cumsum(0.5 * (1 / sg[1:] + 1 / sg[:-1]) * np.diff(grid))]).astype(np.float32)
     scale = 255.0 / float(F[-1])               # 8-bit codes: noise sigma ~ scale after the transform
     fwd = np.interp(np.clip(small, 0, 1), grid, F) * scale

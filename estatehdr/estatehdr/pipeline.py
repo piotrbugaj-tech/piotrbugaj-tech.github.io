@@ -91,10 +91,11 @@ class Prepared:
     own_key: float | None      # display key of that rendering
     timer: StageTimer
     night: bool = False        # night / late-dusk exterior (dark, smooth sky band at the top)
+    own_black: float | None = None  # display black level of a finished rendering (its 0.5th percentile)
 
     def copy(self) -> "Prepared":
         return Prepared(self.rad.copy(), self.clipped.copy(), self.ref_meta, self.single, self.developed,
-                        self.own_key, StageTimer(), self.night)
+                        self.own_key, StageTimer(), self.night, self.own_black)
 
 
 def detect_night(rad: np.ndarray, cfg: dict) -> tuple[bool, dict]:
@@ -135,12 +136,14 @@ def prepare(group: Group, cfg: Config, result: dict, progress=None) -> Prepared:
     result["reference"] = s.frames[s.ref].meta.name
     result["exposures_ev"] = [round(float(np.log2(f.exposure)), 2) for f in s.frames]
     single = len(s.frames) == 1
-    own_key = None
+    own_key = own_black = None
     developed = single and s.frames[0].decoded.encoding == "srgb"
     if developed and cfg.get("single_image", {}).get("key_from_input", True):
         # display key of the photographer's own rendering (median display luminance)
         im, _ = resize_max(s.frames[0].decoded.as_float(), 800)
-        own_key = float(linear_to_srgb(np.float32(np.median(luminance(srgb_to_linear(im))))))
+        y_in = luminance(srgb_to_linear(im))
+        own_key = float(linear_to_srgb(np.float32(np.median(y_in))))
+        own_black = float(linear_to_srgb(np.float32(np.percentile(y_in, 0.5))))
         result["input_key"] = round(own_key, 3)
     timer.mark("load")
     _p(progress, 0.15, "wyrównanie")
@@ -161,7 +164,7 @@ def prepare(group: Group, cfg: Config, result: dict, progress=None) -> Prepared:
     night, ninfo = detect_night(rad, cfg)
     result["scene"] = {"night": night, **ninfo}
     timer.mark("lens")
-    return Prepared(rad, clipped, ref_meta, single, developed, own_key, timer, night)
+    return Prepared(rad, clipped, ref_meta, single, developed, own_key, timer, night, own_black)
 
 
 def finish(prep: Prepared, group: Group, cfg: Config, result: dict, out_dir: str | None = None, progress=None,
@@ -226,6 +229,9 @@ def finish(prep: Prepared, group: Group, cfg: Config, result: dict, out_dir: str
         tk = float(tcfg.get("target_key", 0.56))
         lo, hi = scfg.get("key_range", [-0.08, 0.2])
         tcfg["target_key"] = float(np.clip(prep.own_key, tk + float(lo), tk + float(hi)))
+        if prep.own_black is not None:
+            # keep the photographer's black: the darkest 0.5% stays where it was (no crushed shadows)
+            tcfg["black_target"] = float(np.clip(prep.own_black, float(tcfg.get("black_target", 0.03)), 0.15))
         tcfg["compress_shadows"] = max(float(tcfg.get("compress_shadows", 0.7)),
                                        float(scfg.get("compress_shadows_min", 0.75)))
         result["single_key_target"] = round(tcfg["target_key"], 3)

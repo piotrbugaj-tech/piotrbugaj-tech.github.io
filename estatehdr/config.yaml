@@ -133,7 +133,7 @@ denoise:
   luma: 0.6                # siła odszumiania luminancji (0-1+)
   chroma: 1.0
   strong_sigma: 0.015      # tryb silny (NLM po stabilizacji wariancji), gdy szum całego obrazu jest większy...
-  strong_dark_sigma: 0.03  # ...albo szum cieni (gotowe JPEG-i mają w cieniach do ok. 0.045 tekstury i artefaktów)
+  strong_dark_sigma: 0.06  # ...albo szum cieni (gotowe JPEG-i mają w cieniach do ok. 0.045 tekstury i artefaktów)
   strong_dark_sigma_raw: 0.02  # pojedyncza klatka RAW: podniesione cienie
 single_image:
   denoise_boost: 1.6       # tryb pojedynczego zdjęcia: mocniejsze odszumianie
