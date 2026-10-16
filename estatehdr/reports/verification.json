@@ -3,7 +3,7 @@
   "with_exif": {
    "series_exact": 6,
    "of": 6,
-   "groups": 7
+   "groups": 6
   },
   "without_exif": {
    "series_exact": 6,
@@ -98,143 +98,117 @@
  "windows": {
   "living_room": {
    "unrecoverable_pct": 13.349938263720357,
-   "output_clipped_pct": 11.964209119292962,
+   "output_clipped_pct": 11.977176829694061,
    "recoverable_clipped_pct": 0.0,
-   "view_L": 76.03207397460938,
-   "detail_ratio": 1.0416843891143799,
-   "halo_dL": 0.7006759643554688
+   "view_L": 71.91928100585938,
+   "detail_ratio": 0.9783962368965149,
+   "halo_dL": 0.736358642578125
   },
   "bedroom": {
    "unrecoverable_pct": 43.05391862401435,
-   "output_clipped_pct": 42.069671013148564,
+   "output_clipped_pct": 41.88308681321675,
    "recoverable_clipped_pct": 0.0,
-   "view_L": 74.3405990600586,
-   "detail_ratio": 1.0887118577957153,
-   "halo_dL": 0.1714019775390625
+   "view_L": 71.94459533691406,
+   "detail_ratio": 1.120224118232727,
+   "halo_dL": -0.028562545776367188
   },
   "kitchen": {
    "unrecoverable_pct": 0.0,
    "output_clipped_pct": 0.0,
    "recoverable_clipped_pct": 0.0,
-   "view_L": 74.56089782714844,
-   "detail_ratio": 1.0554547309875488,
-   "halo_dL": -2.8350143432617188
+   "view_L": 70.63224029541016,
+   "detail_ratio": 1.0034756660461426,
+   "halo_dL": -3.1060409545898438
   }
  },
  "geometry": {
   "living_room": {
    "k1_true": 0.06,
-   "k1_est": 0.05901389875134737,
+   "k1_est": 0.06009091002245802,
    "pitch_true": -7.0,
-   "pitch_correction": 6.977869334972235,
+   "pitch_correction": 7.069175072511349,
    "roll_true": 1.2,
-   "roll_correction": -1.1284740243767177,
-   "crop_fraction": 0.033319018792329125,
-   "vert_med_deg_after": 0.0989532470703125
+   "roll_correction": -1.1044226028983226,
+   "crop_fraction": 0.03231799576672412,
+   "vert_med_deg_after": 0.13525390625
   },
   "bedroom": {
    "k1_true": 0.04,
-   "k1_est": 0.04033928582022354,
+   "k1_est": 0.040479779544295796,
    "pitch_true": 5.0,
-   "pitch_correction": -5.557587704031266,
+   "pitch_correction": -5.58768744283568,
    "roll_true": -0.8,
-   "roll_correction": 0.8195795143277361,
-   "crop_fraction": 0.02312362854467076,
-   "vert_med_deg_after": 0.0516357421875
+   "roll_correction": 0.819715245858411,
+   "crop_fraction": 0.023233215545008457,
+   "vert_med_deg_after": 0.039947509765625
   },
   "kitchen": {
    "k1_true": 0.08,
-   "k1_est": 0.06290655478895675,
+   "k1_est": 0.06888325048821528,
    "pitch_true": -9.0,
-   "pitch_correction": 9.50794723942727,
+   "pitch_correction": 9.602325133452341,
    "roll_true": 0.5,
-   "roll_correction": -0.470119258869107,
-   "crop_fraction": 0.0384358604341658,
-   "vert_med_deg_after": 0.156402587890625
+   "roll_correction": -0.4447260761924955,
+   "crop_fraction": 0.029940723042150452,
+   "vert_med_deg_after": 0.12027740478515625
   }
  },
  "lens_ca": {
   "living_room": {
    "ca_true": 0.0012,
    "scales_est": [
-    1.0002311526112313,
-    0.999675492209204
+    1.000429289093547,
+    0.9992906960543914
    ]
   },
   "bedroom": {
    "ca_true": 0.0012,
    "scales_est": [
-    1.0008671429309324,
-    0.9990993771827857
+    1.0009059129503557,
+    0.9990101059255785
    ]
   },
   "kitchen": {
    "ca_true": 0.0012,
    "scales_est": [
-    1.0002740254649074,
-    0.9996875629366131
+    1.0004886952411163,
+    0.9993318284266863
    ]
   }
  },
  "sky": {
-  "synthetic_iou": 0.9359578317125357
+  "synthetic_iou": 0.9362995335855154
  },
  "noise_single_raw": [
   {
    "name": "bar_windows",
    "sigma_before": 0.016883223418928884,
-   "sigma_after": 0.013015125511841683
+   "sigma_after": 0.014029281767905124
   },
   {
    "name": "stair_window",
    "sigma_before": 0.038665899889632475,
-   "sigma_after": 0.028986652979888974
+   "sigma_after": 0.031362829394701836
   },
   {
    "name": "modern_interior",
    "sigma_before": 0.015475862221203006,
-   "sigma_after": 0.012085668840936767
+   "sigma_after": 0.014066343964420663
   },
   {
    "name": "library",
    "sigma_before": 0.017585897078968214,
-   "sigma_after": 0.014181447810565484
+   "sigma_after": 0.017038223519700222
   },
   {
    "name": "piano_room",
    "sigma_before": 0.022088655142230466,
-   "sigma_after": 0.0158701511395125
+   "sigma_after": 0.01702539788933638
   },
   {
    "name": "church",
    "sigma_before": 0.036670732317422926,
-   "sigma_after": 0.02441559427178415
+   "sigma_after": 0.024636306857794235
   }
- ],
- "lens_ca_after_fix": {
-  "living_room": {
-   "sR": 1.0009140523243514,
-   "sB": 0.9986077498581085,
-   "true": [
-    1.0012,
-    0.9988
-   ]
-  },
-  "bedroom": {
-   "sR": 1.001073634890966,
-   "sB": 0.9988618861159598,
-   "true": [
-    1.0012,
-    0.9988
-   ]
-  },
-  "kitchen": {
-   "sR": 1.0010166851014826,
-   "sB": 0.9987558301328615,
-   "true": [
-    1.0012,
-    0.9988
-   ]
-  }
- }
+ ]
 }
