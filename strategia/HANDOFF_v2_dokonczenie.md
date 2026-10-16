@@ -1,5 +1,7 @@
 # HANDOFF v2: dokończenie researchu strategii piotrbugaj.com
 
+> **Wykonano 16.10.2026** (trzy agenty + orkiestrator, 158 wyszukiwań; WebFetch nadal nie działał). Co zamknięto i co pozostaje otwarte: `strategia_top10.md` → „Status weryfikacji i co dokończyć”.
+
 Data: 16.10.2026. Dla nowej sesji Claude Code na gałęzi `claude/new-session-g6rgky` repo `piotrbugaj-tech/piotrbugaj-tech.github.io`. Katalog roboczy: `strategia/`.
 
 ## 1. Co już jest (nie powtarzaj)
