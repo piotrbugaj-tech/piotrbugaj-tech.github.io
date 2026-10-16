@@ -110,3 +110,77 @@ def test_run_modules_never_raises(cfg, monkeypatch):
     c = {**cfg, "modules": {**cfg["modules"], "sky": {"enabled": True, "style": "clear"}}}
     out, info = run_modules(img.copy(), c, Group("x", []), None, None)
     assert "error" in info["sky"] and out.shape == img.shape
+
+
+def test_smooth_frame_has_no_sky_and_modules_skip(cfg):
+    """A smooth wall close-up grows into one region: no sky, and the sky module is skipped
+    instead of failing the series."""
+    from estatehdr.modules import run_modules
+
+    class G:
+        name = "wall"
+        frames = []
+    img = np.repeat(np.linspace(0.85, 0.6, 667, dtype=np.float32)[:, None], 1000, 1)
+    img = np.repeat(img[..., None], 3, 2).copy()
+    img[300:315, 500:520] = 0.1
+    m, info = sky.detect_sky(img)
+    assert m is None
+    c = dict(cfg)
+    c["modules"] = {"sky": {"enabled": True}, "grass": {"enabled": True}}
+    out, minfo = run_modules(img.copy(), c, G())
+    assert minfo["sky"]["applied"] is False and "error" not in minfo["sky"]
+
+
+def test_grass_leaves_other_colours():
+    h, w = 400, 600
+    img = np.zeros((h, w, 3), np.float32)
+    img[:200] = (0.55, 0.7, 0.95)                      # sky
+    rng = np.random.default_rng(1)
+    lawn = np.clip(np.array([0.45, 0.5, 0.2]) + rng.normal(0, 0.05, (200, w, 3)), 0, 1)
+    img[200:] = lawn
+    img[200:260, 50:120] = (0.8, 0.2, 0.4)             # pink flower bed in the lawn (hue ~340)
+    img[120:190, 400:450] = (0.8, 0.0, 0.0)            # saturated red door above the lawn
+    before = img.copy()
+    out, info = grass.green_grass(img, {"modules": {"grass": {}}}, None)
+    assert info["applied"]
+    door = out[130:180, 410:440]
+    assert np.abs(door - before[130:180, 410:440]).max() < 1e-4   # outside the lawn: unchanged
+    hsv = cv2.cvtColor(out[215:245, 65:105], cv2.COLOR_RGB2HSV)
+    hue = hsv[..., 0]
+    assert not ((hue > 200) & (hue < 320)).any()        # no violet/blue fringe from the long way round
+
+
+def test_unknown_twilight_style_uses_twilight_palette():
+    a = sky.synth_sky(64, 32, "golden-hour", 1, twilight=True)
+    b = sky.synth_sky(64, 32, "pink", 1, twilight=True)
+    assert np.allclose(a, b)
+
+
+def test_custom_sky_photo_keeps_full_resolution(cfg, tmp_path):
+    rad, lab = render_exterior(1800, 1200, supersample=1)
+    img = tone_map(rad.copy(), dict(cfg["tonemap"]), analysis_side=1800)
+    photo = np.zeros((1200, 2400, 3), np.uint8)
+    photo[:, :, 0] = 200
+    photo[:, ::2, 1] = 255                              # 1-px stripes: lost if upsampled from <=1000 px
+    p = str(tmp_path / "sky.png")
+    cv2.imwrite(p, photo)
+    c = dict(cfg)
+    c["modules"] = {"sky": {"style": p}}
+    out, info = sky.replace_sky(img.copy(), c, "x")
+    assert info["applied"] and info["style"] == "file"
+    core = cv2.erode((lab == 9).astype(np.uint8), np.ones((15, 15), np.uint8)) > 0
+    g = out[..., 1]
+    hp = np.abs(np.diff(g, axis=1))[core[:, 1:]]
+    assert np.median(hp) > 0.2
+
+
+def test_removal_of_object_at_frame_edge_leaves_no_colour():
+    img = np.full((600, 900, 3), 0.5, np.float32)
+    img[::20] = 0.6
+    img[1::20] = 0.6
+    img[450:600, 300:700] = (0.8, 0.1, 0.1)            # red object cut by the bottom edge
+    mask = np.zeros((600, 900), np.uint8)
+    mask[440:600, 290:710] = 255
+    out, info = remove.remove_objects(img.copy(), mask, {"modules": {"remove": {"method": "patch"}}})
+    d = out[440:600, 290:710]
+    assert ((d[..., 0] - d[..., 2]) > 0.1).sum() == 0

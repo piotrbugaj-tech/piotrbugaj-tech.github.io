@@ -54,7 +54,10 @@ def green_grass(img: np.ndarray, cfg: dict, sky_mask_small: np.ndarray | None = 
             continue
         hsv = cv2.cvtColor(np.ascontiguousarray(img[r0:r1]), cv2.COLOR_RGB2HSV)
         hh = hsv[..., 0]
-        hsv[..., 0] = hh + (target - hh) * pull * a
-        hsv[..., 1] = np.clip(hsv[..., 1] * (1 + sat * a), 0, 0.85)
+        d = (target - hh + 180.0) % 360.0 - 180.0  # shortest way round the hue circle
+        hsv[..., 0] = (hh + d * pull * a) % 360.0
+        s = hsv[..., 1]
+        # boost only on the lawn, capped at 0.85 there; pixels outside keep their saturation
+        hsv[..., 1] = np.where(a > 0, np.minimum(s * (1 + sat * a), np.maximum(s, 0.85)), s)
         img[r0:r1] = np.clip(cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB), 0, 1)
     return img, {"applied": True, "grass_frac": round(frac, 4)}

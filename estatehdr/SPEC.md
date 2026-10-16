@@ -64,4 +64,4 @@ testy (`tests/`) i skrypt oceny jakości (`tools/evaluate.py`).
 - CPU (4 rdzenie): seria 3×24 Mpx ≤ 90 s, 3×60 Mpx działa w ≤ 6 GB RAM na workera. Batch jest równoległy, liczba workerów wynika z budżetu pamięci. GPU przez OpenCL (OpenCV T-API) jest używane, gdy jest dostępne; w przeciwnym razie CPU (D-13).
 
 ## 16. Ocena jakości (`tools/evaluate.py`)
-Raportuje: histogram, % prześwietleń i zaczernień, pionowość linii (°), neutralność bieli ścian (ΔE), jasność i detal okien. Przy parach referencyjnych dodatkowo SSIM, ΔE i LPIPS (jeśli dostępny). Wynik: JSON + Markdown + obrazy porównawcze.
+Raportuje: histogram, % prześwietleń i zaczernień, pionowość linii (°), neutralność bieli ścian (ΔE), jasność i detal okien. Przy parach referencyjnych dodatkowo SSIM, MS-SSIM, gradient-SSIM, ΔE2000 i LPIPS (jeśli dostępny). Wynik: `quality.json` + `quality.md`. Obrazy porównawcze przed/po z tabelą metryk tworzy `tools/make_comparisons.py`.

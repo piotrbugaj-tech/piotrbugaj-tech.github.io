@@ -52,3 +52,46 @@ def test_web_flow(synth, tmp_path):
     url = st["results"]["salon"]["outputs"]["full"]["url"]
     assert c.get(url).status_code == 200
     assert c.get(f"/api/jobs/{jid}/out/../job.json").status_code in (400, 404)
+
+
+def test_web_masks_names_and_guards(synth, tmp_path):
+    """Browser-style RGBA masks, masks following renamed series, unique auto names, busy guards,
+    and a damaged job.json not stopping the server."""
+    work = tmp_path / "work"
+    c = TestClient(create_app(str(work)))
+    jid = c.post("/api/jobs").json()["id"]
+    f = "IMG_0011.jpg"
+    src = os.path.join(synth["input"], f)
+    c.post(f"/api/jobs/{jid}/files", files=[("files", (f, open(src, "rb"), "image/jpeg")),
+                                            ("files", (f, open(src, "rb"), "image/jpeg"))],
+           data={"paths": [f"salon/{f}", f"kuchnia/{f}"]})
+    g = c.post(f"/api/jobs/{jid}/group", json={}).json()["groups"]
+    names = [x["name"] for x in g]
+    assert len(names) == 2 and len(set(names)) == 2
+    # canvas.toBlob: opaque RGBA, white strokes on black
+    rgba = np.zeros((320, 480, 4), np.uint8)
+    rgba[..., 3] = 255
+    cv2.circle(rgba, (100, 100), 10, (255, 255, 255, 255), -1)
+    ok, buf = cv2.imencode(".png", rgba)
+    px = c.post(f"/api/jobs/{jid}/masks/{names[0]}", files={"file": ("m.png", buf.tobytes(), "image/png")}).json()["pixels"]
+    assert 0 < px < 1000
+    # rename: the mask follows its files
+    c.put(f"/api/jobs/{jid}/groups", json={"groups": [{"name": "salon", "files": g[0]["files"]},
+                                                      {"name": "kuchnia", "files": g[1]["files"]}]})
+    assert c.get(f"/api/jobs/{jid}/masks/salon").status_code == 200
+    assert c.get(f"/api/jobs/{jid}/masks/{names[0]}").status_code == 404
+    # no edits while the job is queued / running
+    mgr = c.app.state.manager
+    mgr.jobs[jid].state = "running"
+    assert c.post(f"/api/jobs/{jid}/group", json={}).status_code == 409
+    assert c.put(f"/api/jobs/{jid}/groups", json={"groups": []}).status_code == 409
+    assert c.delete(f"/api/jobs/{jid}/masks/salon").status_code == 409
+    mgr.jobs[jid].state = "grouped"
+    mgr.jobs[jid].save()
+    # a damaged job.json is skipped, the server still starts
+    bad = work / "jobs" / "broken"
+    bad.mkdir(parents=True)
+    (bad / "job.json").write_text("{not json")
+    c2 = TestClient(create_app(str(work)))
+    ids = [j["id"] for j in c2.get("/api/jobs").json()]
+    assert jid in ids and "broken" not in ids

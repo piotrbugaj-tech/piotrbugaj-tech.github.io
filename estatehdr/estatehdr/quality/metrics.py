@@ -139,6 +139,51 @@ def ssim(a: np.ndarray, b: np.ndarray, mask: np.ndarray | None = None) -> float:
     return float(m.mean())
 
 
+def _ssim_terms(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Luminance term and contrast-structure term maps of SSIM (float64 luminance inputs)."""
+    C1, C2 = (0.01) ** 2, (0.03) ** 2
+    mu_x = cv2.GaussianBlur(x, (11, 11), 1.5)
+    mu_y = cv2.GaussianBlur(y, (11, 11), 1.5)
+    sxx = cv2.GaussianBlur(x * x, (11, 11), 1.5) - mu_x ** 2
+    syy = cv2.GaussianBlur(y * y, (11, 11), 1.5) - mu_y ** 2
+    sxy = cv2.GaussianBlur(x * y, (11, 11), 1.5) - mu_x * mu_y
+    return (2 * mu_x * mu_y + C1) / (mu_x ** 2 + mu_y ** 2 + C1), (2 * sxy + C2) / (sxx + syy + C2)
+
+
+MS_WEIGHTS = (0.0448, 0.2856, 0.3001, 0.2363, 0.1333)
+
+
+def ms_ssim(a: np.ndarray, b: np.ndarray, mask: np.ndarray | None = None) -> float:
+    """Multi-scale SSIM (Wang, Simoncelli, Bovik 2003) on luminance; scales that would be smaller
+    than the window are dropped and the remaining weights renormalised."""
+    x = (a @ LUMA).astype(np.float64)
+    y = (b @ LUMA).astype(np.float64)
+    m = np.ones(x.shape, bool) if mask is None else mask.astype(bool)
+    n = max(1, min(len(MS_WEIGHTS), int(np.log2(min(x.shape) / 11.0)) + 1))
+    w = np.array(MS_WEIGHTS[:n]) / sum(MS_WEIGHTS[:n])
+    vals = []
+    for i in range(n):
+        lum, cs = _ssim_terms(x, y)
+        sel = m if m.any() else np.ones_like(m)
+        vals.append(float(np.mean((lum * cs)[sel])) if i == n - 1 else float(np.mean(cs[sel])))
+        if i < n - 1:
+            x = cv2.resize(x, (x.shape[1] // 2, x.shape[0] // 2), interpolation=cv2.INTER_AREA)
+            y = cv2.resize(y, (y.shape[1] // 2, y.shape[0] // 2), interpolation=cv2.INTER_AREA)
+            m = cv2.resize(m.astype(np.uint8), (x.shape[1], x.shape[0]), interpolation=cv2.INTER_NEAREST) > 0
+    return float(np.prod(np.maximum(vals, 1e-6) ** w))
+
+
+def gradient_ssim(a: np.ndarray, b: np.ndarray, mask: np.ndarray | None = None) -> float:
+    """SSIM of the gradient-magnitude images: structure/edges only, insensitive to tone and colour
+    (how well edges, window frames and textures match)."""
+    def gm(img):
+        y = (img @ LUMA).astype(np.float64)
+        return np.hypot(cv2.Sobel(y, cv2.CV_64F, 1, 0, ksize=3), cv2.Sobel(y, cv2.CV_64F, 0, 1, ksize=3)) / 4.0
+    lum, cs = _ssim_terms(gm(a), gm(b))
+    s = lum * cs
+    return float(s[mask].mean() if mask is not None else s.mean())
+
+
 def delta_e_images(a: np.ndarray, b: np.ndarray, mask: np.ndarray | None = None) -> dict:
     la = rgb_to_lab(srgb_to_linear(a))
     lb = rgb_to_lab(srgb_to_linear(b))

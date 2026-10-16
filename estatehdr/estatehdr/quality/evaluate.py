@@ -45,7 +45,9 @@ def evaluate_image(img: np.ndarray, reference: np.ndarray | None = None, labels:
     out["neutrality_auto"] = M.neutrality(img)
     if reference is not None:
         warped, valid = M.register(img, reference)
-        out["vs_reference"] = {"ssim": M.ssim(warped, reference, valid), **{f"de_{k}": v for k, v in
+        out["vs_reference"] = {"ssim": M.ssim(warped, reference, valid), "ms_ssim": M.ms_ssim(warped, reference, valid),
+                               "grad_ssim": M.gradient_ssim(warped, reference, valid),
+                               **{f"de_{k}": v for k, v in
                                                                             M.delta_e_images(warped, reference, valid).items()},
                                "lpips": M.lpips_distance(np.where(valid[..., None], warped, reference), reference),
                                "registered_frac": float(valid.mean())}
@@ -95,6 +97,8 @@ def summarize(res: dict) -> dict:
     if "vs_reference" in res:
         r = res["vs_reference"]
         s["ssim"] = r["ssim"]
+        s["ms_ssim"] = r.get("ms_ssim")
+        s["grad_ssim"] = r.get("grad_ssim")
         s["dE_ref"] = r["de_mean"]
         s["lpips"] = r["lpips"]
     return s

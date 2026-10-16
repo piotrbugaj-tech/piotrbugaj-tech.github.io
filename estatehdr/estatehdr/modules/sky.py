@@ -130,6 +130,9 @@ def detect_sky(img_small: np.ndarray, only_in: np.ndarray | None = None) -> tupl
     if frac < 0.02 or cols < 0.3:
         info["reason"] = "no sky region at the top"
         return None, info
+    if (~sky).sum() < 0.01 * h * w:  # the whole frame grew into one smooth region (wall / overcast blow-out)
+        info["reason"] = "frame is uniformly smooth, no ground to compare with"
+        return None, info
     ys, yg = float(np.median(y[sky])), float(np.median(y[~sky]))
     gs = float(np.mean(grad[sky]))
     px = img_small[sky]
@@ -239,7 +242,10 @@ def _gradient(stops_srgb, t: np.ndarray) -> np.ndarray:
 def synth_sky(w: int, h: int, style: str, seed: int, twilight: bool = False) -> np.ndarray:
     """Procedural sky (linear RGB, h x w) whose bottom row is the horizon."""
     rng = np.random.default_rng(seed)
-    stops = (TWILIGHT_STYLES if twilight else DAY_STYLES).get(style) or DAY_STYLES["clear"]
+    table, fallback = (TWILIGHT_STYLES, "pink") if twilight else (DAY_STYLES, "clear")
+    if style not in table:
+        log.warning("unknown %s sky style %r, using %r", "twilight" if twilight else "day", style, fallback)
+    stops = table.get(style) or table[fallback]
     yy = np.linspace(0, 1, h, dtype=np.float32)[:, None]
     xx = np.linspace(0, 1, w, dtype=np.float32)[None, :]
     sun_x = float(rng.uniform(0.25, 0.75))
@@ -277,7 +283,7 @@ def synth_sky(w: int, h: int, style: str, seed: int, twilight: bool = False) -> 
 
 
 def load_sky_file(path: str, seed: int) -> np.ndarray | None:
-    """User sky photo (file, or a directory to pick from deterministically) as linear RGB."""
+    """User sky photo (file, or a directory to pick from deterministically) as 8-bit sRGB."""
     if os.path.isdir(path):
         files = sorted(f for f in glob.glob(os.path.join(path, "*")) if f.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")))
         if not files:
@@ -286,7 +292,7 @@ def load_sky_file(path: str, seed: int) -> np.ndarray | None:
     im = cv2.imread(path, cv2.IMREAD_COLOR)
     if im is None:
         return None
-    return srgb_to_linear(cv2.cvtColor(im, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0)
+    return cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
 
 
 def _fit_cover(src: np.ndarray, w: int, h: int) -> np.ndarray:
@@ -304,11 +310,14 @@ def _fit_cover(src: np.ndarray, w: int, h: int) -> np.ndarray:
 # ---------------------------------------------------------------------------------------------
 
 def composite_sky(img: np.ndarray, mask_small: np.ndarray, new_sky_lin_small: np.ndarray, sky_rows: int,
-                  match_luma: float | None = None, band_px: float = 2.5) -> tuple[np.ndarray, dict]:
+                  match_luma: float | None = None, band_px: float = 2.5,
+                  full_sky_u8: np.ndarray | None = None) -> tuple[np.ndarray, dict]:
     """Replace the sky of a display sRGB image (in place, row strips).
 
     mask_small: sky mask at analysis resolution; new_sky_lin_small: linear RGB sky image at the
-    analysis width covering rows [0, sky_rows) of the analysis image."""
+    analysis width covering rows [0, sky_rows) of the analysis image.  full_sky_u8 (optional):
+    the same sky as 8-bit sRGB at the full output width (a user photo), used instead of the
+    upsampled analysis-resolution sky so a real photo keeps its sharpness."""
     H, W = img.shape[:2]
     hs, ws = mask_small.shape
     small = cv2.resize(img, (ws, hs), interpolation=cv2.INTER_AREA)
@@ -348,7 +357,11 @@ def composite_sky(img: np.ndarray, mask_small: np.ndarray, new_sky_lin_small: np
         hard = (m > 0.5).astype(np.float32)
         a = bnd * a_band + (1 - bnd) * hard
         a = a[..., None]
-        nr = resize_rows(new, W, H, r0, r1)
+        if full_sky_u8 is not None:
+            idx = np.minimum(np.arange(r0, r1), full_sky_u8.shape[0] - 1)
+            nr = srgb_to_linear(full_sky_u8[idx].astype(np.float32) * np.float32(1 / 255)) * np.float32(gain)
+        else:
+            nr = resize_rows(new, W, H, r0, r1)
         osr = resize_rows(old_sky, W, H, r0, r1)
         out = np.where(a >= 0.999, nr, lin + a * (nr - osr))
         img[r0:r1] = linear_to_srgb(np.clip(out, 0, 1))
@@ -381,8 +394,11 @@ def replace_sky(img: np.ndarray, cfg: dict, name: str, win=None, style: str | No
         if custom is None:
             log.warning("sky file/dir %r not usable, using 'clear'", style)
             style = "clear"
+    full = None
     if custom is not None:
-        sky = _fit_cover(custom, ws, sky_rows)
+        sky = srgb_to_linear(_fit_cover(custom, ws, sky_rows).astype(np.float32) / 255.0)
+        H, W = img.shape[:2]
+        full = _fit_cover(custom, W, max(1, int(round(sky_rows * H / hs))))
     else:
         sky = synth_sky(ws, sky_rows, style, seed, twilight=twilight)
     lin_small = srgb_to_linear(small)
@@ -392,7 +408,7 @@ def replace_sky(img: np.ndarray, cfg: dict, name: str, win=None, style: str | No
     else:
         # daytime: keep a bright but not blown sky (display ~0.62-0.85 of the old sky brightness)
         match = float(np.clip(old_y, srgb_to_linear(np.float32(0.62)), srgb_to_linear(np.float32(0.86))))
-    img, cinfo = composite_sky(img, mask_small, sky, sky_rows, match_luma=match)
+    img, cinfo = composite_sky(img, mask_small, sky, sky_rows, match_luma=match, full_sky_u8=full)
     info.update(cinfo, applied=True, style=style if custom is None else "file", sky_rows_frac=round(sky_rows / hs, 3))
     info["mask_small"] = mask_small  # removed before serialisation by run_modules
     return img, info

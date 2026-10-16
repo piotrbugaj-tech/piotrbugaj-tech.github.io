@@ -205,6 +205,11 @@ def exemplar_inpaint(img: np.ndarray, hole: np.ndarray, patch: int = 9, max_side
         inb = has & (fy_ >= 0) & (fy_ < H0) & (fx_ >= 0) & (fx_ < W0)
         inb[inb] &= ~hole[fy_[inb], fx_[inb]]
         out[qy[inb], qx[inb]] = img[fy_[inb], fx_[inb]]
+        rest = ~inb  # no usable full-res source: take the upsampled working-resolution fill
+        if rest.any():
+            up = cv2.resize(work, (W0, H0), interpolation=cv2.INTER_LINEAR)
+            out[qy[rest], qx[rest]] = up[qy[rest], qx[rest]]
+            del up
         # soften seams between blocks copied with different offsets
         offy = np.zeros((H0, W0), np.float32)
         offx = np.zeros((H0, W0), np.float32)
@@ -214,13 +219,13 @@ def exemplar_inpaint(img: np.ndarray, hole: np.ndarray, patch: int = 9, max_side
         seam[:, 1:] |= (np.abs(np.diff(offy, axis=1)) + np.abs(np.diff(offx, axis=1))) > 0
         seam[1:, :] |= (np.abs(np.diff(offy, axis=0)) + np.abs(np.diff(offx, axis=0))) > 0
         seam = (cv2.dilate(seam.astype(np.uint8), np.ones((3, 3), np.uint8)) > 0) & hole
-        if seam.any():
-            soft = cv2.GaussianBlur(out, (0, 0), 1.2)
-            out[seam] = soft[seam]
-        rest = ~inb
-        if rest.any():
-            up = cv2.resize(work, (W0, H0), interpolation=cv2.INTER_LINEAR)
-            out[qy[rest], qx[rest]] = up[qy[rest], qx[rest]]
+        if seam.any():  # blur only the hole's bounding box (+ margin), every hole pixel is filled by now
+            ys, xs = np.nonzero(seam)
+            y0, y1 = max(0, ys.min() - 8), min(H0, ys.max() + 9)
+            x0, x1 = max(0, xs.min() - 8), min(W0, xs.max() + 9)
+            soft = cv2.GaussianBlur(out[y0:y1, x0:x1], (0, 0), 1.2)
+            sm = seam[y0:y1, x0:x1]
+            out[y0:y1, x0:x1][sm] = soft[sm]
     else:
         out[qy, qx] = work[qy, qx]
     out[~hole] = img[~hole]

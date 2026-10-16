@@ -207,6 +207,24 @@ def main():
                 improved = True
                 traj.append({"step": len(traj), "round": rnd + 1, "param": key, "value": trial_best[3],
                              "loss": best, "terms": terms})
+                # pattern search: keep going in the successful direction while it improves
+                direction = 1.0 if trial_best[3] > cur else -1.0
+                for _ in range(4):
+                    v0 = float(get(cfg, key))
+                    v = float(np.clip(v0 + direction * steps[key], lo, hi))
+                    if abs(v - v0) < 1e-9:
+                        break
+                    c2 = copy.deepcopy(cfg)
+                    put(c2, key, round(v, 4))
+                    loss, t2, _ = evaluate_all(series, c2, a.preset, pairs)
+                    log.info("round %d  %-36s %.4g -> %.4g : loss %.4f (best %.4f) [continue]", rnd + 1, key, v0, v,
+                             loss, best)
+                    if loss < best - 1e-4:
+                        best, cfg, terms = loss, c2, t2
+                        traj.append({"step": len(traj), "round": rnd + 1, "param": key, "value": v,
+                                     "loss": best, "terms": terms})
+                    else:
+                        break
         for k in steps:
             steps[k] /= 2.0
         if not improved and rnd > 0:

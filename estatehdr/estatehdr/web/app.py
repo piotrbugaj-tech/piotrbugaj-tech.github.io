@@ -72,19 +72,35 @@ class Job:
         self.report: dict | None = None
         self.error: str | None = None
         self.masks: dict = {}        # series -> mask path
-        self.lock = threading.Lock()
+        self.group_opts: dict = {}   # options used for the current automatic grouping
+        self.run_id = 0              # incremented on every submit; a stale run never finishes a newer one
+        self.lock = threading.RLock()
+        self._save_lock = threading.Lock()
 
     # -- persistence -----------------------------------------------------------------------
     def to_dict(self) -> dict:
         return {k: getattr(self, k) for k in ("id", "state", "created", "groups", "unreadable", "groups_edited",
-                                              "settings", "progress", "results", "report", "error", "masks")}
+                                              "settings", "progress", "results", "report", "error", "masks",
+                                              "group_opts", "run_id")}
+
+    def snapshot(self) -> dict:
+        """Deep copy of the state, taken under the lock (the queue thread mutates it while running)."""
+        with self.lock:
+            return json.loads(json.dumps(self.to_dict(), ensure_ascii=False, default=str))
 
     def save(self):
-        os.makedirs(self.dir, exist_ok=True)
-        tmp = os.path.join(self.dir, "job.json.part")
-        with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(self.to_dict(), fh, ensure_ascii=False, default=str)
-        os.replace(tmp, os.path.join(self.dir, "job.json"))
+        data = self.snapshot()
+        with self._save_lock:
+            os.makedirs(self.dir, exist_ok=True)
+            fd, tmp = tempfile.mkstemp(prefix="job.", suffix=".part", dir=self.dir)
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                    json.dump(data, fh, ensure_ascii=False)
+                os.replace(tmp, os.path.join(self.dir, "job.json"))
+            except BaseException:
+                if os.path.exists(tmp):
+                    os.remove(tmp)
+                raise
 
     @classmethod
     def load(cls, root: str, jid: str) -> "Job | None":
@@ -144,7 +160,11 @@ class JobManager:
         os.makedirs(self.root, exist_ok=True)
         self.jobs: dict[str, Job] = {}
         for jid in sorted(os.listdir(self.root)):
-            j = Job.load(self.root, jid)
+            try:
+                j = Job.load(self.root, jid)
+            except Exception as exc:  # a damaged job folder must not stop the server
+                log.warning("skipping job %s: unreadable job.json (%s)", jid, exc)
+                continue
             if j:
                 self.jobs[jid] = j
         self.q: queue.Queue = queue.Queue()
@@ -168,23 +188,28 @@ class JobManager:
         return sum(1 for j in self.jobs.values() if j.state == "queued" and j.created < job.created)
 
     def submit(self, job: Job):
-        job.state = "queued"
-        job.progress, job.results, job.report, job.error = {}, {}, None, None
+        with job.lock:
+            job.state = "queued"
+            job.run_id = int(job.run_id or 0) + 1
+            job.progress, job.results, job.report, job.error = {}, {}, None, None
         job.save()
-        self.q.put(job.id)
+        self.q.put((job.id, job.run_id))
 
     def _loop(self):
-        while True:
-            jid = self.q.get()
+        while True:  # the only consumer of the queue: nothing may end this loop
+            jid, run_id = self.q.get()
             job = self.jobs.get(jid)
-            if job is None or job.state != "queued":
+            if job is None or job.state != "queued" or job.run_id != run_id:
                 continue
             try:
                 self._run(job)
             except Exception as exc:
                 job.state, job.error = "error", f"{type(exc).__name__}: {exc}"
                 log.error("job %s failed: %s\n%s", job.id, exc, traceback.format_exc())
-            job.save()
+            try:
+                job.save()
+            except Exception as exc:
+                log.error("job %s: cannot save job.json: %s", job.id, exc)
 
     def _run(self, job: Job):
         from ..batch import run_batch
@@ -193,7 +218,7 @@ class JobManager:
         st = job.settings
         cfg = load_config(None, st.get("preset") or None, _overrides(st))
         groups_file = None
-        if job.groups_edited and job.groups:
+        if job.groups:  # always process exactly the grouping the user saw (and maybe corrected)
             groups_file = os.path.join(job.dir, "groups.json")
             with open(groups_file, "w", encoding="utf-8") as fh:
                 json.dump({"version": 1, "groups": [{"name": g["name"], "files": [os.path.join(job.input_dir, f)
@@ -206,14 +231,18 @@ class JobManager:
             job.on_progress(ev)
             if time.time() - last[0] > 1.0 or "result" in ev:
                 last[0] = time.time()
-                job.save()
+                try:
+                    job.save()
+                except Exception as exc:  # progress persistence must never fail a series
+                    log.warning("job %s: progress not saved: %s", job.id, exc)
         os.makedirs(job.output_dir, exist_ok=True)
         rep = run_batch(job.input_dir, job.output_dir, cfg, groups_file, progress_cb=cb, masks=masks)
-        job.report = {k: rep.get(k) for k in ("ok", "failed", "seconds", "workers", "peak_rss_gb", "unreadable")}
-        for r in rep.get("series", []):
-            job.results[r["name"]] = _summary(job, r)
-            job.progress.setdefault(r["name"], {}).update(frac=1.0, stage="gotowe", status=r.get("status"))
-        job.state = "done"
+        with job.lock:
+            job.report = {k: rep.get(k) for k in ("ok", "failed", "seconds", "workers", "peak_rss_gb", "unreadable")}
+            for r in rep.get("series", []):
+                job.results[r["name"]] = _summary(job, r)
+                job.progress.setdefault(r["name"], {}).update(frac=1.0, stage="gotowe", status=r.get("status"))
+            job.state = "done"
 
 
 def _overrides(st: dict) -> list[str]:
@@ -239,6 +268,37 @@ def _overrides(st: dict) -> list[str]:
         o.append(f"export.sizes=[{{name: full, long_edge: 0, quality: 95, sharpen: 1.0}}, "
                  f"{{name: mls, long_edge: {mls}, quality: 90, sharpen: 0.8}}]")
     return o
+
+
+def _unique_names(groups: list[dict]) -> list[dict]:
+    names: set = set()
+    for g in groups:
+        base, k = g["name"], 2
+        while g["name"] in names:
+            g["name"] = f"{base}_{k}"
+            k += 1
+        names.add(g["name"])
+    return groups
+
+
+def _rekey_masks(job: Job, old_groups: list[dict], new_groups: list[dict]):
+    """Masks are keyed by series name: follow each masked series to the new group holding most
+    of its files (rename, merge, split, regroup); drop masks whose files left every series."""
+    old_files = {g["name"]: set(g["files"]) for g in old_groups}
+    masks = {}
+    for name, path in job.masks.items():
+        files = old_files.get(name, set())
+        best = max(new_groups, key=lambda g: len(files & set(g["files"])), default=None)
+        if best is not None and files & set(best["files"]) and best["name"] not in masks:
+            masks[best["name"]] = path
+        elif path and os.path.exists(path) and path not in masks.values():
+            os.remove(path)
+    job.masks = masks
+
+
+def _busy(job: Job):
+    if job.state in ("queued", "running"):
+        raise HTTPException(409, "zadanie jest w trakcie przetwarzania - poczekaj na koniec")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -310,8 +370,7 @@ def create_app(workdir: str | None = None) -> FastAPI:
     @app.get("/api/jobs/{jid}")
     def job_status(jid: str):
         j = mgr.get(jid)
-        with j.lock:
-            d = j.to_dict()
+        d = j.snapshot()
         d["queue_position"] = mgr.queue_position(j) if j.state == "queued" else 0
         d["files"] = j.input_files()
         return d
@@ -351,6 +410,7 @@ def create_app(workdir: str | None = None) -> FastAPI:
     def group(jid: str, body: dict = Body(default={})):
         from ..grouping import scan_folder
         j = mgr.get(jid)
+        _busy(j)
         overrides = []
         if body.get("bracket_size"):
             overrides += ["grouping.mode=fixed", f"grouping.bracket_size={int(body['bracket_size'])}"]
@@ -358,11 +418,15 @@ def create_app(workdir: str | None = None) -> FastAPI:
             overrides += ["grouping.mode=single"]
         cfg = load_config(None, None, overrides)
         groups, failures = scan_folder(j.input_dir, cfg.get("grouping", {}))
-        j.groups = [{"name": g.name, "files": [os.path.relpath(f.path, j.input_dir) for f in g.frames],
-                     "warnings": g.warnings,
-                     "ev": [None if f.exposure_value is None else round(f.exposure_value, 2) for f in g.frames]}
-                    for g in groups]
+        new = _unique_names([{"name": SAFE.sub("_", g.name)[:80],
+                              "files": [os.path.relpath(f.path, j.input_dir) for f in g.frames],
+                              "warnings": g.warnings,
+                              "ev": [None if f.exposure_value is None else round(f.exposure_value, 2)
+                                     for f in g.frames]} for g in groups])
+        _rekey_masks(j, j.groups, new)
+        j.groups = new
         j.unreadable = [{"file": os.path.relpath(f["file"], j.input_dir), "error": f["error"]} for f in failures]
+        j.group_opts = {"single": bool(body.get("single")), "bracket_size": int(body.get("bracket_size") or 0)}
         j.groups_edited = False
         j.state = "grouped"
         j.save()
@@ -371,6 +435,7 @@ def create_app(workdir: str | None = None) -> FastAPI:
     @app.put("/api/jobs/{jid}/groups")
     def set_groups(jid: str, body: dict = Body(...)):
         j = mgr.get(jid)
+        _busy(j)
         files = set(j.input_files())
         out, used = [], set()
         for g in body.get("groups", []):
@@ -379,13 +444,8 @@ def create_app(workdir: str | None = None) -> FastAPI:
             if fl:
                 name = SAFE.sub("_", str(g.get("name") or os.path.splitext(os.path.basename(fl[0]))[0]))[:80]
                 out.append({"name": name, "files": fl, "warnings": [], "ev": []})
-        names = set()
-        for g in out:  # unique output names
-            base, k = g["name"], 2
-            while g["name"] in names:
-                g["name"] = f"{base}_{k}"
-                k += 1
-            names.add(g["name"])
+        _unique_names(out)
+        _rekey_masks(j, j.groups, out)
         j.groups, j.groups_edited = out, True
         j.save()
         return {"groups": j.groups}
@@ -410,17 +470,27 @@ def create_app(workdir: str | None = None) -> FastAPI:
     @app.post("/api/jobs/{jid}/masks/{series}")
     async def put_mask(jid: str, series: str, file: UploadFile = File(...)):
         j = mgr.get(jid)
+        _busy(j)
         data = np.frombuffer(await file.read(), np.uint8)
         m = cv2.imdecode(data, cv2.IMREAD_UNCHANGED)
         if m is None:
             raise HTTPException(400, "nieprawidłowy obraz maski")
+        if m.dtype != np.uint8:
+            m = (m / 257).astype(np.uint8) if m.dtype == np.uint16 else np.clip(m, 0, 255).astype(np.uint8)
         if m.ndim == 3:
-            m = m[..., 3] if m.shape[2] == 4 else cv2.cvtColor(m, cv2.COLOR_BGR2GRAY)
+            # browsers send an opaque RGBA PNG (white strokes on black): use alpha only if it varies
+            if m.shape[2] == 4 and m[..., 3].min() < 255:
+                m = m[..., 3]
+            else:
+                m = cv2.cvtColor(m[..., :3], cv2.COLOR_BGR2GRAY)
         m = ((m > 20) * 255).astype(np.uint8)
         d = os.path.join(j.dir, "masks")
         os.makedirs(d, exist_ok=True)
-        p = os.path.join(d, SAFE.sub("_", series) + ".png")
+        p = os.path.join(d, f"{SAFE.sub('_', series)[:60]}-{uuid.uuid4().hex[:6]}.png")
         cv2.imwrite(p, m)
+        old = j.masks.get(series)
+        if old and old != p and os.path.exists(old):
+            os.remove(old)
         j.masks[series] = p
         j.save()
         return {"ok": True, "pixels": int((m > 0).sum())}
@@ -428,6 +498,7 @@ def create_app(workdir: str | None = None) -> FastAPI:
     @app.delete("/api/jobs/{jid}/masks/{series}")
     def del_mask(jid: str, series: str):
         j = mgr.get(jid)
+        _busy(j)
         p = j.masks.pop(series, None)
         if p and os.path.exists(p):
             os.remove(p)
@@ -455,8 +526,9 @@ def create_app(workdir: str | None = None) -> FastAPI:
         j.settings = {k: body.get(k) for k in ("preset", "sky", "twilight", "grass", "remove", "verticals",
                                                "windows", "mls_size", "single")}
         j.settings["preset"] = preset
-        if j.state == "new" or not j.groups:
-            group(jid, {"single": bool(body.get("single"))})
+        single = bool(body.get("single"))
+        if j.state == "new" or not j.groups or (not j.groups_edited and bool(j.group_opts.get("single")) != single):
+            group(jid, {"single": single, "bracket_size": 0 if single else j.group_opts.get("bracket_size", 0)})
         mgr.submit(j)
         return {"ok": True, "queue_position": mgr.queue_position(j)}
 

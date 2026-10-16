@@ -155,7 +155,7 @@ Wynik trafia do `reports/calibration/`: `calibrated.yaml` (do użycia z `--confi
 przed/po) i `calibration.json` (przebieg). Ocena jakości dowolnego folderu wyjściowego:
 `python tools/evaluate.py WYJŚCIE [--synthetic-gt data/synthetic] [--pairs WYNIKI_AUTOHDR]`.
 Liczy histogram, % przepaleń i zaczernień, pionowość linii (°), neutralność ścian (ΔE), jasność i detal okien,
-halo, szum i ostrość, a przy parach także SSIM, ΔE2000 i LPIPS.
+halo, szum i ostrość, a przy parach także SSIM, MS-SSIM, gradient-SSIM, ΔE2000 i LPIPS (jeśli zainstalowany).
 
 Dane testowe: `python tools/make_synthetic.py` (sceny z GT) i `python tools/fetch_public_data.py` (HDR+, OpenCV,
 portfolio). Porównania presetów: `python tools/make_comparisons.py`. Weryfikacja hipotez z REVERSE.md:
@@ -206,7 +206,8 @@ Uczciwie, z pomiarami (szczegóły w `reports/`):
    wyników na CPU, ale przyspieszenie na prawdziwym GPU nie zostało zmierzone (brak GPU w środowisku).
 6. **Kalibracja bez par.** Nie było par „wejście → wynik AutoHDR”, więc presety są dostrojone do opisów produktu
    i do „idealnej edycji” scen syntetycznych, a nie 1:1 do AutoHDR. `tools/calibrate.py --pairs` jest gotowe na pary.
-7. **LPIPS** nie jest liczony (brak `torch` i wag o jasnej licencji). Raport podaje SSIM i ΔE2000.
+7. **LPIPS** nie jest liczony (brak `torch` i wag o jasnej licencji). Raport podaje SSIM, MS-SSIM, gradient-SSIM
+   (zgodność krawędzi) i ΔE2000.
 8. **Wydajność** (4 rdzenie CPU, bez GPU): seria 3×24 Mpx ok. 80 s, 3×60 Mpx ok. 130 s; szczyt pamięci
    2.4 GB i 2.9 GB. Wolniej niż usługa w chmurze, ale lokalnie i równolegle dla wielu serii.
 9. **RAW**: odczyt przez LibRaw (rawpy) obejmuje praktycznie wszystkie aparaty, ale bez profili obiektywów

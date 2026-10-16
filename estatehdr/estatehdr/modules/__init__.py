@@ -29,9 +29,13 @@ def run_modules(img: np.ndarray, cfg: dict, group, win=None, extra_masks=None) -
         if not sky_done:
             from .sky import detect_sky
             from ..imgutil import resize_max
-            sky_mask, sinfo = detect_sky(resize_max(img, 1000)[0])
-            info["sky_detection"] = sinfo
             sky_done = True
+            try:
+                sky_mask, sinfo = detect_sky(resize_max(img, 1000)[0])
+            except Exception as exc:  # detection failure = no sky; the modules decide what that means
+                log.error("[%s] sky detection failed: %s", name, exc)
+                sky_mask, sinfo = None, {"reason": f"detection failed: {type(exc).__name__}: {exc}"}
+            info["sky_detection"] = sinfo
         return sky_mask
 
     def guarded(key, fn):
@@ -59,9 +63,11 @@ def run_modules(img: np.ndarray, cfg: dict, group, win=None, extra_masks=None) -
         guarded("twilight", lambda: twilight(img, cfg, name, win, need_sky()))
     elif on["sky"]:
         from .sky import replace_sky
-        m = need_sky()
-        if m is None and not mcfg.get("sky", {}).get("interior_windows", False):
-            info["sky"] = {"applied": False, "reason": info.get("sky_detection", {}).get("reason", "no sky")}
-        else:
-            guarded("sky", lambda: replace_sky(img, cfg, name, win, mask_small=m))
+
+        def sky_step():
+            m = need_sky()
+            if m is None and not mcfg.get("sky", {}).get("interior_windows", False):
+                return img, {"applied": False, "reason": info.get("sky_detection", {}).get("reason", "no sky")}
+            return replace_sky(img, cfg, name, win, mask_small=m)
+        guarded("sky", sky_step)
     return img, info

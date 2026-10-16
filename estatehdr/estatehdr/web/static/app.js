@@ -87,8 +87,14 @@ function stateLabel(s) {
   return { new: 'nowe', grouped: 'pogrupowane', queued: 'w kolejce', running: 'w trakcie', done: 'zakończone', error: 'błąd' }[s] || s;
 }
 
+function clearResults() {
+  $('#results').innerHTML = '';
+  for (const k of Object.keys(rendered)) delete rendered[k];
+}
+
 async function openJob(id) {
   job = await api('GET', `/api/jobs/${id}`);
+  clearResults();
   setHash();
   groups = job.groups || [];
   if (job.settings && job.settings.preset) { preset = job.settings.preset; renderPresets(); applySettings(job.settings); }
@@ -389,6 +395,7 @@ async function start() {
       mls_size: parseInt($('#opt-mls').value || '2048', 10), single: $('#opt-single').checked,
     };
     const r = await api('POST', `/api/jobs/${job.id}/start`, body);
+    clearResults();
     $('#start-msg').textContent = r.queue_position ? `W kolejce (przed tobą: ${r.queue_position})` : 'Uruchomiono.';
     show('#step-results');
     startPolling();
@@ -425,6 +432,10 @@ function renderResults() {
   if (job.state === 'done' && job.report) st += ` - ${job.report.ok} OK, ${job.report.failed} błędów, ${job.report.seconds} s`;
   if (job.state === 'error') st += ': ' + (job.error || '');
   $('#job-state').textContent = st;
+  const busy = ['queued', 'running'].includes(job.state);
+  $('#btn-regroup').disabled = busy;
+  $('#btn-start').disabled = busy;
+  const run = job.run_id || 0;  // cache-buster: a new run reuses the same output file names
   const done = job.state === 'done' && Object.values(job.results).some((r) => r.status === 'ok');
   $('#zip-row').hidden = !done;
   if (done) {
@@ -447,17 +458,19 @@ function renderResults() {
     sEl.className = 'status' + (r ? (r.status === 'ok' ? ' ok' : ' error') : '');
     row.querySelector('.mini > div').style.width = (100 * (p.frac || 0)).toFixed(0) + '%';
     row.querySelector('.stage').textContent = r ? (r.seconds ? `${r.seconds} s` : '') : (STAGES[p.stage] || p.stage || '');
-    if (r && !rendered[n + job.id + (r.outputs.preview_after ? r.outputs.preview_after.url : '')]) {
-      rendered[n + job.id + (r.outputs.preview_after ? r.outputs.preview_after.url : '')] = true;
+    const key = `${job.id}/${run}/${n}`;
+    if (r && !rendered[key]) {
+      rendered[key] = true;
       const body = row.querySelector('.body');
       body.innerHTML = '';
       if (r.status !== 'ok') { body.append(el('div', { class: 'err-text' }, 'Błąd: ' + translateError(r.error))); continue; }
-      if (r.outputs.preview_after) body.append(compare(r.outputs.preview_before && r.outputs.preview_before.url, r.outputs.preview_after.url));
+      if (r.outputs.preview_after) body.append(compare(r.outputs.preview_before && `${r.outputs.preview_before.url}?v=${run}`,
+        `${r.outputs.preview_after.url}?v=${run}`));
       const dl = el('div', { class: 'downloads' }, el('span', {}, 'Pobierz:'));
       for (const [k, v] of Object.entries(r.outputs)) {
         if (k.startsWith('preview')) continue;
         const label = k === 'mls' ? 'MLS' : k === 'full' ? 'pełna rozdzielczość' : k;
-        dl.append(el('a', { class: 'btn small' + (k === 'mls' ? '' : ' secondary'), href: v.url + '?download=1' },
+        dl.append(el('a', { class: 'btn small' + (k === 'mls' ? '' : ' secondary'), href: `${v.url}?download=1&v=${run}` },
           `${label}${v.width ? ` (${v.width}×${v.height})` : ''}`));
       }
       body.append(dl);
