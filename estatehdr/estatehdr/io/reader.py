@@ -37,6 +37,58 @@ class Decoded:
         return self.image.astype(np.float32) * np.float32(1.0 / self.max_value)
 
 
+def dng_gain_maps(path: str) -> list[dict]:
+    """GainMap opcodes (ID 9) of a DNG's OpcodeList2: per-Bayer-plane lens-shading gains that
+    LibRaw does not apply (phone DNGs carry 50-70% corner fall-off this way)."""
+    if not path.lower().endswith(".dng"):
+        return []
+    import struct
+    import tifffile
+    try:
+        with tifffile.TiffFile(path) as tf:
+            buf = None
+            for page in tf.pages:
+                for p in [page] + list(getattr(page, "pages", None) or []):
+                    if 51009 in p.tags:
+                        buf = bytes(p.tags[51009].value)
+                        break
+                if buf:
+                    break
+    except Exception:
+        return []
+    if not buf:
+        return []
+    maps = []
+    try:
+        n, o = struct.unpack(">I", buf[:4])[0], 4
+        for _ in range(n):
+            oid, _ver, _flags, nb = struct.unpack(">IIII", buf[o:o + 16])
+            data, o = buf[o + 16:o + 16 + nb], o + 16 + nb
+            if oid != 9 or len(data) < 76:
+                continue
+            top, left, _b, _r, _plane, _planes, rp, cp, mpv, mph = struct.unpack(">10I", data[:40])
+            sv, sh, ov, oh = struct.unpack(">4d", data[40:72])
+            mplanes = struct.unpack(">I", data[72:76])[0]
+            if 76 + 4 * mpv * mph * mplanes > len(data) or mpv < 1 or mph < 1:
+                continue
+            g = np.frombuffer(data[76:76 + 4 * mpv * mph * mplanes], ">f4").reshape(mpv, mph, mplanes)[..., 0]
+            maps.append({"top": top, "left": left, "rp": rp, "cp": cp, "spacing": (sv, sh), "origin": (ov, oh),
+                         "gain": g.astype(np.float32)})
+    except struct.error:
+        return []
+    return maps
+
+
+def _gain_image(m: dict, h: int, w: int) -> np.ndarray:
+    """Bilinear evaluation of one gain map on an h x w grid of normalised image coordinates."""
+    g = m["gain"]
+    (sv, sh), (ov, oh) = m["spacing"], m["origin"]
+    ys = ((np.arange(h) + 0.5) / h - ov) / max(sv, 1e-9)
+    xs = ((np.arange(w) + 0.5) / w - oh) / max(sh, 1e-9)
+    gx = np.stack([np.interp(xs, np.arange(g.shape[1]), row) for row in g])           # mpv x w
+    return np.stack([np.interp(ys, np.arange(g.shape[0]), gx[:, j]) for j in range(w)], 1).astype(np.float32)
+
+
 def _decode_raw(path: str, half: bool, raw_cfg: dict) -> Decoded:
     import rawpy
     hl = {"clip": rawpy.HighlightMode.Clip, "ignore": rawpy.HighlightMode.Ignore,
@@ -47,15 +99,41 @@ def _decode_raw(path: str, half: bool, raw_cfg: dict) -> Decoded:
             "linear": rawpy.DemosaicAlgorithm.LINEAR}.get(str(raw_cfg.get("demosaic", "dht")).lower(),
                                                          rawpy.DemosaicAlgorithm.DHT)
     fbdd = rawpy.FBDDNoiseReductionMode.Full if raw_cfg.get("fbdd") else rawpy.FBDDNoiseReductionMode.Off
+    maps = dng_gain_maps(path) if raw_cfg.get("dng_gain_maps", True) else []
     try:
         with rawpy.imread(path) as r:
+            flip = int(r.sizes.flip)
+            pattern, desc = r.raw_pattern, r.color_desc.decode(errors="ignore")
             rgb = r.postprocess(gamma=(1, 1), no_auto_bright=True, output_bps=16,
                                 use_camera_wb=bool(raw_cfg.get("use_camera_wb", True)),
                                 output_color=rawpy.ColorSpace.sRGB, highlight_mode=hl,
                                 half_size=half, user_sat=None, fbdd_noise_reduction=fbdd,
-                                demosaic_algorithm=None if half else algo)
+                                demosaic_algorithm=None if half else algo,
+                                **({"user_flip": 0} if maps else {}))
     except Exception as exc:  # LibRaw errors are of several types
         raise DecodeError(f"RAW decode failed: {exc}") from exc
+    if maps:
+        # lens shading: gains per CFA colour (maps of the same colour averaged), applied in the
+        # sensor orientation, then the rotation LibRaw would have applied
+        h, w = rgb.shape[:2]
+        per = {}
+        for m in maps:
+            try:
+                col = desc[int(pattern[m["top"] % 2][m["left"] % 2])] if pattern is not None else "G"
+            except (IndexError, ValueError):
+                col = "G"
+            per.setdefault({"R": 0, "G": 1, "B": 2}.get(col, 1), []).append(_gain_image(m, h, w))
+        out = rgb.astype(np.float32)
+        for c, gs in per.items():
+            out[..., c] *= np.mean(gs, axis=0)
+        for c in set(range(3)) - set(per):  # a channel without its own map: the mean of the others
+            out[..., c] *= np.mean([np.mean(gs, axis=0) for gs in per.values()], axis=0)
+        rgb = np.clip(out, 0, 65535).astype(np.uint16)
+        del out
+        k = {3: 2, 5: 1, 6: -1}.get(flip, 0)
+        if k:
+            rgb = np.ascontiguousarray(np.rot90(rgb, k))
+        log.info("%s: applied %d DNG lens-shading gain map(s)", os.path.basename(path), len(maps))
     return Decoded(rgb, "linear", 65535.0)
 
 

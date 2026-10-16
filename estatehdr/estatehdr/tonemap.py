@@ -31,6 +31,27 @@ log = logging.getLogger(__name__)
 EPS = 1e-6
 
 
+def noise_floor(radiance: np.ndarray, k: float = 1.5, rows: int = 768) -> float:
+    """Linear luminance level of the sensor noise in the shadows (Immerkaer estimate on the darkest
+    fifth of a full-resolution band).  Log luminance is taken of Y + floor, so pixels at or below
+    the noise (zero-clipped RAW channels) do not become -20 EV outliers that local tone mapping
+    turns into black specks; merged brackets have little shadow noise and get a tiny floor."""
+    H, W = radiance.shape[:2]
+    best = 0.0
+    for c in (0.3, 0.5, 0.7):  # a few bands: noise is a sensor property, the scene is not
+        r0 = int(np.clip(c * H - rows // 2, 0, max(0, H - rows)))
+        y = luminance(radiance[r0:r0 + rows]).astype(np.float32)
+        if y.shape[0] < 8 or y.shape[1] < 8:
+            continue
+        resp = np.abs(cv2.filter2D(y, -1, np.array([[1, -2, 1], [-2, 4, -2], [1, -2, 1]], np.float32)))[1:-1, 1:-1]
+        yc = y[1:-1, 1:-1]
+        dark = yc <= np.percentile(yc, 20)
+        if dark.sum() < 1000:
+            continue
+        best = max(best, float(np.sqrt(np.pi / 2) / 6.0 * np.mean(resp[dark])))
+    return max(EPS, k * best)
+
+
 def compute_base(L_small: np.ndarray, cfg: dict) -> np.ndarray:
     """Two-scale edge-aware base layer of log luminance (analysis resolution)."""
     h, w = L_small.shape
@@ -89,11 +110,12 @@ def tone_map(radiance: np.ndarray, cfg: dict, window_mask: np.ndarray | None = N
 
     extra_pulls: [(weight_map_small, target_srgb, strength, name)] for other regions (sun patches)."""
     H, W = radiance.shape[:2]
+    floor = noise_floor(radiance, float(cfg.get("noise_floor_k", 1.5))) if cfg.get("noise_floor", True) else EPS
     # full-resolution log luminance, computed strip by strip (the only full-res scalar map kept)
     L = np.empty((H, W), np.float32)
     acc = np.zeros(2)
     for r0, r1 in row_strips(H, W):
-        Ls = np.log2(luminance(radiance[r0:r1]) + EPS)
+        Ls = np.log2(luminance(radiance[r0:r1]) + floor)
         L[r0:r1] = Ls
         acc += (float(Ls.sum(dtype=np.float64)), float(np.square(Ls, dtype=np.float64).sum()))
     L_mu = acc[0] / L.size
@@ -107,6 +129,15 @@ def tone_map(radiance: np.ndarray, cfg: dict, window_mask: np.ndarray | None = N
     key0 = float(np.percentile(L_small[inside], float(cfg.get("key_percentile", 50))))
     p_lo = float(cfg.get("black_percentile", 0.5))
     p_hi = float(cfg.get("white_percentile", 99.0))
+    # the black anchor (darkest p_lo) is mapped to black_target: on low-contrast scenes (a daylight
+    # facade with dark window panes spans ~1 EV from p_lo to the key) that stretches the
+    # darkest region far beyond the real scene contrast; limit the stretch, which raises black
+    raw_span = max(key0 - float(np.percentile(L_small[inside], p_lo)), 0.1)
+    max_span = float(cfg.get("max_toe_expansion", 4.0)) * raw_span
+    k_lin = float(srgb_to_linear(np.float32(cfg.get("target_key", 0.56))))
+    black_eff = max(float(cfg.get("black_target", 0.03)), float(linear_to_srgb(np.float32(k_lin * 2.0 ** -max_span))))
+    if black_eff > float(cfg.get("black_target", 0.03)) + 1e-4:
+        cfg = {**cfg, "black_target": black_eff}
 
     def local(offset):
         Ls = L_small + offset if offset is not None else L_small
@@ -176,7 +207,8 @@ def tone_map(radiance: np.ndarray, cfg: dict, window_mask: np.ndarray | None = N
         Yt = srgb_to_linear(curve(Ls + g))  # display luminance (linear)
         del g
         rad_s = radiance[r0:r1]
-        ratio = np.clip(rad_s / (luminance(rad_s)[..., None] + EPS), 0, 8)
+        # chroma of pixels at the noise floor fades to neutral (no coloured speckle in deep shadows)
+        ratio = np.clip((rad_s + floor) / (luminance(rad_s)[..., None] + floor), 0, 8)
         rgb = Yt[..., None] * np.power(ratio, sat_keep)
         del ratio
         rgb *= (Yt / (luminance(rgb) + EPS))[..., None]
@@ -198,7 +230,7 @@ def tone_map(radiance: np.ndarray, cfg: dict, window_mask: np.ndarray | None = N
             o = o * (1 - c) + c
         out[r0:r1] = o
     if debug is not None:
-        debug.update({"key_log2": key0, **{f"anchor_{k}": v for k, v in curve.anchors.items()},
+        debug.update({"noise_floor": floor, "black_out": black_eff, "key_log2": key0, **{f"anchor_{k}": v for k, v in curve.anchors.items()},
                       **{f"pull_{k}_ev": v for k, v in pull_info.items()}})
     return out
 

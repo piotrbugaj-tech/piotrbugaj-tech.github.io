@@ -90,6 +90,16 @@ function stateLabel(s) {
 function clearResults() {
   $('#results').innerHTML = '';
   for (const k of Object.keys(rendered)) delete rendered[k];
+  setZip(false);
+}
+
+function setZip(on) {
+  // no href while hidden: a link left from the previous run must not lead anywhere during a new one
+  $('#zip-row').hidden = !on;
+  for (const w of ['mls', 'full', 'all']) {
+    const a = $('#zip-' + w);
+    if (on) a.href = `/api/jobs/${job.id}/zip?which=${w}`; else a.removeAttribute('href');
+  }
 }
 
 async function openJob(id) {
@@ -98,6 +108,7 @@ async function openJob(id) {
   setHash();
   groups = job.groups || [];
   if (job.settings && job.settings.preset) { preset = job.settings.preset; renderPresets(); applySettings(job.settings); }
+  renderFileNotes(job.unreadable, job.skipped);
   if (groups.length) { renderGroups(); show('#step-groups'); show('#step-settings'); }
   if (['queued', 'running', 'done', 'error'].includes(job.state)) { show('#step-results'); renderResults(); startPolling(); }
 }
@@ -204,8 +215,6 @@ const fmtMB = (b) => (b / 1048576).toFixed(1) + ' MB';
 // ------------------------------------------------------------------------------------------
 // grouping
 // ------------------------------------------------------------------------------------------
-const SKIP_REASONS = { 'RAW sibling used': 'użyto pliku RAW o tej samej nazwie', 'EstateHDR output': 'to wynik EstateHDR' };
-
 async function regroup() {
   if (!job) return;
   let res;
@@ -216,16 +225,19 @@ async function regroup() {
   groups = res.groups;
   job.state = 'grouped';
   job.masks = res.masks || {};
-  const un = $('#unreadable');
-  const notes = [];
-  if (res.unreadable && res.unreadable.length)
-    notes.push('Nie udało się odczytać: ' + res.unreadable.map((u) => `${u.file} (${u.error})`).join('; ') + ' - te pliki zostaną pominięte.');
-  if (res.skipped && res.skipped.length)
-    notes.push('Pominięte celowo: ' + res.skipped.map((u) => `${u.file} (${SKIP_REASONS[u.reason] || u.reason})`).join('; ') + '.');
-  un.textContent = notes.join(' ');
-  show('#unreadable', notes.length > 0);
+  renderFileNotes(res.unreadable, res.skipped);
   renderGroups();
   show('#step-groups'); show('#step-settings');
+}
+
+function renderFileNotes(unreadable, skipped) {
+  const notes = [];
+  if (unreadable && unreadable.length)
+    notes.push('Nie udało się odczytać: ' + unreadable.map((u) => `${u.file} (${tr(u.error)})`).join('; ') + ' - te pliki zostaną pominięte.');
+  if (skipped && skipped.length)
+    notes.push('Pominięte celowo: ' + skipped.map((u) => `${u.file} (${tr(u.reason)})`).join('; ') + '.');
+  $('#unreadable').textContent = notes.join(' ');
+  show('#unreadable', notes.length > 0);
 }
 
 let saveTimer = null;
@@ -266,7 +278,7 @@ function renderGroups() {
     const nameIn = el('input', { class: 'name', value: g.name });
     nameIn.onchange = () => { g.name = nameIn.value.trim() || g.name; saveGroups(); };
     const head = el('div', { class: 'group-head' }, nameIn,
-      el('span', { class: 'tag' }, g.files.length === 1 ? '1 zdjęcie' : `${g.files.length} klatek`),
+      el('span', { class: 'tag' }, g.files.length === 1 ? '1 zdjęcie' : `${g.files.length} ${framesWord(g.files.length)}`),
       hasMask ? el('span', { class: 'tag mask' }, 'maska usuwania') : null,
       gi < groups.length - 1 ? el('button', { class: 'btn small secondary', onclick: () => {
         groups[gi].files = groups[gi].files.concat(groups[gi + 1].files); groups.splice(gi + 1, 1); saveGroups(); } }, 'Połącz z następną') : null,
@@ -300,25 +312,98 @@ function renderGroups() {
   });
 }
 
+// ------------------------------------------------------------------------------------------
+// Polish texts for the backend's English messages (series warnings, module reasons, series
+// errors, unreadable / skipped files): exact strings, then patterns that keep the dynamic parts
+// (file names, profile names, numbers). Anything unknown is shown as it came.
+// ------------------------------------------------------------------------------------------
 const MODULES = { sky: 'niebo', twilight: 'zmierzch', remove: 'usuwanie obiektów', grass: 'trawa' };
-function translateReason(r) {
-  if (!r) return '';
-  if (r.startsWith('no mask')) return 'brak maski - namaluj ją przy serii';
-  if (/sky|top region|smooth region/.test(r)) return 'nie wykryto nieba na zdjęciu';
-  return r;
-}
-function translateError(e) {
-  if (!e) return 'nieznany błąd';
-  if (e.startsWith('DecodeError')) return 'nie można odczytać pliku (uszkodzony lub niepełny): ' + e.replace(/^DecodeError:\s*/, '');
-  if (e.startsWith('MemoryError') || e.includes('out of memory')) return 'za mało pamięci RAM dla tej serii';
-  return e;
+const NO_SKY = ' - nie wykryto nieba';
+const PL = {
+  // grouping / scanning
+  'no EXIF exposure data - exposures estimated from pixels': 'brak danych ekspozycji w EXIF - ekspozycje oszacowane z pikseli',
+  'RAW sibling used': 'użyto pliku RAW o tej samej nazwie',
+  'EstateHDR output': 'to wynik EstateHDR',
+  'empty file': 'pusty plik',
+  'unreadable image (pixels cannot be decoded)': 'nieczytelny obraz (nie można zdekodować pikseli)',
+  // decoding (DecodeError)
+  'image decoder returned nothing (corrupt or unsupported file)': 'dekoder nie zwrócił obrazu (plik uszkodzony lub nieobsługiwany)',
+  'JPEG is truncated (missing end-of-image marker)': 'plik JPEG jest ucięty (brak znacznika końca obrazu)',
+  // series errors
+  'out of memory (try fewer workers: --workers 1)': 'za mało pamięci RAM dla tej serii (spróbuj mniej procesów: --workers 1)',
+  'worker crashed (out of memory or native crash)': 'proces obróbki przerwał pracę (brak pamięci lub awaria biblioteki)',
+  MemoryError: 'za mało pamięci RAM dla tej serii',
+  // module reasons
+  'no mask (<name>.mask.png or UI brush)': 'brak maski - namaluj ją przy serii',
+  'no sky': 'nie wykryto nieba',
+  'no smooth region at the top': 'brak gładkiego obszaru u góry kadru' + NO_SKY,
+  'no sky region at the top': 'brak nieba u góry kadru',
+  'frame is uniformly smooth, no ground to compare with': 'kadr jest jednolicie gładki, brak podłoża do porównania' + NO_SKY,
+  'top region is green or textured': 'góra kadru jest zielona lub ma fakturę (drzewa, roślinność)' + NO_SKY,
+  'top region is not sky-like (colour/brightness: ceiling, wall)': 'góra kadru nie wygląda jak niebo (kolor/jasność: sufit, ściana)' + NO_SKY,
+  'no window views': 'brak widoku za oknami',
+  'no sky in window views': 'brak nieba w widoku za oknami',
+};
+const ENCODINGS = { linear: 'liniowe (RAW)', srgb: 'sRGB', unknown: 'nieznane' };
+const META_PARTS = { exif: 'EXIF', size: 'rozmiar', 'rawpy-meta': 'metadane RAW' };
+const PL_RULES = [
+  // series.py
+  [/^converted from ICC profile '(.*)' to sRGB: (.*)$/s, "przekonwertowano z profilu ICC '$1' do sRGB: $2"],
+  [/^skipped undecodable frame\(s\): (.*)$/s, (m, list) => 'pominięto nieczytelne klatki: ' + list.split('; ').map(trItem).join('; ')],
+  [/^dropped frames with different size: (.*)$/s, 'odrzucono klatki o innym rozmiarze: $1'],
+  [/^series mixes pixel encodings \((.*)\) - e\.g\. RAW with JPEG frames; each frame linearised by its own encoding$/s,
+    (m, list) => `seria łączy różne kodowania pikseli (${list.replace(/: (linear|srgb|unknown)(?=, |$)/g, (x, e) => ': ' + ENCODINGS[e])})`
+      + ' - np. RAW z klatkami JPEG; każda klatka linearyzowana według własnego kodowania'],
+  [/^(.*): EXIF exposure ratio ([\d.]+) disagrees with pixels ([\d.]+); using pixels$/s,
+    '$1: stosunek ekspozycji z EXIF ($2) nie zgadza się z pikselami ($3) - użyto pikseli'],
+  [/^(.*): exposure estimated from mean brightness$/s, '$1: ekspozycja oszacowana ze średniej jasności'],
+  // grouping.py
+  [/^incomplete series: (\d+) of (\d+) frames$/, 'niepełna seria: $1 z $2 klatek'],
+  [/^series has (\d+) frames, most series have (\d+)$/, (m, n, k) => `seria ma ${n} ${framesWord(+n, 'klatkę')}, większość serii ma ${k}`],
+  [/^unreadable image \(pixels cannot be decoded\): (.*)$/s,
+    (m, d) => PL['unreadable image (pixels cannot be decoded)'] + ': ' + d.split('; ').map(tr).join('; ')],
+  [/^(exif|size|rawpy-meta): (.*)$/s, (m, k, e) => `${META_PARTS[k]}: ${e}`],
+  // io/reader.py (DecodeError)
+  [/^RAW decode failed: (.*)$/s, 'nie udało się zdekodować pliku RAW: $1'],
+  [/^TIFF decode failed: (.*)$/s, 'nie udało się zdekodować pliku TIFF: $1'],
+  [/^unsupported TIFF dtype (.*)$/s, 'nieobsługiwany typ danych TIFF: $1'],
+  [/^cannot read file: (.*)$/s, 'nie można odczytać pliku: $1'],
+  [/^unsupported file type: (.*)$/s, 'nieobsługiwany typ pliku: $1'],
+  // series errors (pipeline / batch: "<ExceptionType>: <message>")
+  [/^DecodeError: (.*)$/s, (m, e) => 'nie można odczytać pliku (uszkodzony lub niepełny): ' + tr(e)],
+  [/^MemoryError\b.*$/s, PL.MemoryError],
+  // modules
+  [/^detection failed: (.*)$/s, (m, e) => 'błąd wykrywania nieba: ' + tr(e)],
+];
+
+function tr(s) {
+  if (typeof s !== 'string' || !s) return s || '';
+  if (Object.prototype.hasOwnProperty.call(PL, s)) return PL[s];
+  for (const [re, to] of PL_RULES) if (re.test(s)) return s.replace(re, to);
+  return s;
 }
 
-function translateWarn(w) {
-  return w.replace('no EXIF exposure data - exposures estimated from pixels', 'brak danych ekspozycji w EXIF - ekspozycje oszacowane z pikseli')
-    .replace(/series has (\d+) frames, most series have (\d+)/, 'seria ma $1 klatek, większość ma $2')
-    .replace(/incomplete series: (\d+) of (\d+) frames/, 'niepełna seria: $1 z $2 klatek');
+// "<file> (<message>)": translate the message, keep the file name (it may contain " (" itself)
+function trItem(s) {
+  if (!s.endsWith(')')) return s;
+  for (let i = s.indexOf(' ('); i >= 0; i = s.indexOf(' (', i + 1)) {
+    const msg = s.slice(i + 2, -1), t = tr(msg);
+    if (t !== msg) return `${s.slice(0, i)} (${t})`;
+  }
+  return s;
 }
+
+// Polish plural of "klatka" after a number (1: the given singular form, 2-4: klatki, 5+: klatek)
+function framesWord(n, one = 'klatka') {
+  return n === 1 ? one : (n % 10 >= 2 && n % 10 <= 4 && !(n % 100 >= 12 && n % 100 <= 14) ? 'klatki' : 'klatek');
+}
+
+function translateReason(r, m) {
+  if (!r) return m === 'grass' ? 'nie wykryto trawnika' : '';
+  return tr(r);
+}
+function translateError(e) { return e ? tr(e) : 'nieznany błąd'; }
+function translateWarn(w) { return tr(w); }
 
 // ------------------------------------------------------------------------------------------
 // removal mask brush
@@ -409,6 +494,7 @@ async function openMask(g) {
 async function start() {
   if (!job) { alert('Najpierw wgraj zdjęcia.'); return; }
   $('#btn-start').disabled = true;
+  setZip(false);  // the previous run's ZIP is being replaced
   try {
     const body = {
       preset, verticals: $('#opt-verticals').checked, windows: $('#opt-windows').checked,
@@ -423,6 +509,7 @@ async function start() {
     startPolling();
   } catch (e) {
     alert('Nie udało się uruchomić: ' + e.message);
+    if (job.state === 'done' && job.results) renderResults();  // nothing started: the previous results stay downloadable
   } finally {
     $('#btn-start').disabled = false;
   }
@@ -454,17 +541,13 @@ function renderResults() {
   let st = stateLabel(job.state);
   if (job.state === 'queued' && job.queue_position) st += ` (przed tobą: ${job.queue_position})`;
   if (job.state === 'done' && job.report) st += ` - ${job.report.ok} OK, ${job.report.failed} błędów, ${job.report.seconds} s`;
-  if (job.state === 'error') st += ': ' + (job.error || '');
+  if (job.state === 'error') st += ': ' + translateError(job.error);
   $('#job-state').textContent = st;
   const busy = ['queued', 'running'].includes(job.state);
   $('#btn-regroup').disabled = busy;
   $('#btn-start').disabled = busy;
   const run = job.run_id || 0;  // cache-buster: a new run reuses the same output file names
-  const done = job.state === 'done' && Object.values(job.results).some((r) => r.status === 'ok');
-  $('#zip-row').hidden = !done;
-  if (done) {
-    for (const w of ['mls', 'full', 'all']) $('#zip-' + w).href = `/api/jobs/${job.id}/zip?which=${w}`;
-  }
+  setZip(job.state === 'done' && Object.values(job.results).some((r) => r.status === 'ok'));
   for (const n of names) {
     const p = job.progress[n] || {};
     const r = job.results[n];
@@ -501,9 +584,11 @@ function renderResults() {
       const notes = [];
       for (const [m, info] of Object.entries(r.modules || {})) {
         if (!MODULES[m]) continue;
-        if (info.error) notes.push(`${MODULES[m]}: błąd (${info.error})`);
-        else if (info.applied === false && !(info.reason || '').startsWith('no mask'))
-          notes.push(`${MODULES[m]}: nie zastosowano - ${translateReason(info.reason)}`);
+        if (info.error) notes.push(`${MODULES[m]}: błąd (${translateError(info.error)})`);
+        else if (info.applied === false && !(info.reason || '').startsWith('no mask')) {
+          const why = translateReason(info.reason, m);
+          notes.push(`${MODULES[m]}: nie zastosowano` + (why ? ` - ${why}` : ''));
+        }
       }
       if (r.warnings && r.warnings.length) notes.push(...r.warnings.map(translateWarn));
       if (notes.length) body.append(el('div', { class: 'gwarn' }, notes.join('; ')));

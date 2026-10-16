@@ -205,14 +205,18 @@ def finish(prep: Prepared, group: Group, cfg: Config, result: dict, out_dir: str
     # --- tone mapping -------------------------------------------------------------
     _p(progress, 0.62, "tone mapping")
     tcfg = dict(cfg.get("tonemap", {}))
-    if prep.single:
-        # one exposure: lifting deep shadows mostly amplifies noise -> lift less when it is noisy
-        lin_small = np.clip(rad_small / max(float(np.percentile(luminance(rad_small), 99)), 1e-6), 0, 1)
-        sig_lin = denoise.estimate_sigma(np.sqrt(luminance(lin_small)))
-        result["single_noise"] = round(float(sig_lin), 4)
-        if sig_lin > 0.01:
-            tcfg["compress_shadows"] = max(float(tcfg.get("compress_shadows", 0.7)),
-                                           float(np.clip(0.7 + 8 * (sig_lin - 0.01), 0.7, 0.9)))
+    if prep.single and not prep.developed:
+        # one raw exposure: lifting shadows mostly amplifies noise, which no denoiser removes from a
+        # single frame -> the noisier the shadows (full-resolution noise relative to the median
+        # signal), the less they are lifted and the lower the key (D-39)
+        nsr = tonemap.noise_floor(rad, 1.0) / max(float(np.median(luminance(rad_small))), 1e-6)
+        scfg_n = cfg.get("single_image", {})
+        xs = scfg_n.get("noise_nsr", [0.03, 0.06, 0.15])
+        cs = float(np.interp(nsr, xs, [float(tcfg.get("compress_shadows", 0.7))] + list(scfg_n.get("noise_compress_shadows", [0.9, 0.95]))))
+        tcfg["compress_shadows"] = max(float(tcfg.get("compress_shadows", 0.7)), cs)
+        tcfg["target_key"] = float(tcfg.get("target_key", 0.56)) - float(np.interp(nsr, xs, [0.0] + list(scfg_n.get("noise_key_drop", [0.10, 0.15]))))
+        result["single_noise"] = {"nsr": round(float(nsr), 4), "compress_shadows": round(tcfg["compress_shadows"], 3),
+                                  "target_key": round(tcfg["target_key"], 3)}
     if prep.night:
         # keep the night dark: low key, little shadow lifting
         tcfg["target_key"] = float(ncfg.get("target_key", 0.32))
@@ -244,13 +248,25 @@ def finish(prep: Prepared, group: Group, cfg: Config, result: dict, out_dir: str
     timer.mark("tonemap")
 
     _p(progress, 0.7, "odszumianie")
-    img = denoise.denoise(img, cfg, single=prep.single)
+    img = denoise.denoise(img, cfg, single=prep.single, raw_single=prep.single and not prep.developed)
     timer.mark("denoise")
+    if win is not None and float(win.mask.max()) > 0.5:
+        # window view as delivered (brightness, clipping, detail) - the quality report uses it on
+        # photos without ground truth; measured here, where the window mask is still aligned
+        from .quality.metrics import window_metrics
+        small_out, _ = resize_max(img, side)
+        m = cv2.resize(win.mask.astype(np.float32), (small_out.shape[1], small_out.shape[0])) > 0.5
+        wm = window_metrics(small_out, m)
+        if wm.get("pixels"):
+            result["windows"] = {**(result.get("windows") or {}),
+                                 "view": {k: (round(float(v), 3) if v is not None else None) for k, v in wm.items()}}
+    # geometry is estimated before the optional modules (retouch / new sky must not move lines)
+    geo_plan = geometry.estimate(img, cfg, prep.ref_meta)
     _p(progress, 0.76, "moduły")
     img, result["modules"] = run_modules(img, cfg, group, win, extra_masks or {})
     timer.mark("modules")
     _p(progress, 0.84, "geometria")
-    img, result["geometry"] = geometry.correct(img, cfg, prep.ref_meta)
+    img, result["geometry"] = geometry.apply(img, geo_plan, cfg)
     timer.mark("geometry")
     if export:
         _p(progress, 0.92, "eksport")

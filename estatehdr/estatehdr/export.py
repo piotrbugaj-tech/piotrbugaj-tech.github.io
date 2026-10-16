@@ -54,6 +54,10 @@ def export_all(img: np.ndarray, group, ref_meta, cfg, out_dir: str, result: dict
     desc = f"EstateHDR {preset}; merged {len(group.frames)} frame(s)"
     outputs = {}
     tmpl = ecfg.get("name_template", "{name}_{size}")
+    icc = mode_of(ecfg.get("icc", "srgb"), "srgb")  # srgb (embedded ICC v2 profile) | none (off)
+    if icc not in ("srgb", "off"):
+        log.warning("export.icc=%r not supported (srgb | none): embedding sRGB", ecfg.get("icc"))
+    icc = icc != "off"
     h0, w0 = img.shape[:2]
     for size in ecfg.get("sizes", [{"name": "full", "long_edge": 0, "quality": 95}]):
         name = size.get("name", "full")
@@ -73,11 +77,12 @@ def export_all(img: np.ndarray, group, ref_meta, cfg, out_dir: str, result: dict
         if exif_mode != "off":
             exif = writer.build_exif(ref_meta if exif_mode == "copy" else None,
                                      im8.shape[1], im8.shape[0], desc)
-        writer.write_jpeg(path, im8, int(size.get("quality", 92)), exif, subsampling=ecfg.get("subsampling", "4:4:4"))
+        writer.write_jpeg(path, im8, int(size.get("quality", 92)), exif, subsampling=ecfg.get("subsampling", "4:4:4"),
+                          icc=icc)
         outputs[name] = {"path": path, "width": int(im8.shape[1]), "height": int(im8.shape[0])}
     if ecfg.get("tiff16", False):
         path = os.path.join(out_dir, tmpl.format(name=group.name, size="full16", preset=preset) + ".tif")
-        writer.write_tiff16(path, img)
+        writer.write_tiff16(path, img, icc=icc)
         outputs["tiff16"] = {"path": path}
     if ecfg.get("save_previews", True):
         pdir = os.path.join(out_dir, ".previews")

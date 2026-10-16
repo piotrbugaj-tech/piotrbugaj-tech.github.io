@@ -7,7 +7,8 @@ Resolution order (later wins):
   4. user-file values that *differ from the built-in defaults* (a recursive diff, ``presets``
      excluded): a full copy of config.yaml with a few edits applies only those edits and does
      not undo the preset, while a calibrated / custom file wins over every preset;
-  5. command-line ``--set section.key=value`` overrides.
+  5. command-line ``--set section.key=value`` overrides (the value is parsed as YAML) and
+     ``(section.key, value)`` tuples, set as they are (CLI flag values such as file paths).
 Mode switches documented as ``auto | off`` are read with ``mode_of`` (YAML turns ``off`` into False).
 """
 from __future__ import annotations
@@ -19,6 +20,15 @@ from typing import Any
 import yaml
 
 DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.yaml")
+
+
+class ConfigError(ValueError):
+    """Bad configuration input (config file, preset name, override); ``pl``: the message for the
+    (Polish) command line."""
+
+    def __init__(self, msg: str, pl: str):
+        super().__init__(msg)
+        self.pl = pl
 
 
 class Config(dict):
@@ -95,17 +105,41 @@ def set_path(d: dict, dotted: str, value: Any):
     cur[keys[-1]] = value
 
 
-def load_config(path: str | None = None, preset: str | None = None, overrides: list[str] | None = None) -> Config:
+def _read_user_file(path: str) -> dict:
+    if not os.path.isfile(path):
+        raise ConfigError(f"config file not found: {path}", f"nie ma pliku konfiguracji: {path}")
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            user = yaml.safe_load(fh)
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ConfigError(f"cannot read config file {path}: {exc}",
+                          f"nie można odczytać pliku konfiguracji {path}: {exc}") from exc
+    except yaml.YAMLError as exc:
+        mark = getattr(exc, "problem_mark", None)
+        what = getattr(exc, "problem", None) or str(exc).splitlines()[0]
+        en, pl = (f", line {mark.line + 1}", f", wiersz {mark.line + 1}") if mark is not None else ("", "")
+        raise ConfigError(f"invalid YAML in {path}{en}: {what}",
+                          f"błędny YAML w pliku konfiguracji {path}{pl}: {what}") from exc
+    if not isinstance(user or {}, dict):
+        raise ConfigError(f"config file {path} is not a YAML mapping",
+                          f"plik konfiguracji {path} nie jest słownikiem YAML (sekcja: klucz: wartość)")
+    return user or {}
+
+
+def load_config(path: str | None = None, preset: str | None = None, overrides: list | None = None) -> Config:
+    """``overrides``: ``"section.key=value"`` strings (value parsed as YAML) or ``(section.key, value)``
+    tuples (value set as is).  Raises ``ConfigError`` for a missing / invalid file, an unknown preset
+    or a malformed override."""
     with open(DEFAULT_CONFIG_PATH, "r", encoding="utf-8") as fh:
         base = yaml.safe_load(fh) or {}
     user = {}
     if path and os.path.abspath(path) != DEFAULT_CONFIG_PATH:
-        with open(path, "r", encoding="utf-8") as fh:
-            user = yaml.safe_load(fh) or {}
+        user = _read_user_file(path)
     presets = deep_merge(base.get("presets") or {}, user.get("presets") or {})
     name = preset or user.get("preset") or base.get("preset", "neutral")
     if name not in presets:
-        raise ValueError(f"unknown preset '{name}', available: {', '.join(presets)}")
+        raise ConfigError(f"unknown preset '{name}', available: {', '.join(presets)}",
+                          f"nieznany preset '{name}' (dostępne: {', '.join(presets)})")
     cfg = deep_merge(base, (presets[name] or {}).get("overrides", {}) or {})
     cfg["presets"] = presets
     edits = diff_from({k: v for k, v in user.items() if k != "presets"},
@@ -113,10 +147,16 @@ def load_config(path: str | None = None, preset: str | None = None, overrides: l
     cfg = deep_merge(cfg, edits)
     cfg["preset"] = name
     for item in overrides or []:
-        if "=" not in item:
-            raise ValueError(f"override must look like section.key=value, got '{item}'")
-        k, v = item.split("=", 1)
-        set_path(cfg, k.strip(), _parse_value(v.strip()))
+        k, v = "", None
+        if isinstance(item, tuple):  # CLI flag values (file paths...): no YAML parsing
+            k, v = item[0].strip(), copy.deepcopy(item[1])
+        elif "=" in item:
+            k, v = item.split("=", 1)
+            k, v = k.strip(), _parse_value(v.strip())
+        if not k or not all(p.strip() for p in k.split(".")):
+            raise ConfigError(f"override must look like section.key=value, got '{item}'",
+                              f"--set wymaga postaci sekcja.klucz=wartość, podano: '{item}'")
+        set_path(cfg, k, v)
     return Config(cfg)
 
 

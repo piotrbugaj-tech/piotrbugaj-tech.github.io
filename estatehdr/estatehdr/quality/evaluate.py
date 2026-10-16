@@ -86,6 +86,11 @@ def summarize(res: dict) -> dict:
     if "neutrality_walls_gt" in res:
         s["wall_dE_gt"] = res["neutrality_walls_gt"].get("delta_e_mean")
         s["wall_L_gt"] = res["neutrality_walls_gt"].get("L_median")
+    if "windows_gt" not in res and "windows_pipeline" in res:
+        w = res["windows_pipeline"]
+        s["win_L"] = w.get("L_mean_unclipped") if w.get("L_mean_unclipped") is not None else w.get("L_mean")
+        s["win_clip_%"] = w.get("clipped_pct")
+        s["win_detail"] = w.get("detail")
     if "windows_gt" in res:
         w = res["windows_gt"]
         s["win_L"] = w.get("L_mean_unclipped", w.get("L_mean"))
@@ -163,6 +168,9 @@ def evaluate_output_dir(out_dir: str, gt_map: dict | None = None, pairs_dir: str
                 ref = load_rgb(os.path.join(pairs_dir, sorted(cand)[0]), max_side)
         unrec = float(s.get("merge", {}).get("darkest_clipped_frac", 0.0) or 0.0)
         res = evaluate_image(img, ref, labels, unrec, win_unrec)
+        view = (s.get("windows") or {}).get("view") if isinstance(s.get("windows"), dict) else None
+        if "windows_gt" not in res and view:
+            res["windows_pipeline"] = view  # pipeline's own window mask (photos without GT)
         res["summary"] = summarize(res)
         results[s["name"]] = res
     return results

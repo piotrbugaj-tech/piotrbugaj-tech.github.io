@@ -19,7 +19,7 @@ import numpy as np
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from estatehdr.batch import run_batch  # noqa: E402
 from estatehdr.config import load_config  # noqa: E402
-from estatehdr.quality.evaluate import evaluate_output_dir  # noqa: E402
+from estatehdr.quality.evaluate import evaluate_image, evaluate_output_dir, load_rgb, summarize  # noqa: E402
 from tools.evaluate import synthetic_gt_map  # noqa: E402
 
 PRESETS = ["neutral", "airy", "premium"]
@@ -31,7 +31,8 @@ SETS = [  # name, folder, overrides, synthetic GT root
 ]
 PORTFOLIO_PICK = ["01.BtS2Hkmp", "k007.C8MVnAJ9", "k040.wqWqsOuE"]
 COLS = ["clipped_%", "clipped_excl_%", "crushed_%", "median_luma", "vert_med_deg", "wall_dE_auto", "wall_dE_gt",
-        "wall_L_gt", "win_L", "win_clip_recov_%", "halo_dL", "ssim", "ms_ssim", "dE_ref"]
+        "wall_L_gt", "win_L", "win_clip_%", "win_clip_recov_%", "win_detail", "halo_dL", "ssim", "ms_ssim", "dE_ref"]
+BEFORE_COLS = ["clipped_%", "crushed_%", "median_luma", "vert_med_deg", "wall_dE_auto"]
 
 
 def label(img, text):
@@ -49,6 +50,7 @@ def main():
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     tables = {p: {} for p in PRESETS}
+    before = {}  # series -> metrics of the reference frame as shot (same tool, no GT)
     results = {}  # (set, series) -> {preset: result dict}
     for set_name, folder, overrides, gt_root in SETS:
         if not os.path.isdir(folder):
@@ -78,10 +80,11 @@ def main():
         if len(per) < len(PRESETS):
             continue
         first = next(iter(per.values()))
-        before = first["outputs"].get("preview_before", {}).get("path")
+        bpath = first["outputs"].get("preview_before", {}).get("path")
         tiles = []
-        if before and os.path.exists(before):
-            tiles.append(label(cv2.imread(before), "przed (klatka ref.)"))
+        if bpath and os.path.exists(bpath):
+            tiles.append(label(cv2.imread(bpath), "przed (klatka ref.)"))
+            before[f"{set_name}/{series}"] = summarize(evaluate_image(load_rgb(bpath, 2048)))
         for p in PRESETS:
             tiles.append(label(cv2.imread(per[p]["outputs"]["preview_after"]["path"]), p))
         h = min(t.shape[0] * a.width // t.shape[1] for t in tiles)
@@ -96,8 +99,13 @@ def main():
           "zaczernienie = % ≤ 1, pion = mediana odchylenia linii pionowych [°], ściana ΔE = neutralność bieli "
           "(CIEDE2000; _gt = maska ścian z GT), win_L = L* widoku za oknem (bez nieodzyskiwalnych pikseli), "
           "ssim/dE_ref = zgodność z idealną edycją GT.", ""]
+    md += ["## Przed: klatka referencyjna jak z aparatu (podgląd, te same metryki)", "",
+           "| seria | " + " | ".join(BEFORE_COLS) + " |", "|---|" + "---|" * len(BEFORE_COLS)]
+    for name, sm in before.items():
+        md.append(f"| {name} | " + " | ".join("—" if sm.get(c) is None else f"{sm[c]:.3f}" for c in BEFORE_COLS) + " |")
+    md.append("")
     for p in PRESETS:
-        md += [f"## Preset `{p}`", "", "| seria | " + " | ".join(COLS) + " |", "|---|" + "---|" * len(COLS)]
+        md += [f"## Po: preset `{p}`", "", "| seria | " + " | ".join(COLS) + " |", "|---|" + "---|" * len(COLS)]
         for name, sm in tables[p].items():
             vals = []
             for c in COLS:
@@ -109,7 +117,7 @@ def main():
     with open(os.path.join(a.out, "README.md"), "w", encoding="utf-8") as fh:
         fh.write("\n".join(md) + "\n")
     with open(os.path.join(a.out, "metrics.json"), "w", encoding="utf-8") as fh:
-        json.dump(tables, fh, indent=1, default=float)
+        json.dump({**tables, "before": before}, fh, indent=1, default=float)
     print("written:", a.out)
 
 

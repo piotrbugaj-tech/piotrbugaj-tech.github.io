@@ -16,7 +16,7 @@ h2 small { font-weight: 400; color: var(--muted); font-size: 14px; }
 h3 { margin: 6px 0 8px; font-size: 15px; }
 .num { display: inline-flex; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff;
   align-items: center; justify-content: center; font-size: 14px; }
-.hidden { display: none !important; }
+.hidden, [hidden] { display: none !important; }  /* [hidden] must win over .row{display:flex} */
 .hint, .muted { color: var(--muted); font-size: 13.5px; }
 .row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 10px 0; }
 .row.center { justify-content: center; }

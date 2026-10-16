@@ -2,7 +2,7 @@
 # EstateHDR - uruchamianie jedną komendą.
 #   ./estatehdr.sh process <folder> [opcje]   obróbka folderu (serie bracketingowe / pojedyncze zdjęcia)
 #   ./estatehdr.sh web [--port 8765]           lokalny interfejs webowy (http://127.0.0.1:8765)
-#   ./estatehdr.sh test                        testy automatyczne
+#   ./estatehdr.sh test [opcje pytest]         testy automatyczne
 #   ./estatehdr.sh presets | group <folder>
 # Przy pierwszym uruchomieniu tworzy .venv i instaluje requirements.txt (ponownie tylko po jego zmianie).
 set -euo pipefail

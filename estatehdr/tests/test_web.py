@@ -115,3 +115,63 @@ def test_web_merging_masked_series_unions_masks(synth, tmp_path):
     assert list(r["masks"]) == ["AB"]
     m = cv2.imdecode(np.frombuffer(c.get(f"/api/jobs/{jid}/masks/AB").content, np.uint8), cv2.IMREAD_GRAYSCALE)
     assert m[100, 100] > 127 and m[100, 300] > 127
+
+
+def test_web_polish_series_names_round_trip(synth, tmp_path):
+    """Series names keep Unicode letters (only path-reserved characters are replaced), equal what
+    run_batch keeps, and outputs named after them are served (URL, download name, ZIP); no ZIP
+    while the job is busy."""
+    from urllib.parse import quote, unquote
+
+    from estatehdr.grouping import Group, unique_names
+    from estatehdr.web.app import _unique_names
+    web = [g["name"] for g in _unique_names([{"name": "Łazienka główna"}, {"name": "ŁAZIENKA GŁÓWNA"},
+                                             {"name": "Pokój #2 100%"}, {"name": "Żółw: a/b?"}])]
+    assert web == ["Łazienka główna", "ŁAZIENKA GŁÓWNA_2", "Pokój #2 100%", "Żółw_ a_b_"]
+    assert [g.name for g in unique_names([Group(n, []) for n in web])] == web
+    c = TestClient(create_app(str(tmp_path / "work")))
+    jid = c.post("/api/jobs").json()["id"]
+    src = os.path.join(synth["input"], "IMG_0011.jpg")
+    c.post(f"/api/jobs/{jid}/files", files=[("files", ("a.jpg", open(src, "rb"), "image/jpeg")),
+                                            ("files", ("b.jpg", open(src, "rb"), "image/jpeg"))],
+           data={"paths": ["x/a.jpg", "x/b.jpg"]})
+    c.post(f"/api/jobs/{jid}/group", json={"single": True})
+    names = ["Łazienka główna", "Pokój #2 100%"]
+    g = c.put(f"/api/jobs/{jid}/groups", json={"groups": [{"name": names[0], "files": ["x/a.jpg"]},
+                                                          {"name": names[1], "files": ["x/b.jpg"]}]}).json()
+    assert [x["name"] for x in g["groups"]] == names
+    mask = np.zeros((320, 480), np.uint8)
+    cv2.circle(mask, (240, 280), 12, 255, -1)
+    ok, buf = cv2.imencode(".png", mask)
+    mu = f"/api/jobs/{jid}/masks/{quote(names[0])}"
+    assert c.post(mu, files={"file": ("m.png", buf.tobytes(), "image/png")}).json()["ok"]
+    assert c.get(mu).status_code == 200 and list(c.get(f"/api/jobs/{jid}").json()["masks"]) == [names[0]]
+    assert c.post(f"/api/jobs/{jid}/start", json={"preset": "neutral", "remove": True, "mls_size": 512}).json()["ok"]
+    t0 = time.time()
+    while time.time() - t0 < 300:
+        st = c.get(f"/api/jobs/{jid}").json()
+        if st["state"] not in ("queued", "running"):
+            break
+        time.sleep(0.5)
+    assert st["state"] == "done", st.get("error")
+    assert sorted(st["results"]) == sorted(names)
+    assert st["results"][names[0]]["modules"]["remove"].get("components") == 1
+    for n in names:
+        out = st["results"][n]["outputs"]
+        assert out["mls"]["name"] == f"{n}_mls.jpg"
+        assert "#" not in out["mls"]["url"] and unquote(out["mls"]["url"]).endswith(f"/out/{n}_mls.jpg")
+        r = c.get(out["mls"]["url"], params={"download": 1})
+        assert r.status_code == 200 and r.headers["content-type"] == "image/jpeg"
+        assert r.headers["content-disposition"] == f"attachment; filename*=utf-8''{quote(n + '_mls.jpg')}"
+        assert c.get(out["preview_after"]["url"]).status_code == 200
+    z = zipfile.ZipFile(io.BytesIO(c.get(f"/api/jobs/{jid}/zip", params={"which": "mls"}).content))
+    assert sorted(z.namelist()) == sorted(f"{n}_mls.jpg" for n in names)
+    # path checks still hold for encoded traversal attempts
+    assert c.get(f"/api/jobs/{jid}/out/%2E%2E/job.json").status_code in (400, 404)
+    # while a (re)run is queued / running the previous ZIP is not served
+    mgr = c.app.state.manager
+    for state in ("queued", "running"):
+        mgr.jobs[jid].state = state
+        r = c.get(f"/api/jobs/{jid}/zip", params={"which": "mls"})
+        assert r.status_code == 409 and "w trakcie" in r.json()["detail"]
+    mgr.jobs[jid].state = "done"

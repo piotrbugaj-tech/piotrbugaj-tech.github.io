@@ -310,9 +310,15 @@ def _crop_fraction(W, H, k1, Rm, f_full):
 
 
 def correct(img: np.ndarray, cfg: dict, meta=None) -> tuple[np.ndarray, dict]:
+    return apply(img, estimate(img, cfg, meta), cfg)
+
+
+def estimate(img: np.ndarray, cfg: dict, meta=None) -> dict:
+    """Distortion and camera rotation of a display image (analysis resolution).  Kept separate
+    from ``apply`` so the optional modules (retouch, new sky) cannot change the geometry."""
     gcfg = cfg.get("geometry", {})
     if not gcfg.get("enabled", True):
-        return img, {"enabled": False}
+        return {"enabled": False, "info": {"enabled": False}}
     H, W = img.shape[:2]
     side = int(cfg.get("runtime", {}).get("analysis_max_side", 1600))
     small, s = resize_max(img, side)
@@ -349,6 +355,19 @@ def correct(img: np.ndarray, cfg: dict, meta=None) -> tuple[np.ndarray, dict]:
                 strength *= min(1.0, maxp / max(abs(pitch), 1e-6), maxr / max(abs(roll), 1e-6))
                 Rm, _, _ = rotation_from_vp(v_px, fpx_small, strength)
                 info["verticals"]["applied_strength"] = strength
+    return {"enabled": True, "k1": k1, "Rm": Rm, "f_small": fpx_small, "s": s, "size": (W, H), "info": info}
+
+
+def apply(img: np.ndarray, plan: dict, cfg: dict) -> tuple[np.ndarray, dict]:
+    """Undistort + rotate + crop + resize back, as estimated by ``estimate`` (full resolution)."""
+    info = plan["info"]
+    if not plan.get("enabled", True):
+        return img, info
+    gcfg = cfg.get("geometry", {})
+    H, W = img.shape[:2]
+    if (W, H) != tuple(plan["size"]):
+        raise ValueError("geometry plan was estimated on an image of another size")
+    k1, Rm, fpx_small, s = plan["k1"], plan["Rm"], plan["f_small"], plan["s"]
     # 3. compose: output pixel -> source pixel (full resolution)
     max_crop = float(gcfg.get("max_crop", 0.15))
     for _ in range(6):

@@ -94,7 +94,12 @@ geometry:
   resize_back: true        # wynik "full" w wymiarach wejścia (jak AutoHDR)
 
 lens:
-  vignetting: auto         # auto | off
+  # winieta: auto | off | ułamek spadku jasności w rogu (np. 0.3 = rogi o 30% ciemniejsze, model 1 - v r^2).
+  # auto (symetria gradientów radialnych) koryguje tylko przy wiarygodnym dowodzie: wnętrza same z siebie
+  # ciemnieją ku brzegom kadru (światło okien/lamp blisko środka), więc na typowych scenach auto nic nie robi
+  # (powód i oszacowanie w raporcie: lens.vignetting). Znana winieta obiektywu: wpisz ją ręcznie.
+  vignetting: auto
+  vignetting_max: 0.5      # auto: maksymalny korygowany spadek jasności w rogu
   ca: auto                 # auto | off
 
 tonemap:
@@ -102,6 +107,7 @@ tonemap:
   black_percentile: 0.5    # percentyl wnętrza mapowany na black_target
   white_percentile: 99.0   # percentyl wnętrza mapowany na target_white (okna/lampy wyłączone)
   black_target: 0.03       # wartości sRGB (0-1) na wyjściu
+  max_toe_expansion: 4.0   # max rozciągnięcie kontrastu od czerni do klucza względem sceny (exteriory: szyby nie toną w czerni)
   target_key: 0.70         # jasność średnich tonów (sRGB); kalibracja do jasnych ścian (SPEC: L* 78-88)
   target_white: 0.96
   shoulder_ev: 2.5         # miękkie ramię powyżej bieli wnętrza
@@ -125,6 +131,9 @@ denoise:
   enabled: true
   luma: 0.6                # siła odszumiania luminancji (0-1+)
   chroma: 1.0
+  strong_sigma: 0.015      # tryb silny (NLM po stabilizacji wariancji), gdy szum całego obrazu jest większy...
+  strong_dark_sigma: 0.03  # ...albo szum cieni (gotowe JPEG-i mają w cieniach do ok. 0.045 tekstury i artefaktów)
+  strong_dark_sigma_raw: 0.02  # pojedyncza klatka RAW: podniesione cienie
 single_image:
   denoise_boost: 1.6       # tryb pojedynczego zdjęcia: mocniejsze odszumianie
   # pojedynczy, już wywołany plik (JPEG): fotograf ustalił ekspozycję i balans bieli -
@@ -133,6 +142,11 @@ single_image:
   key_range: [-0.15, 0.10] # dopuszczalne odchylenie klucza od tonemap.target_key (gotowe JPEG-i: bez rozjaśniania)
   wb_strength: 0.4         # mnożnik siły WB (globalnego i lokalnego)
   compress_shadows_min: 0.8
+  # pojedynczy RAW: im głośniejsze cienie (szum / mediana sygnału, pełna rozdzielczość), tym słabiej
+  # podnoszone cienie i niższy klucz - szumu z jednej klatki nie da się usunąć (D-39)
+  noise_nsr: [0.03, 0.06, 0.15]
+  noise_compress_shadows: [0.9, 0.95]
+  noise_key_drop: [0.10, 0.15]
 
 night:                     # nocne exteriory: ciemne, gładkie niebo u góry kadru (z radiancji po merge)
   enabled: true
@@ -176,7 +190,7 @@ export:
     - {name: full, long_edge: 0, quality: 95, sharpen: 1.0}
     - {name: mls, long_edge: 2048, quality: 90, sharpen: 0.8}
   subsampling: "4:4:4"
-  icc: srgb
+  icc: srgb                # srgb (osadzony profil sRGB, ICC v2) | none
   exif: copy               # copy | minimal | none
   tiff16: false            # dodatkowo 16-bit TIFF w pełnej rozdzielczości
   name_template: "{name}_{size}"

@@ -55,10 +55,37 @@ def plan_workers(groups: list[Group], cfg: Config) -> int:
     return max(1, min(len(groups) or 1, by_mem, max(1, cpu // 2)))
 
 
-def _worker_init(threads: int, log_level: int):
+def quiet_opencv(verbose: bool = False):
+    """Native OpenCV / libtiff warnings ('[ WARN:0@0.4] global grfmt_tiff.cpp:123 TIFF_Warning ...') bypass
+    Python logging and flood stderr: errors only (warnings kept with -v).  The environment variable
+    reaches worker processes started later; an OPENCV_LOG_LEVEL set by the user wins."""
+    if os.environ.get("OPENCV_LOG_LEVEL"):
+        return  # OpenCV reads it itself at import
+    os.environ["OPENCV_LOG_LEVEL"] = "WARNING" if verbose else "ERROR"
+    try:
+        import cv2
+        lg = cv2.utils.logging
+        lg.setLogLevel(lg.LOG_LEVEL_WARNING if verbose else lg.LOG_LEVEL_ERROR)
+    except Exception:  # builds without cv2.utils.logging: the variable covers processes started later
+        pass
+
+
+WORKER_LOG_FORMAT = "%(asctime)s %(levelname)-7s %(processName)s %(name)s: %(message)s"
+
+
+def _worker_init(threads: int, log_level: int, log_files: tuple = ()):
+    """Worker process setup: OpenCV threads, quiet native logging and the parent's log files
+    (estatehdr.log), appended to, so per-series lines and errors reach them too."""
+    quiet_opencv(log_level <= logging.DEBUG)
     import cv2
     cv2.setNumThreads(max(1, threads))
-    logging.basicConfig(level=log_level, format="%(asctime)s %(levelname)s %(processName)s %(name)s: %(message)s")
+    handlers = [logging.StreamHandler()]
+    for p in log_files:
+        try:
+            handlers.append(logging.FileHandler(p, mode="a", encoding="utf-8"))
+        except OSError:
+            pass  # a log file that cannot be opened must not break the worker
+    logging.basicConfig(level=log_level, format=WORKER_LOG_FORMAT, handlers=handlers, force=True)
 
 
 CRASH_ENV = "ESTATEHDR_TEST_CRASH_SERIES"  # tests only: the named series kills its process
@@ -114,6 +141,7 @@ def run_batch(input_dir: str | None, out_dir: str, cfg: Config, groups_file: str
                     metas.append(read_metadata(p))
                 except Exception as exc:
                     failures.append({"file": p, "error": str(exc)})
+                    log.warning("skipping %s: %s", p, exc)
             groups = group_frames(metas, cfg.get("grouping", {}))
         else:
             groups, failures = scan_folder(input_dir, cfg.get("grouping", {}),
@@ -151,6 +179,8 @@ def run_batch(input_dir: str | None, out_dir: str, cfg: Config, groups_file: str
 
     def finished(i: int, g: Group, r: dict):
         results[i] = r
+        if r.get("status") != "ok":  # always in the parent's log, whatever happened in the worker
+            log.error("[%s] series failed: %s", g.name, r.get("error"))
         _write_json(report_path, build_report(False))
         if progress_cb:
             progress_cb({"series": g.name, "index": i, "total": len(groups), "frac": 1.0, "stage": "gotowe",
@@ -183,6 +213,7 @@ def _run_pool(groups, cfg, out_dir, masks, workers, threads, progress_cb, finish
     mgr = ctx.Manager() if progress_cb else None
     queue = mgr.Queue() if mgr else None
     level = logging.getLogger().level or logging.INFO
+    log_files = tuple(h.baseFilename for h in logging.getLogger().handlers if isinstance(h, logging.FileHandler))
 
     def drain():
         while queue is not None:
@@ -200,7 +231,7 @@ def _run_pool(groups, cfg, out_dir, masks, workers, threads, progress_cb, finish
         """Run (index, group) items in one pool; returns the items lost to a broken pool."""
         lost = []
         with ProcessPoolExecutor(max_workers=n_workers, mp_context=ctx, initializer=_worker_init,
-                                 initargs=(n_threads, level)) as ex:
+                                 initargs=(n_threads, level, log_files)) as ex:
             futs = {ex.submit(_run_one, g, dict(cfg), out_dir, (masks or {}).get(g.name), queue, i): (i, g)
                     for i, g in items}
             pending = set(futs)
@@ -226,8 +257,7 @@ def _run_pool(groups, cfg, out_dir, masks, workers, threads, progress_cb, finish
             log.warning("a worker process died; re-running %d unfinished series one at a time", len(lost))
         for i, g in sorted(lost, key=lambda x: x[0]):
             if run([(i, g)], 1, max(threads, (os.cpu_count() or 2) // 2)):
-                log.error("[%s] %s", g.name, WORKER_CRASHED)
-                finished(i, g, _error_result(g, WORKER_CRASHED))
+                finished(i, g, _error_result(g, WORKER_CRASHED))  # logged by finished()
     finally:
         if mgr is not None:
             mgr.shutdown()

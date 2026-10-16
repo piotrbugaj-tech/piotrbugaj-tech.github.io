@@ -63,3 +63,38 @@ def test_to_uint8_dither_unbiased():
     img = np.full((200, 300, 3), 0.5004, np.float32)
     u = writer.to_uint8(img)
     assert abs(u.astype(float).mean() / 255 - 0.5004) < 1e-3
+
+
+def test_embedded_srgb_profile_is_icc_v2():
+    from PIL import ImageCms
+    from estatehdr.io import icc
+    b = writer.srgb_icc()
+    assert b == writer._srgb_icc_v2() and len(b) % 4 == 0 and int.from_bytes(b[:4], "big") == len(b)  # deterministic
+    p = ImageCms.ImageCmsProfile(io.BytesIO(b))
+    assert 2.0 <= p.profile.version < 3.0 and p.profile.profile_description == "sRGB IEC61966-2.1 (EstateHDR)"
+    assert icc.inspect(b) == (False, "sRGB IEC61966-2.1 (EstateHDR)")  # read back as plain sRGB, never converted
+    assert np.allclose(icc._matrix_trc(b)[0], icc._srgb()["matrix"], atol=1e-4)
+    v = np.array([0, 1, 3, 8, 20, 50, 100, 128, 180, 230, 254, 255], np.uint8)
+    rgb = np.stack(np.meshgrid(v, v, v, indexing="ij"), -1).reshape(v.size, -1, 3)
+    builtin = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB"))
+    for intent in (ImageCms.Intent.PERCEPTUAL, ImageCms.Intent.RELATIVE_COLORIMETRIC):
+        t = ImageCms.buildTransform(p, builtin, "RGB", "RGB", renderingIntent=intent)
+        conv = np.asarray(ImageCms.applyTransform(Image.fromarray(rgb), t))
+        assert np.abs(conv.astype(int) - rgb).max() <= 1
+
+
+def test_export_icc_option(tmp_path):
+    from types import SimpleNamespace
+    import tifffile
+    from estatehdr.config import load_config
+    from estatehdr.export import export_all
+    img = np.random.default_rng(2).random((40, 60, 3)).astype(np.float32)
+    for mode, embedded in (("srgb", True), ("none", False), (False, False)):
+        cfg = load_config(overrides=[("export.icc", mode), ("export.tiff16", True), ("export.save_previews", False)])
+        outs = export_all(img, SimpleNamespace(name="x", frames=[None]), None, cfg, str(tmp_path / str(mode)), {})
+        for k in ("full", "mls"):
+            with Image.open(outs[k]["path"]) as im:
+                assert (im.info.get("icc_profile") == writer.srgb_icc()) == embedded
+        with tifffile.TiffFile(outs["tiff16"]["path"]) as tf:
+            tag = tf.pages[0].tags.get(34675)
+            assert (tag is not None and bytes(tag.value) == writer.srgb_icc()) == embedded

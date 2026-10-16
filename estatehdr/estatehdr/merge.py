@@ -142,7 +142,9 @@ def merge_series(series, cfg: dict) -> MergeResult:
     if len(frames) == 1:
         x = ref.linear()
         rad[:] = x
-        clipped = _smooth_step(0.9, 0.99, chmax(x)).astype(np.float32)
+        # one frame: only pixels saturated in every channel carry no information (a bright view
+        # with one channel at 255 still has structure and is tone mapped, not painted white)
+        clipped = _smooth_step(0.95, 0.99, chmin(x)).astype(np.float32)
         rad, off = neutralize_black_bias(rad, float(mcfg.get("black_bias_max", 0.05)))
         return MergeResult(rad, clipped, None, {**stats, "frames": 1, "black_bias": off})
     darkest = int(np.argmin([f.exposure for f in frames]))

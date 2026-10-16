@@ -194,6 +194,65 @@ def test_manual_vignetting(cfg):
     assert out[0, 0].mean() > 0.6  # corners brightened
 
 
+def _textured_surface(h=400, w=600, seed=3):
+    """Linear radiance of a flat, finely textured surface lit a little unevenly from one side: content
+    whose radial gradients are symmetric, i.e. what automatic vignetting estimation can rely on."""
+    rng = np.random.default_rng(seed)
+    n = cv2.GaussianBlur(rng.normal(0, 1, (h, w)).astype(np.float32), (0, 0), 2.0)
+    n /= n.std()
+    tilt = np.linspace(-0.1, 0.1, w, dtype=np.float32)[None, :]
+    img = (0.3 * np.exp(0.04 * n + tilt))[..., None].repeat(3, -1)
+    return (img * rng.normal(1, 0.01, img.shape)).astype(np.float32)
+
+
+def _corner_falloff(ratio):
+    """1 - (mean of the four corner patches) / (centre patch) of a per-pixel gain map."""
+    h, w = ratio.shape[:2]
+    p = 6
+    corners = np.mean([ratio[:p, :p].mean(), ratio[:p, -p:].mean(), ratio[-p:, :p].mean(), ratio[-p:, -p:].mean()])
+    return 1.0 - corners / ratio[h // 2 - p:h // 2 + p, w // 2 - p:w // 2 + p].mean()
+
+
+@pytest.mark.parametrize("fall", [0.0, 0.1, 0.2, 0.35])
+def test_auto_vignetting_recovers_falloff(cfg, fall):
+    # the camera model of the synthetic dataset (V = 1 - v r^2) on a symmetric-gradient surface
+    from estatehdr.synthetic import CameraSpec, apply_optics
+    clean = _textured_surface()
+    vig = apply_optics(clean, CameraSpec(vignetting=fall, ca=0.0, k1=0.0))
+    assert _corner_falloff(vig / clean) == pytest.approx(fall, abs=0.02)
+    out, info = lens.correct(vig.copy(), {**cfg, "lens": {"ca": "off", "vignetting": "auto"}})
+    vi = info["vignetting"]
+    assert vi["estimate"] == pytest.approx(fall, abs=0.04), vi
+    assert vi["applied"] == (fall > 0), vi
+    assert abs(_corner_falloff(out / clean)) <= 0.08, vi  # SPEC: residual vignetting <= 8% in the corner
+
+
+def test_auto_vignetting_no_false_positive_on_scenes(synth, cfg):
+    """Rendered rooms are darker towards the frame edges by themselves (window / lamp light falls off
+    away from the centre) - as much as or more than the 35% lens vignetting of the captures, so their
+    radial gradients cannot be trusted.  Auto mode must leave the vignetting-free ideal radiance alone
+    and must never over-correct a capture."""
+    c = {**cfg, "lens": {"ca": "off", "vignetting": "auto"}}
+    for scene in ("living_room", "bedroom"):
+        ideal = tifffile.imread(os.path.join(synth["root"], "gt", scene, "radiance_ideal.tif")).astype(np.float32)
+        out, info = lens.correct(ideal.copy(), c)
+        vi = info["vignetting"]
+        assert not vi["applied"] and "reason" in vi, vi
+        assert np.array_equal(out, ideal)
+        _, info = lens.correct(_gt_radiance(synth, scene), c)  # true corner fall-off 0.35
+        vi = info["vignetting"]
+        assert "estimate" in vi and -(vi.get("a", 0.0) + vi.get("b", 0.0)) <= 0.35 + 0.08, vi
+
+
+def test_auto_vignetting_cap_and_featureless():
+    from estatehdr.synthetic import CameraSpec, apply_optics
+    vig = apply_optics(_textured_surface(seed=4), CameraSpec(vignetting=0.65, ca=0.0, k1=0.0))
+    a, b, vi = lens.estimate_vignetting(vig, max_falloff=0.5)
+    assert vi["estimate"] > 0.55 and vi["applied"] and vi["capped"] and -(a + b) == pytest.approx(0.5), vi
+    a, b, vi = lens.estimate_vignetting(np.full((300, 450, 3), 0.3, np.float32))
+    assert (a, b) == (0.0, 0.0) and not vi["applied"], vi
+
+
 # --- geometry ------------------------------------------------------------------------------------
 def _lines_image(w=600, h=400, tilt_deg=0.0):
     img = np.full((h, w, 3), 0.85, np.float32)

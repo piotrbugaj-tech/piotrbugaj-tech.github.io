@@ -18,6 +18,7 @@ import time
 import traceback
 import uuid
 import zipfile
+from urllib.parse import quote, unquote
 
 import cv2
 import numpy as np
@@ -31,7 +32,7 @@ from ..io.metadata import SUPPORTED_EXTS
 
 log = logging.getLogger(__name__)
 STATIC = os.path.join(os.path.dirname(__file__), "static")
-SAFE = re.compile(r"[^A-Za-z0-9._\- ]+")
+SAFE = re.compile(r"[^A-Za-z0-9._\- ]+")  # uploaded paths and mask file names (series names: _series_name)
 SKY_STYLES = ["clear", "wispy", "dramatic"]
 TWILIGHT_STYLES = ["blue", "pink", "golden"]
 
@@ -144,8 +145,9 @@ def _summary(job: Job, r: dict) -> dict:
     for k, v in (r.get("outputs") or {}).items():
         path = v.get("path") if isinstance(v, dict) else None
         if path and os.path.exists(path):
-            rel = os.path.relpath(path, job.output_dir)
-            outs[k] = {"url": f"/api/jobs/{job.id}/out/{rel}", "name": os.path.basename(path),
+            rel = os.path.relpath(path, job.output_dir).replace(os.sep, "/")
+            # file names follow the series name (Unicode letters, '#', '%' ...): percent-encode the URL
+            outs[k] = {"url": f"/api/jobs/{job.id}/out/{quote(rel)}", "name": os.path.basename(path),
                        "width": v.get("width"), "height": v.get("height")}
     mods = r.get("modules") or {}
     return {"status": r.get("status"), "error": r.get("error"), "warnings": r.get("warnings", []),
@@ -273,12 +275,14 @@ def _overrides(st: dict) -> list[str]:
 
 
 def _series_name(raw: str) -> str:
+    """grouping.safe_name (only path-reserved / control characters replaced, Unicode letters kept)
+    on at most 80 characters: a fixed point of safe_name, so run_batch keeps it unchanged."""
     from ..grouping import safe_name
-    return safe_name(SAFE.sub("_", str(raw))[:80])
+    return safe_name(str(raw)[:80])
 
 
 def _unique_names(groups: list[dict]) -> list[dict]:
-    """Same rules as grouping.unique_names (safe characters, case-insensitive), so the batch keeps
+    """Same rules as grouping.unique_names (safe_name, case-insensitive), so the batch keeps
     exactly these names and masks / results stay keyed by what the user sees."""
     names: set = set()
     for g in groups:
@@ -568,6 +572,8 @@ def create_app(workdir: str | None = None) -> FastAPI:
     @app.get("/api/jobs/{jid}/zip")
     def zip_all(jid: str, which: str = Query("all", pattern="^(all|full|mls)$")):
         j = mgr.get(jid)
+        if j.state in ("queued", "running"):  # results of the previous run are being replaced
+            raise HTTPException(409, "zadanie jest w trakcie przetwarzania - pobierz ZIP po zakończeniu")
         files = []
         for name, r in j.results.items():
             for k, v in (r.get("outputs") or {}).items():
@@ -575,7 +581,9 @@ def create_app(workdir: str | None = None) -> FastAPI:
                     continue
                 if which != "all" and k != which:
                     continue
-                files.append(_inside(j.output_dir, v["url"].split("/out/", 1)[1]))
+                f = _inside(j.output_dir, unquote(v["url"].split("/out/", 1)[1]))
+                if os.path.isfile(f):
+                    files.append(f)
         if not files:
             raise HTTPException(404, "brak wyników do pobrania")
         tmp = tempfile.NamedTemporaryFile(prefix="estatehdr_", suffix=".zip", delete=False)

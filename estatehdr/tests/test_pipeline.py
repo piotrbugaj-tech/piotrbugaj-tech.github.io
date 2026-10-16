@@ -99,6 +99,7 @@ def test_cli_presets_and_process(synth, tmp_path):
     r = subprocess.run([sys.executable, "-m", "estatehdr", "process", os.path.join(synth["input"], "IMG_0011.jpg"),
                         "-o", out, "--preset", "premium", "--workers", "1"], capture_output=True, text=True, env=env)
     assert r.returncode == 0, r.stderr[-2000:]
-    assert json.loads(r.stdout.strip().splitlines()[-1])["ok"] == 1
+    res = json.loads(r.stdout.strip().splitlines()[-1])
+    assert (res["ok"], res["failed"], res["failed_series"], res["unreadable"]) == (1, 0, 0, 0)
     assert os.path.exists(os.path.join(out, "IMG_0011_full.jpg"))
     assert os.path.exists(os.path.join(out, "estatehdr.log"))
