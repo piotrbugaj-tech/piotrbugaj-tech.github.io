@@ -67,11 +67,18 @@ Przykłady:
 ./estatehdr.sh process ~/sesje/x --set tonemap.target_key=0.6 --set white_balance.target_cct=6300
 ```
 
-Batch nigdy się nie zatrzymuje na pojedynczym problemie:
-- uszkodzony plik trafia do `unreadable` i nie jest dołączany do serii (z serii odpada tylko nieczytelna klatka);
+Batch nie zatrzymuje się na pojedynczym problemie z danymi:
+- plik uszkodzony tak, że przy skanowaniu nie da się zdekodować nawet miniatury, trafia do `unreadable` i nie jest
+  dołączany do serii. Klatka, która przejdzie skanowanie, ale nie da się jej zdekodować w całości, jest pomijana
+  z ostrzeżeniem serii (`skipped undecodable frame(s)`), a reszta serii jest liczona dalej. W trybie `--single`
+  skanowanie sprawdza tylko nagłówek: obcięty plik nie trafia wtedy do `unreadable`, tylko jego seria kończy się
+  błędem (liczona w `failed_series`);
 - niepełna seria albo brak EXIF dają ostrzeżenie tej serii;
-- awaria procesu roboczego (np. brak pamięci) dotyczy tylko serii, która ją wywołała. Pozostałe serie są
-  przeliczane ponownie, pojedynczo.
+- awaria procesu roboczego (np. brak pamięci) przy co najmniej dwóch procesach roboczych dotyczy tylko serii, która
+  ją wywołała: serie niedokończone w chwili awarii są przeliczane ponownie, pojedynczo, każda w nowym procesie.
+  Gdy działa tylko jeden proces (`--workers 1`, jedna seria, do 3 rdzeni CPU albo pamięć wystarcza na jedną serię),
+  serie są liczone w procesie głównym i taka awaria przerywa cały batch; `report.json` zostaje wtedy z
+  `"complete": false` i listą `pending`.
 
 Kody wyjścia:
 - **0**: wszystko w porządku;
@@ -85,16 +92,20 @@ Ostatnia linia na wyjściu to JSON z liczbami `ok`, `failed` (serie z błędem +
 Fotografowanie RAW+JPEG: pliki o tej samej nazwie w jednym folderze (`IMG_1.CR2` + `IMG_1.JPG`) to jedna klatka,
 używany jest RAW. Serie o tej samej nazwie (np. `IMG_0001` w dwóch podfolderach) dostają przyrostek `_2`, `_3`,
 więc wyniki się nie nadpisują. Folder wyjściowy wewnątrz sesji jest pomijany przy ponownym uruchomieniu.
-Zdjęcia z profilem ICC innym niż sRGB (Adobe RGB, ProPhoto, Display P3) są konwertowane do sRGB (LittleCMS),
-z ostrzeżeniem w raporcie.
+Zdjęcia z profilem ICC innym niż sRGB (Adobe RGB, ProPhoto, Display P3) są konwertowane do sRGB (8 bit przez
+LittleCMS, 16 bit przez macierz i krzywe tonalne z profilu, a profile tablicowe przez LUT 3D próbkowaną
+z LittleCMS; D-35), z ostrzeżeniem w raporcie.
 
 ## 3. Interfejs webowy
 
 `./estatehdr.sh web` uruchamia serwer pod `http://127.0.0.1:8765` (tylko lokalnie). Zadania są w `work/jobs/`.
 1. **Zdjęcia:** przeciągnij folder (rekurencyjnie) lub wybierz pliki, z paskiem postępu wysyłania.
 2. **Serie:** automatyczne grupowanie z miniaturami i EV. Ręczna korekta: przenieś klatkę do innej lub nowej
-   serii, połącz albo rozdziel serie, zmień nazwę. Przycisk „Maska usuwania” otwiera pędzel na klatce
-   referencyjnej.
+   serii, połącz albo rozdziel serie, zmień nazwę. Przycisk „Maska usuwania” otwiera pędzel na środkowej
+   ekspozycji serii (wg EV; przy parzystej liczbie klatek na jaśniejszej z dwóch środkowych). Pipeline jako klatkę
+   referencyjną bierze środkową ekspozycję (przy parzystej liczbie klatek ciemniejszą z dwóch środkowych), a gdy
+   jest ona wyraźnie gorzej naświetlona, najlepiej naświetloną klatkę. W tych przypadkach maska może być
+   przesunięta o różnicę wyrównania klatek (por. D-30).
 3. **Ustawienia:** preset (neutral / airy / premium), piony, okna, niebo, zmierzch, trawa, usuwanie obiektów,
    rozmiar MLS.
 4. **Kolejka i wyniki:** postęp każdej serii z nazwą etapu, suwak przed/po, pobieranie pojedynczych plików
@@ -128,11 +139,15 @@ workerów wynika z budżetu RAM.
 | Preset | Charakter | Najważniejsze różnice (wartości po kalibracji, D-32, D-37) |
 |---|---|---|
 | `neutral` (domyślny) | naturalny, jasny wygląd do ogłoszeń (MLS) | klucz tonalny 0.70, kompresja cieni 0.64, widok za oknem ≈ 0.6, biel neutralna przy mieszanym świetle |
-| `airy` | jasny, lekki (high-key) | klucz 0.85, łagodniejsza kompresja lokalna (0.78), jaśniejszy widok za oknem, mniej kontrastu i nasycenia |
+| `airy` | jasny, lekki (high-key) | klucz 0.85, łagodniejsza kompresja cieni (0.78), a świateł nieco mocniejsza (0.59), jaśniejszy widok za oknem, mniej kontrastu i nasycenia |
 | `premium` | „magazynowy” | ten sam klucz co neutral, ale słabiej podniesione cienie (0.86), więcej kontrastu, wibracji i detalu, ciemniejszy nasycony widok za oknem |
 
-Presety są skalibrowane każdy do swojego pasma jasności ścian ze SPEC (neutral L* 78–88, airy 84–92, premium
-74–86), z ograniczeniem kolejności: premium nie jest jaśniejszy od neutral, a neutral od airy.
+Presety są skalibrowane każdy osobno do swojego pasma jasności ścian ze SPEC (neutral L* 78–88, airy 84–92,
+premium 74–86). Jedyne dodatkowe ograniczenie (D-37) dotyczy parametru, a nie wyniku: klucz tonalny premium nie może
+przekroczyć klucza neutral (0.70). Dlatego premium ma praktycznie tę samą jasność co neutral (ściany L* 76.0 wobec
+75.6 w `reports/calibration/full_pipeline.json`, czasem minimalnie jaśniej). Od neutral różni się kontrastem,
+słabiej podniesionymi cieniami i ciemniejszym widokiem za oknem. Airy (klucz 0.85) jest wyraźnie jaśniejszy na
+seriach z bracketingu i HDR+, ale na gotowych zdjęciach (portfolio) nie rozjaśnia bardziej niż neutral.
 
 Wszystkie parametry są w jednym pliku [config.yaml](config.yaml), z komentarzami po polsku. Kolejność (późniejsze
 wygrywa): `config.yaml` → ustawienia wybranego presetu → własny plik `--config` → `--set klucz=wartość`.
@@ -167,14 +182,16 @@ Wszystkie liczby w tej sekcji generuje `tools/update_readme_metrics.py` z plikó
 ### 6.1 Kalibracja: przed i po (pełny pipeline, sceny syntetyczne z GT)
 
 Ten sam kod, różnią się tylko parametry: przed = [config_before_full.yaml](reports/calibration/config_before_full.yaml),
-po = `config.yaml`. Metryki z GT to średnie z 3 wnętrz z prawdą referencyjną, pozostałe z 6 serii. Pełna
-tabela per seria: [reports/calibration/full_pipeline.md](reports/calibration/full_pipeline.md).
+po = `config.yaml`. Metryki oznaczone GT oraz odzyskiwalne przepalenia okna, halo i detal widoku to średnie
+z 3 wnętrz z prawdą referencyjną; jasność widoku za oknem to średnia z 5 serii z oknami (dla serii bez GT
+z maski okien pipeline'u), pozostałe z 6 serii. Pełna tabela per seria:
+[reports/calibration/full_pipeline.md](reports/calibration/full_pipeline.md).
 
 | Metryka (cel ze SPEC) | neutral przed → po | airy przed → po | premium przed → po |
 |---|---|---|---|
 | Neutralność ścian ΔE2000, GT (≤ 3.0) | 4.96 → **1.62** | 4.91 → **1.68** | 5.02 → **1.68** |
 | Jasność ścian L*, GT (neutral 78–88, airy 84–92, premium 74–86) | 62.7 → **75.6** | 67.8 → **87.1** | 61.0 → **76.0** |
-| Jasność widoku za oknem L*, GT (55–80, premium 45–70) | 74.8 → 72.0 | 79.3 → 76.5 | 71.2 → 67.2 |
+| Jasność widoku za oknem L* (55–80, premium 45–70) | 74.8 → 72.0 | 79.3 → 76.5 | 71.2 → 67.2 |
 | Odzyskiwalne przepalenia okna, % (< 5) | 0.0 → 0.0 | 0.0 → 0.0 | 0.0 → 0.0 |
 | Przepalenia poza źródłami światła, %, GT (< 0.5) | 0.03 → 0.02 | 0.02 → 0.02 | 0.04 → 0.02 |
 | Zaczernienia, % (< 0.5) | 0.00 → 0.00 | 0.00 → 0.00 | 0.01 → 0.01 |
@@ -223,7 +240,8 @@ i tabele metryk per seria. „Przed” to klatka referencyjna prosto z aparatu, 
 
 \* Piksele ≥ 254/255 poza obszarami przepalonymi we wszystkich klatkach (łącznie z lampami i oknami).
 W wierszu „przed” liczone są wszystkie, bo pojedyncza klatka nic nie wie o pozostałych.
-\** Średnie L* widoku za oknem z maski okien pipeline'u, bez pikseli przepalonych.
+\** Średnie L* widoku za oknem, bez pikseli przepalonych: z maski okien GT (labels_ideal.png), gdy scena
+ma GT, w pozostałych przypadkach z maski okien pipeline'u.
 
 Pionowość na zdjęciach bez architektonicznych pionów (portret, zbliżenie, kopuła z rybiego oka) nie oznacza
 krzywych ścian (§9).
@@ -234,8 +252,9 @@ krzywych ścian (§9).
 ### 6.3 Etapy pipeline'u względem prawdy referencyjnej
 
 Pomiary z [tools/verify_hypotheses.py](tools/verify_hypotheses.py) ([verification.json](reports/verification.json))
-i [tools/eval_modules.py](tools/eval_modules.py) ([modules_eval.json](reports/modules_eval.json)) na scenach
-syntetycznych 2400×1600:
+i [tools/eval_modules.py](tools/eval_modules.py) ([modules_eval.json](reports/modules_eval.json)). O ile wiersz
+nie mówi inaczej, są to sceny syntetyczne 2400×1600; odszumianie mierzone jest na pojedynczych
+RAW z HDR+, a IoU nieba na syntetycznym exteriorze 1200×800:
 
 | Etap | Wynik |
 |---|---|
@@ -246,13 +265,13 @@ syntetycznych 2400×1600:
 | Geometria | k1 0.061 / 0.040 / 0.069 przy prawdzie 0.06 / 0.04 / 0.08; błąd korekty pochylenia 0.08–0.59°, przechyłu 0.01–0.07°; mediana odchylenia pionów po korekcie 0.04–0.14° |
 | Aberracja chromatyczna | prawda: skala R +0.12%, B −0.12%. Resztka w rogu kadru: dane liniowe 0.33–0.65 px, JPEG 4:2:0 0.76–1.08 px (subsampling rozmywa przesunięcie kolorów już w pliku), pełny pipeline na seriach syntetycznych 0.42–1.11 px |
 | Odszumianie | 6 zaszumionych pojedynczych RAW z HDR+: σ szumu niższe w 6/6, o 36–71% |
-| Niebo | IoU 0.94 (syntetyczny exterior); wykryte na 12/14 exteriorach HDR+ i na 2/104 wnętrzach portfolio (niebo za szybą, §9) |
+| Niebo | IoU 0.94 (syntetyczny exterior 1200×800); wykryte na 12/14 exteriorach HDR+ i na 2/104 wnętrzach portfolio (niebo za szybą, §9) |
 
 ### 6.4 Moduły opcjonalne
 
 | Moduł | Pomiar |
 |---|---|
-| Usuwanie obiektów | 26 wycinków zdjęć portfolio; eliptyczną dziurę (16% boku) wypełnia metoda, a wynik jest porównany z oryginałem (ΔE2000 w dziurze). Jednorodne tło: 3.38 (exemplar) vs 3.69 (Telea), exemplar lepszy w 19/26. Losowe miejsce: 7.99 vs 8.73, lepszy w 18/26. Poza maską i otoczką piksele bez zmian (test) |
+| Usuwanie obiektów | 26 zdjęć portfolio (co n-te z katalogu, całe zdjęcie przeskalowane do 640 px dłuższego boku); eliptyczną dziurę (16% boku) wypełnia metoda, a wynik jest porównany z oryginałem (ΔE2000 w dziurze). Jednorodne tło: 3.38 (exemplar) vs 3.69 (Telea), exemplar lepszy w 19/26. Losowe miejsce: 7.99 vs 8.73, lepszy w 18/26. Moduł nadpisuje tylko maskę poszerzoną o 0.2% dłuższego boku (`modules.remove.dilate_frac`). Po całym pipeline poza pasem 25 px wokół maski < 0.1% pikseli różni się o > 3 kody (test) |
 | Wymiana nieba | detekcja: patrz 6.3; zdjęcie nieba użytkownika jest komponowane w pełnej rozdzielczości (test) |
 | Twilight | syntetyczny dom (8 okien i drzwi): zapalonych 9 obszarów, wszystkie na oknach albo drzwiach, nic na trawniku (test, D-45) |
 | Trawa | trawnik zieleńszy, kolory poza trawnikiem bez zmian (test) |
@@ -285,10 +304,10 @@ Szczegóły: [reports/perf.json](reports/perf.json).
 
 ### 6.7 Kryteria akceptacji ze SPEC: podsumowanie
 
-Ta tabela też powstaje z raportów. 35 kryteriów: niespełnione 3, spełnione częściowo 4, bez pomiaru 0. Kryteria jasności ścian i te z
+Ta tabela też powstaje z raportów. 35 kryteriów: niespełnione 3, spełnione częściowo 5, bez pomiaru 0. Kryteria jasności ścian i te z
 dopiskiem „każda scena” są sprawdzane na każdej scenie z GT osobno (wynik to zakres scen), nie na średniej.
 „Tak (test)” oznacza, że kryterium sprawdza test automatyczny, a cały zestaw testów przechodzi (§6.8).
-Przyczyny braków opisuje §9.
+Przyczyny braków opisuje §9 (pkt 4, 6, 9, 10 i 12).
 
 | Kryterium | Cel (SPEC) | Wynik | Spełnione |
 |---|---|---|---|
@@ -323,7 +342,7 @@ Przyczyny braków opisuje §9.
 | „Nie psuć” (portfolio) | SSIM ≥ 0.85, średnie ΔE ≤ 6 | SSIM mediana 0.977, 0/104 zdjęć poniżej 0.85; ΔE średnie 3.19 | tak |
 | Maska nieba | IoU ≥ 0.85 | 0.94 | tak |
 | Twilight | niebo w stylu, okna świecą, fasada ciemniejsza | `test_twilight_*` | tak (test) |
-| Usuwanie obiektów | poza maską bez zmian (poza otoczką 8 px) | `test_object_removal_*` | tak (test) |
+| Usuwanie obiektów | poza maską bez zmian (poza otoczką 8 px) | maska poszerzana o 0.2% dłuższego boku (5 px przy 2400 px, 12 px przy 6000 px), więc przy dużych zdjęciach otoczka przekracza 8 px; `test_retouch_does_not_move_the_rest_of_the_image`: poza pasem 25 px < 0.1% pikseli zmienionych o > 3/255 (bit-identyczności test nie sprawdza) | częściowo |
 | Eksport | sRGB ICC, wymiary, EXIF | `test_exports_sizes_profile_exif`, `test_jpeg_has_srgb_icc_and_exif` | tak (test) |
 | Czas 3×24 Mpx | ≤ 90 s (4 rdzenie) | 83 s | tak |
 | Pamięć 3×60 Mpx | ≤ 6 GB na workera | 3.24 GB | tak |
@@ -401,9 +420,10 @@ Uczciwie, z pomiarami. Liczby są w §6 (tabela kryteriów: §6.7), a pełne dan
 1. **Bez modeli AI.** Wszystkie etapy są algorytmiczne. Tam, gdzie AutoHDR ma modele uczone na ponad 1 mln par,
    EstateHDR jest słabszy:
    - **Twilight** to deterministyczny relighting: niebo zmierzchu, przyciemnienie i ochłodzenie fasady, świecące
-     szyby. Okna szuka tylko na elewacji, jako prostokątnych, oprawionych obszarów powyżej gruntu (D-45). Pomija
-     okna zasłonięte firankami lub roletami i szyby odbijające jasne niebo. Nie dodaje nowych źródeł światła
-     (latarni, oświetlenia ogrodu).
+     szyby. Okna szuka tylko na elewacji, jako prostokątnych, oprawionych obszarów powyżej gruntu (D-45). Szyby
+     odbijające niebo oraz okna z roletami lub zasłonami rozpoznaje tylko wtedy, gdy mają wyraźną ramę na czterech
+     bokach. Okna z ażurowymi firankami odrzuca (ukośne krawędzie wzoru są traktowane jak napisy czy ornamenty).
+     Nie dodaje nowych źródeł światła (latarni, oświetlenia ogrodu).
    - **Usuwanie obiektów wymaga maski** (pędzel w UI lub `<nazwa>.mask.png`); nie ma automatycznego wykrywania
      bałaganu. Inpainting exemplar-based wypełnia jednorodne powierzchnie i faktury lepiej niż Telea (§6.4), ale
      duże dziury na styku kilku struktur mogą przedłużyć linię albo krawędź tam, gdzie jej nie było.
@@ -412,7 +432,7 @@ Uczciwie, z pomiarami. Liczby są w §6 (tabela kryteriów: §6.7), a pełne dan
      zostają drobne jasne plamki starego nieba. We wnętrzach portfolio wykrywa niebo widoczne przez szklany dach
      albo okno u góry kadru; wymiana jest opcjonalna i wtedy podmienia także to niebo.
 2. **Okna przepalone w najciemniejszej klatce** są renderowane jako czysta biel z miękką krawędzią. Tych danych nie
-   da się odzyskać. AutoHDR może w takiej sytuacji „dorysować” widok, a EstateHDR tego nie robi.
+   da się odzyskać. AutoHDR według opisu (E07) też zostawia wtedy biel i nie generuje widoku.
 3. **Balans bieli:**
    - lokalne pole mieszanego światła bierze za biel powierzchnie o kolorze bliskim barwie światła: drewnianą
      podłogę w świetle lampy (wychodzi bledsza) i duże terakotowe lub pastelowe płaszczyzny przy świetle ok. 4000 K
@@ -430,7 +450,10 @@ Uczciwie, z pomiarami. Liczby są w §6 (tabela kryteriów: §6.7), a pełne dan
    - zostaje ich czerń, biel i większość klucza tonalnego;
    - szum jest mierzony tylko na gładkich fragmentach, więc faktura nie jest rozmywana;
    - WB poprawia wyraźną dominantę, ale nie wybiela kolorowych materiałów;
-   - bez automatycznej korekcji dystorsji.
+   - bez automatycznej korekcji dystorsji;
+   - czerń autora zostaje (D-48), więc najciemniejsze piksele nie są podnoszone: odsetek zaczernionych pikseli
+     nie spada, tylko lekko rośnie (średnio 0.016 → 0.018%, spadek tylko na 5 z 11 zdjęć, maks. 0.09%; §6.7).
+     Cel SPEC „zaczernienia spadają” nie jest spełniony.
 
    Ciemne, nastrojowe ujęcia są rozjaśniane umiarkowanie (najwyżej do klucza 0.45). Szum gotowego JPEG-a, który
    kompresja już wygładziła, bywa brany za fakturę i zostaje (D-53). Bardzo zaszumione pojedyncze RAW (np. HDR+
@@ -440,8 +463,9 @@ Uczciwie, z pomiarami. Liczby są w §6 (tabela kryteriów: §6.7), a pełne dan
 6. **Kalibracja bez par.** Nie było par „wejście → wynik AutoHDR”, więc presety są dostrojone do celów ze SPEC
    (opis wyglądu AutoHDR) na scenach syntetycznych z GT i sprawdzone na danych odłożonych (HDR+, OpenCV, portfolio).
    Nie są dopasowane 1:1 do AutoHDR. Jasność ścian mieści się w paśmie SPEC w 2 z 3 scen każdego presetu. W
-   ciemnej sypialni jest o 1–9 L* poniżej dolnej granicy, bo klucz tonalny jest celowo ograniczony: jaśniejszy
-   wyglądał na prawdziwych zdjęciach na wyprany (D-32). `tools/calibrate.py --pairs` jest gotowe na pary.
+   ciemnej sypialni jest o 1–9 L* poniżej dolnej granicy, bo klucz tonalny jest celowo ograniczony: w kalibracji
+   `neutral` granica `target_key` ≤ 0.70 była aktywna i świadomie jej nie poszerzałem (D-32), a `premium` nie może
+   być jaśniejszy od `neutral` (klucz ≤ 0.70, D-37). `tools/calibrate.py --pairs` jest gotowe na pary.
 7. **LPIPS** nie jest liczony (brak `torch` i wag o jasnej licencji). Raport podaje SSIM, MS-SSIM, gradient-SSIM
    i ΔE2000.
 8. **Wydajność** (4 rdzenie CPU, bez GPU) jest w §6.6. Wolniej niż usługa w chmurze, ale lokalnie i równolegle dla
@@ -459,11 +483,12 @@ Uczciwie, z pomiarami. Liczby są w §6 (tabela kryteriów: §6.7), a pełne dan
     SPEC ≤ 0.3 px nie jest spełniony (§6.3).
 11. **Miara pionowości** w raportach liczy odchylenie wszystkich długich, prawie pionowych linii. Na zdjęciach bez
     architektonicznych pionów (portret, zbliżenie lunety, kopuła z rybiego oka, schody) mediana wynosi kilka stopni
-    i nie oznacza krzywych ścian. Na wnętrzach z GT wynosi ok. 0.1–0.2° (§6.7).
+    i nie oznacza krzywych ścian. Na wnętrzach z GT wynosi ok. 0.04–0.2° (§6.7).
 12. **Wyrównanie przy perspektywie:** model ruchu wybierany per klatka (D-52) obniża błąd przy obrocie aparatu z
-    ręki, ale klatka prześwietlona w ok. 80% ma za mało dopasowań, by rozstrzygnąć model. Zostaje afiniczna i ma błąd
-    ok. 1 px przy celu SPEC ≤ 0.8 px (§6.7). Typowy bracketing ze statywu albo z ręki bez dużego obrotu tego nie
-    dotyczy.
+    ręki, ale kryterium SPEC ≤ 0.8 px (§6.7) nie jest spełnione dla 2 z 6 klatek. Klatka prześwietlona w ok. 80% ma
+    za mało dopasowań, by rozstrzygnąć model: zostaje afiniczna i ma błąd ok. 1 px. Druga klatka (sypialnia, TIFF)
+    po wyborze homografii ma 0.84 px, czyli nieco powyżej celu, także przy wymuszonej homografii. Typowy bracketing
+    ze statywu albo z ręki bez dużego obrotu tego nie dotyczy.
 13. **Ekspozycje bez EXIF** są szacowane z pikseli razem z krzywą odpowiedzi (D-50). Wykładnika krzywej nie da się
     jednak z samych pikseli odróżnić od stosunków ekspozycji, więc przyjmowany jest jak w sRGB. Aparat o innej
     gamma i bez EXIF dostanie ekspozycje przeskalowane o ten czynnik. Odpowiedzi spoza modelu (film, skaner) wracają

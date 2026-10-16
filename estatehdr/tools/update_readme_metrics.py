@@ -58,7 +58,7 @@ def status(ok, partial=False):
 # --- 6.1 ------------------------------------------------------------------------------------------
 CAL_ROWS = (("Neutralność ścian ΔE2000, GT (≤ 3.0)", "wall_dE_gt", 2, True),
             ("Jasność ścian L*, GT (neutral 78–88, airy 84–92, premium 74–86)", "wall_L_gt", 1, True),
-            ("Jasność widoku za oknem L*, GT (55–80, premium 45–70)", "win_L", 1, False),
+            ("Jasność widoku za oknem L* (55–80, premium 45–70)", "win_L", 1, False),
             ("Odzyskiwalne przepalenia okna, % (< 5)", "win_clip_recov_%", 1, False),
             ("Przepalenia poza źródłami światła, %, GT (< 0.5)", "clipped_nonlight_%", 2, False),
             ("Zaczernienia, % (< 0.5)", "crushed_%", 2, False),
@@ -80,8 +80,10 @@ def section_calibration():
         return f"{f(x['before'], n)} → {'**' + after + '**' if bold else after}"
     md = ["### 6.1 Kalibracja: przed i po (pełny pipeline, sceny syntetyczne z GT)", "",
           "Ten sam kod, różnią się tylko parametry: przed = [config_before_full.yaml](reports/calibration/config_before_full.yaml),",
-          "po = `config.yaml`. Metryki z GT to średnie z 3 wnętrz z prawdą referencyjną, pozostałe z 6 serii. Pełna",
-          "tabela per seria: [reports/calibration/full_pipeline.md](reports/calibration/full_pipeline.md).", "",
+          "po = `config.yaml`. Metryki oznaczone GT oraz odzyskiwalne przepalenia okna, halo i detal widoku to średnie",
+          "z 3 wnętrz z prawdą referencyjną; jasność widoku za oknem to średnia z 5 serii z oknami (dla serii bez GT",
+          "z maski okien pipeline'u), pozostałe z 6 serii. Pełna tabela per seria:",
+          "[reports/calibration/full_pipeline.md](reports/calibration/full_pipeline.md).", "",
           "| Metryka (cel ze SPEC) | neutral przed → po | airy przed → po | premium przed → po |", "|---|---|---|---|"]
     md += [f"| {label} | " + " | ".join(cell(p, key, n, b) for p in PRESETS) + " |" for label, key, n, b in CAL_ROWS]
     c2, c3 = load("calibration", "calibration.json"), load("calibration", "continuation", "calibration.json")
@@ -131,7 +133,8 @@ def section_comparisons():
                       + f" | {f(cmp_mean(m, ver, s, 'wall_L_gt'), 1)} | {f(cmp_mean(m, ver, s, 'win_L'), 1)} |")
     md += ["", "\\* Piksele ≥ 254/255 poza obszarami przepalonymi we wszystkich klatkach (łącznie z lampami i oknami).",
            "W wierszu „przed” liczone są wszystkie, bo pojedyncza klatka nic nie wie o pozostałych.",
-           "\\** Średnie L* widoku za oknem z maski okien pipeline'u, bez pikseli przepalonych.", "",
+           "\\** Średnie L* widoku za oknem, bez pikseli przepalonych: z maski okien GT (labels_ideal.png), gdy scena",
+           "ma GT, w pozostałych przypadkach z maski okien pipeline'u.", "",
            "Pionowość na zdjęciach bez architektonicznych pionów (portret, zbliżenie, kopuła z rybiego oka) nie oznacza",
            "krzywych ścian (§9).", "",
            "![syntetyczne](reports/comparisons/syntetyczne__IMG_0000.jpg)",
@@ -183,8 +186,9 @@ def section_stages():
     k1t = " / ".join(format(x["k1_true"], ".2f") for x in geo.values())
     return ["### 6.3 Etapy pipeline'u względem prawdy referencyjnej", "",
             "Pomiary z [tools/verify_hypotheses.py](tools/verify_hypotheses.py) ([verification.json](reports/verification.json))",
-            "i [tools/eval_modules.py](tools/eval_modules.py) ([modules_eval.json](reports/modules_eval.json)) na scenach",
-            f"syntetycznych {FRAME[0]}×{FRAME[1]}:", "", "| Etap | Wynik |", "|---|---|",
+            "i [tools/eval_modules.py](tools/eval_modules.py) ([modules_eval.json](reports/modules_eval.json)). O ile wiersz",
+            f"nie mówi inaczej, są to sceny syntetyczne {FRAME[0]}×{FRAME[1]}; odszumianie mierzone jest na pojedynczych",
+            "RAW z HDR+, a IoU nieba na syntetycznym exteriorze 1200×800:", "", "| Etap | Wynik |", "|---|---|",
             f"| Grupowanie | {g['with_exif']['series_exact']}/{g['with_exif']['of']} serii dokładnie z EXIF i "
             f"{g['without_exif']['series_exact']}/{g['without_exif']['of']} bez EXIF (same piksele). Uszkodzony plik trafia "
             "do `unreadable` |",
@@ -205,7 +209,7 @@ def section_stages():
             f"pliku), pełny pipeline na seriach syntetycznych {rng(s['ca_pipe'])} px |",
             f"| Odszumianie | {s['noise_n']} zaszumionych pojedynczych RAW z HDR+: σ szumu niższe w "
             f"{s['noise_lower']}/{s['noise_n']}, o {rng(s['noise_red'], 0)}% |",
-            f"| Niebo | IoU {v['sky']['synthetic_iou']:.2f} (syntetyczny exterior); wykryte na "
+            f"| Niebo | IoU {v['sky']['synthetic_iou']:.2f} (syntetyczny exterior 1200×800); wykryte na "
             f"{sky['exteriors']['with_sky']}/{sky['exteriors']['images']} exteriorach HDR+ i na "
             f"{sky['portfolio_interiors']['with_sky']}/{sky['portfolio_interiors']['images']} wnętrzach portfolio "
             "(niebo za szybą, §9) |"]
@@ -216,11 +220,13 @@ def section_modules():
     me = load("modules_eval.json")
     h, rd = me["removal"]["mean_de2000_in_hole"]["homogeneous"], me["removal"]["mean_de2000_in_hole"]["random"]
     return ["### 6.4 Moduły opcjonalne", "", "| Moduł | Pomiar |", "|---|---|",
-            f"| Usuwanie obiektów | {me['removal']['images']} wycinków zdjęć portfolio; eliptyczną dziurę (16% boku) wypełnia "
+            f"| Usuwanie obiektów | {me['removal']['images']} zdjęć portfolio (co n-te z katalogu, całe zdjęcie przeskalowane "
+            "do 640 px dłuższego boku); eliptyczną dziurę (16% boku) wypełnia "
             "metoda, a wynik jest porównany z oryginałem (ΔE2000 w dziurze). Jednorodne tło: "
             f"{h['patch']:.2f} (exemplar) vs {h['telea']:.2f} (Telea), exemplar lepszy w {h['patch_better']}/{h['n']}. "
             f"Losowe miejsce: {rd['patch']:.2f} vs {rd['telea']:.2f}, lepszy w {rd['patch_better']}/{rd['n']}. "
-            "Poza maską i otoczką piksele bez zmian (test) |",
+            "Moduł nadpisuje tylko maskę poszerzoną o 0.2% dłuższego boku (`modules.remove.dilate_frac`). Po całym "
+            "pipeline poza pasem 25 px wokół maski < 0.1% pikseli różni się o > 3 kody (test) |",
             "| Wymiana nieba | detekcja: patrz 6.3; zdjęcie nieba użytkownika jest komponowane w pełnej rozdzielczości (test) |",
             "| Twilight | syntetyczny dom (8 okien i drzwi): zapalonych 9 obszarów, wszystkie na oknach albo drzwiach, nic na "
             "trawniku (test, D-45) |",
@@ -404,7 +410,10 @@ def section_acceptance():
         status(below == 0 and de["mean"] <= 6, partial=below > 0 and ss["median"] >= 0.85 and de["mean"] <= 6))
     row("Maska nieba", "IoU ≥ 0.85", f"{v['sky']['synthetic_iou']:.2f}", status(v["sky"]["synthetic_iou"] >= 0.85))
     row("Twilight", "niebo w stylu, okna świecą, fasada ciemniejsza", "`test_twilight_*`", tested())
-    row("Usuwanie obiektów", "poza maską bez zmian (poza otoczką 8 px)", "`test_object_removal_*`", tested())
+    row("Usuwanie obiektów", "poza maską bez zmian (poza otoczką 8 px)",
+        "maska poszerzana o 0.2% dłuższego boku (5 px przy 2400 px, 12 px przy 6000 px), więc przy dużych zdjęciach "
+        "otoczka przekracza 8 px; `test_retouch_does_not_move_the_rest_of_the_image`: poza pasem 25 px < 0.1% pikseli "
+        "zmienionych o > 3/255 (bit-identyczności test nie sprawdza)", "częściowo")
     row("Eksport", "sRGB ICC, wymiary, EXIF", "`test_exports_sizes_profile_exif`, `test_jpeg_has_srgb_icc_and_exif`",
         tested())
     t24 = [x for k, x in pf.items() if "24" in k]
@@ -421,7 +430,7 @@ def section_acceptance():
             f"niespełnione {n_no}, spełnione częściowo {n_part}, bez pomiaru {n_unm}. Kryteria jasności ścian i te z",
             "dopiskiem „każda scena” są sprawdzane na każdej scenie z GT osobno (wynik to zakres scen), nie na średniej.",
             "„Tak (test)” oznacza, że kryterium sprawdza test automatyczny, a cały zestaw testów przechodzi (§6.8).",
-            "Przyczyny braków opisuje §9.", "",
+            "Przyczyny braków opisuje §9 (pkt 4, 6, 9, 10 i 12).", "",
             "| Kryterium | Cel (SPEC) | Wynik | Spełnione |", "|---|---|---|---|"] + [r for r, _ in rows] + [
             "", "\\* SPEC mierzy ostrość energią gradientu na krawędziach. Ta miara rośnie i maleje z kontrastem, który",
             "tone mapping celowo zmienia, więc o wyniku decyduje miara niezależna od kontrastu (stromość krawędzi względem",

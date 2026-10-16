@@ -1,7 +1,10 @@
 # SPEC.md — EstateHDR
 
-Specyfikacja wynika z REVERSE.md. Każdy punkt ma kryterium akceptacji. Kryteria sprawdzają
-testy (`tests/`) i skrypt oceny jakości (`tools/evaluate.py`).
+Specyfikacja wynika z REVERSE.md. Punkty 1–12 mają kryterium akceptacji, a punkt 15 limity wydajności; punkty
+13, 14 i 16 są opisowe. Kryteria sprawdzają testy (`tests/`) oraz skrypty w `tools/`: `evaluate.py` (metryki
+jakości), `verify_hypotheses.py` (`reports/verification.json`, m.in. `spec_extras`), `do_no_harm.py`
+(`reports/portfolio_do_no_harm.json`), `measure_perf.py` (`reports/perf.json`) i `eval_modules.py`
+(`reports/modules_eval.json`).
 
 ## 1. Wejście
 - Pliki: JPEG, PNG, TIFF (8/16-bit, float), RAW (wszystkie formaty LibRaw: CR2/CR3/NEF/ARW/RAF/DNG/RW2/ORF/PEF/SRW/…).
@@ -18,7 +21,7 @@ testy (`tests/`) i skrypt oceny jakości (`tools/evaluate.py`).
 - **Akceptacja:** względne ekspozycje w ±0.1 EV od GT; odzyskana krzywa daje spójność między klatkami lepszą niż samo sRGB.
 
 ## 4. Wyrównanie i ghosting (R-ALIGN)
-- SIFT + RANSAC (homografia) i ECC na obrazach znormalizowanych ekspozycyjnie. Fallback MTB. Odrzucanie ruchomych obiektów względem klatki referencyjnej (środkowej).
+- SIFT + RANSAC i ECC na obrazach znormalizowanych ekspozycyjnie; model ruchu wybierany per klatka (`align.model: auto`, D-52): domyślnie afiniczny, homografia tylko gdy dopasowania SIFT ją potwierdzają (iloraz wiarygodności > `auto_llr`, różnica modeli > `auto_min_px` w rogu kadru, dowód w siatce `auto_grid`×`auto_grid`). Fallback MTB. Odrzucanie ruchomych obiektów względem klatki referencyjnej (środkowej).
 - **Akceptacja:** średni błąd siatki ≤ 0.6 px (statyw) i ≤ 0.8 px (z ręki, przesunięcia do 20 px) na 2400×1600. Obiekt ruchomy nie zostawia „przezroczystego” śladu: < 2% pikseli maski ducha odbiega o > 0.5 EV od referencji.
 
 ## 5. Merge HDR i tone mapping (R-TONE)

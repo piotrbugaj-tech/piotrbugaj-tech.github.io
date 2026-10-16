@@ -24,11 +24,12 @@ inpainting. Nie ma niczego do licencjonowania w tym zakresie.
 | psutil | 7.2.2 | BSD-3-Clause | budżet pamięci dla workerów |
 | fastapi | 0.143.2 | MIT | serwer web UI |
 | starlette (zależność fastapi) | 1.8.0 | BSD-3-Clause | |
+| opentelemetry-api (zależność fastapi) | 1.45.1 | Apache-2.0 | telemetria fastapi (importowana przy starcie web UI) |
 | pydantic, pydantic_core, annotated-types, typing-inspection | 2.14 / 2.50 / 0.8 / 0.4 | MIT | |
 | anyio, h11, annotated-doc | 4.15 / 0.16 / 0.0.5 | MIT | |
 | uvicorn | 0.54.0 | BSD-3-Clause | serwer HTTP |
-| click, websockets, python-dotenv | — | BSD-3-Clause | zależności uvicorn |
-| httptools, uvloop, watchfiles | — | MIT (uvloop: MIT/Apache-2.0) | zależności uvicorn[standard], jeśli zainstalowane |
+| click | 8.5.0 | BSD-3-Clause | zależność uvicorn |
+| websockets, python-dotenv, httptools, uvloop, watchfiles | — | BSD-3-Clause (websockets, python-dotenv); MIT (httptools, watchfiles); MIT/Apache-2.0 (uvloop) | opcjonalne zależności uvicorn[standard] (niewymagane przez `requirements.txt`), jeśli zainstalowane |
 | python-multipart | 0.0.32 | Apache-2.0 | upload plików |
 | typing_extensions | 4.16.0 | PSF-2.0 | |
 | idna | 3.20 | BSD-3-Clause | |
@@ -49,10 +50,14 @@ przeglądarką Chromium (BSD) preinstalowaną w środowisku.
 | opencv-python-headless | libvpx, libaom, libavif, libpng, libjpeg, OpenBLAS, OpenSSL 1.1 | BSD / BSD-2 / libpng / IJG / BSD-3 / OpenSSL | permisywne |
 | opencv-python-headless | libgfortran, libquadmath, libdrm | GPL-3 z GCC Runtime Library Exception / LGPL-2.1 / MIT | wyjątek GCC pozwala na użycie w dowolnym programie; libquadmath jako biblioteka dzielona (LGPL); libdrm permisywne |
 | rawpy | LibRaw | LGPL-2.1 **lub** CDDL-1.0 (podwójna licencja LibRaw; koło zawiera tekst LGPL-2.1) | biblioteka dzielona, więc wolno jej używać komercyjnie (LGPL, dynamiczne linkowanie) |
+| numpy, scipy | OpenBLAS (libscipy_openblas), LAPACK | BSD-3-Clause / BSD-3-Clause-Open-MPI | permisywne |
+| numpy, scipy | libgfortran, libquadmath | GPL-3.0+ z GCC Runtime Library Exception / LGPL-2.1+ | wyjątek GCC pozwala na użycie w dowolnym programie; libquadmath jako biblioteka dzielona (LGPL) |
+| Pillow | libjpeg, libpng, libtiff, lcms2, libwebp, libavif, libopenjp2, freetype, harfbuzz, zstd, xz/liblzma, brotli, libxcb, libXau | IJG / libpng / libtiff / MIT / BSD-3 / BSD-2 / BSD-2 / FTL / MIT / BSD-3 / 0BSD / MIT / MIT / MIT | permisywne |
 | rawpy | lcms2, libjpeg, JasPer, libgomp | MIT / IJG / JasPer 2.0 / GPL-3 z GCC Runtime Library Exception | permisywne (wyjątek GCC pozwala na użycie w dowolnym programie) |
 
 Pełne teksty: `site-packages/opencv_python_headless-*.dist-info/LICENSE-3RD-PARTY.txt`,
-`site-packages/rawpy-*.dist-info/licenses/LICENSE.LibRaw`.
+`site-packages/rawpy-*.dist-info/licenses/LICENSE.LibRaw`, `site-packages/numpy-*.dist-info/licenses/LICENSE.txt`,
+`site-packages/scipy-*.dist-info/LICENSE.txt`, `site-packages/pillow-*.dist-info/licenses/LICENSE`.
 
 ### Opcjonalne (niezainstalowane, wyłączone domyślnie)
 
@@ -63,9 +68,8 @@ Pełne teksty: `site-packages/opencv_python_headless-*.dist-info/LICENSE-3RD-PAR
 ### Zainstalowane w środowisku deweloperskim, ale nieużywane przez kod
 
 scikit-image (BSD-3), onnxruntime (MIT), imageio (BSD-2), networkx (BSD-3), protobuf (BSD-3), flatbuffers
-(Apache-2.0), opentelemetry-api (Apache-2.0), lazy-loader (BSD-3) i pyflakes (MIT, tylko do sprawdzania kodu) zostały po
-wcześniejszych próbach. Nie ma ich w
-`requirements.txt` i kod ich nie importuje.
+(Apache-2.0), lazy-loader (BSD-3) i pyflakes (MIT, tylko do sprawdzania kodu) zostały po wcześniejszych próbach.
+Nie ma ich w `requirements.txt` i kod ich nie importuje.
 
 ## Algorytmy z literatury (zaimplementowane od zera)
 
@@ -79,10 +83,13 @@ dystorsji metodą plumb-line, punkt zbiegu z LSD + RANSAC, CIEDE2000, SSIM (Wang
 | Zbiór | Licencja | Użycie |
 |---|---|---|
 | Sceny syntetyczne (`estatehdr/synthetic.py`) | własne (MIT, jak kod) | testy z prawdą referencyjną |
-| Google HDR+ Burst Photography Dataset (RAW `merged.dng`, galeria `final.jpg`) | CC-BY-SA 4.0 | testy na realnych wnętrzach i exteriorach (sky / twilight); tylko lokalnie |
-| OpenCV `opencv_extra/testdata/cv/hdr`: St. Louis Arch (Wikimedia, CC-BY-SA) i Memorial Church (P. Debevec, dane badawcze z publikacji Debevec i Malik 1997) | CC-BY-SA / dane badawcze | testy realnych serii bracketingowych; tylko lokalnie, bez redystrybucji |
+| Google HDR+ Burst Photography Dataset (RAW `merged.dng` z `results_20171023`, pojedyncze klatki RAW `payload_N000.dng` z `bursts`, galeria JPG `gallery_20171023/<id>.jpg`) | CC-BY-SA 4.0 | testy na realnych wnętrzach i exteriorach (sky / twilight), test ścieżki jednej klatki RAW; tylko lokalnie |
+| OpenCV `opencv_extra/testdata/cv/hdr`: St. Louis Arch (Wikimedia, CC-BY-SA) i Memorial Church (P. Debevec, dane badawcze z publikacji Debevec i Malik 1997) | CC-BY-SA / dane badawcze | testy realnych serii bracketingowych; surowe serie tylko lokalnie (nie są dystrybuowane), w `reports/comparisons/` są dwa pomniejszone podglądy (`opencv__memorial_0.jpg`, `opencv__stlouis_1.jpg`) z klatką referencyjną i wynikami |
 | Galeria HDR+ (14 zdjęć budynków z niebem, `data/public/exteriors`) | CC-BY-SA 4.0 | testy wymiany nieba i zmierzchu; tylko lokalnie |
 | Portfolio użytkownika (zdjęcia z tego repozytorium `piotrbugaj-tech.github.io`) | dane użytkownika | test „nie psuć gotowego zdjęcia” (tryb jednej klatki) |
 
 Raporty w `reports/` zawierają tylko małe podglądy wyników (skalowane, do dokumentacji jakości).
-Podglądy z HDR+ (CC-BY-SA 4.0) wymagają przy publikacji podania źródła (Google HDR+ dataset) i tej samej licencji.
+Podglądy z HDR+ (CC-BY-SA 4.0) i ze St. Louis Arch (Wikimedia, CC-BY-SA) wymagają przy publikacji podania źródła
+(Google HDR+ dataset, Wikimedia Commons / OpenCV `opencv_extra`) i tej samej licencji. Podgląd Memorial Church
+pochodzi z danych badawczych P. Debevca (Debevec i Malik 1997) i jest publikowany wyłącznie jako ilustracja wyników
+badawczych, ze wskazaniem źródła.
