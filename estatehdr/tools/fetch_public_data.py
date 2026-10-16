@@ -99,7 +99,7 @@ def hdrplus_sets(out: str, width: int):
         # meter like a camera: put the median at ~10% (interiors), so windows clip in the 0 EV frame
         mid = 0.10 / max(float(np.median(y)), 1e-5)
         ser = SeriesSpec(evs=(-2, 0, 2), handheld=bool(idx % 2), start=f"2026-05-13T10:{t0:02d}:00",
-                         mid_exposure=mid, base_shutter=1 / 60, focal_mm=4.67, iso=200)
+                         mid_exposure=mid, base_shutter=1 / 60, focal_mm=4.67, focal35=27.0, iso=200)
         frames = write_series(lin, inp, "HDRP", ser, rng, start_index=idx)
         os.makedirs(os.path.join(gt, name), exist_ok=True)
         tifffile.imwrite(os.path.join(gt, name, "radiance_capture.tif"), lin, compression="zlib")

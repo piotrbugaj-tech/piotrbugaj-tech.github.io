@@ -131,14 +131,21 @@ def pixel_exposure_ratio(a: np.ndarray, b: np.ndarray) -> tuple[float | None, in
     return float(np.exp(np.median(np.log(yb[ok] / ya[ok])))), n
 
 
-def choose_reference(smalls: list[np.ndarray]) -> int:
+def choose_reference(smalls: list[np.ndarray], brightness: list[float] | None = None) -> int:
+    """Middle exposure (AutoHDR's colour reference), unless it is much worse exposed
+    than the best frame."""
     scores = []
     for s in smalls:
         y = luminance(s)
-        well = ((y > 0.02) & (s.max(-1) < 0.9)).mean()
-        scores.append(well)
-    order = np.argsort(scores)[::-1]
-    return int(order[0])
+        scores.append(float(((y > 0.02) & (s.max(-1) < 0.9)).mean()))
+    if brightness is None:
+        brightness = [float(np.median(luminance(s))) for s in smalls]
+    order = np.argsort(brightness)
+    mid = int(order[(len(order) - 1) // 2]) if len(order) % 2 == 0 else int(order[len(order) // 2])
+    best = int(np.argmax(scores))
+    if scores[mid] >= 0.6 * scores[best]:
+        return mid
+    return best
 
 
 # ---------------------------------------------------------------------------

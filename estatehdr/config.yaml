@@ -1,0 +1,189 @@
+# EstateHDR - jedyny plik konfiguracyjny.
+# Sekcje odpowiadają etapom pipeline'u. Presety (na dole) nadpisują wybrane wartości.
+# Każdą wartość można też nadpisać z CLI: --set tonemap.target_key=0.25
+
+preset: neutral
+
+runtime:
+  workers: auto            # liczba równoległych serii: auto = wg CPU i pamięci
+  memory_limit_gb: auto    # budżet RAM dla całego batcha (auto = 75% dostępnej)
+  device: auto             # auto | cpu | gpu (gpu: CuPy / ONNX CUDA, jeśli zainstalowane)
+  opencv_threads: auto
+  analysis_max_side: 1600  # rozdzielczość analizy (maski, transformacje, tone mapping bazowy)
+
+input:
+  recursive: true
+  crf: auto                # auto | srgb  (linearyzacja JPEG: dopasowanie krzywej aparatu do serii)
+  raw:
+    highlight_mode: clip   # clip | blend | ignore (LibRaw)
+    use_camera_wb: true
+
+grouping:
+  mode: auto               # auto | fixed | single
+  bracket_size: 0          # 0 = automatycznie; >1 = stała liczba klatek w serii
+  max_gap_s: 6.0           # przerwa czasowa (EXIF) rozpoczynająca nową serię
+  min_similarity: 0.35     # podobieństwo treści (korelacja rang gradientów)
+  ev_tolerance: 0.2
+  focal_tolerance: 0.05
+
+align:
+  enabled: true
+  model: affine            # translation | similarity | affine | homography
+  features: 4000
+  ecc: true
+  fine_ecc: true
+  fine_max_side: 3200
+  max_shift_frac: 0.08
+  still_px: 0.25
+
+deghost:
+  enabled: true
+  threshold_ev: 0.45
+  noise_k: 0.035
+  min_area_frac: 0.0004
+
+merge:
+  strip_rows: 1024
+  sat_lo: 0.82
+  sat_hi: 0.97
+
+windows:
+  enabled: true
+  # obszar "poza zakresem wnętrza": luminancja > over_ev powyżej poziomu ścian wnętrza
+  over_ev: 2.5
+  min_area_frac: 0.0015
+  exterior_target: 0.62    # docelowa jasność widoku za oknem (display, 0-1)
+  strength: 1.0            # 0 = brak pulla, 1 = pełny
+  feather_px: 2.0          # miękkość przejścia na ramach (przy analizie)
+  lamp_max_area_frac: 0.004
+  sun_patch_target: 0.84   # plamy słońca: zachowaj teksturę (wartość sRGB mediany)
+  window_min_area_frac: 0.005
+  window_score_min: 0.5
+
+white_balance:
+  enabled: true
+  global_strength: 0.9     # 0..1 udział korekty globalnej
+  target_cct: 6000         # docelowa biel (K); ~6000 = lekko ciepła neutralna
+  max_global_shift: 0.45
+  mixed_light_strength: 0.85
+  max_local_shift: 0.7     # max lokalna zmiana chromatyczności (log)
+  grid: 48
+  field_smooth: 0.015
+  local_lo_percentile: 10
+  max_locus_dist: 0.35
+  tint_strength: 0.5
+
+geometry:
+  enabled: true
+  verticals: true
+  vertical_strength: 1.0
+  max_pitch_deg: 12.0
+  max_roll_deg: 6.0
+  min_lines: 6
+  distortion: auto         # auto | off
+  max_k1: 0.18
+  crop: true
+  max_crop: 0.15           # jeśli kadr byłby większy, korekcja pionów jest osłabiana
+  default_focal_35mm: 24
+  resize_back: true        # wynik "full" w wymiarach wejścia (jak AutoHDR)
+
+lens:
+  vignetting: auto         # auto | off
+  ca: auto                 # auto | off
+
+tonemap:
+  key_percentile: 50
+  black_percentile: 0.5    # percentyl wnętrza mapowany na black_target
+  white_percentile: 99.0   # percentyl wnętrza mapowany na target_white (okna/lampy wyłączone)
+  black_target: 0.03       # wartości sRGB (0-1) na wyjściu
+  target_key: 0.56
+  target_white: 0.96
+  shoulder_ev: 2.5         # miękkie ramię powyżej bieli wnętrza
+  highlight_knee: 0.88     # start łagodnego wyciszania saturacji w światłach
+  toe_ev: 2.0
+  compress_shadows: 0.7    # lokalna kompresja bazy (1 = brak, mniej = mocniej podniesione cienie)
+  compress_highlights: 0.6
+  base_radius_frac: 0.025
+  base_radius_frac2: 0.08
+  base_eps: 0.08
+  base_mix: 0.5
+  detail: 1.1
+  saturation_preserve: 0.9
+  guided_upsample: true
+  upsample_eps: 0.02
+  contrast: 0.06
+  vibrance: 0.1
+  saturation: 1.03
+
+denoise:
+  enabled: true
+  luma: 0.6                # siła odszumiania luminancji (0-1+)
+  chroma: 1.0
+single_image:
+  denoise_boost: 1.6       # tryb pojedynczego zdjęcia: mocniejsze odszumianie
+
+sharpen:
+  enabled: true
+  amount: 0.35
+  radius_px: 1.0           # dla pełnej rozdzielczości; dla mniejszych rozmiarów skalowane
+  threshold: 0.01
+
+modules:
+  sky:
+    enabled: false
+    style: clear           # clear | wispy | dramatic | <ścieżka do pliku/katalogu nieba>
+    interior_windows: false # wymiana nieba także w widokach okien wnętrz
+  twilight:
+    enabled: false
+    style: pink            # blue | pink | golden
+  remove:
+    enabled: false         # wymaga maski <nazwa>.mask.png albo maski z UI
+    method: auto           # auto | patch | telea | migan
+  grass:
+    enabled: false
+
+export:
+  sizes:
+    - {name: full, long_edge: 0, quality: 95, sharpen: 1.0}
+    - {name: mls, long_edge: 2048, quality: 90, sharpen: 0.8}
+  subsampling: "4:4:4"
+  icc: srgb
+  exif: copy               # copy | minimal | none
+  tiff16: false            # dodatkowo 16-bit TIFF w pełnej rozdzielczości
+  name_template: "{name}_{size}"
+  save_previews: true      # małe podglądy przed/po dla UI
+
+presets:
+  neutral:
+    label: "Neutralny (naturalny, jak 'Classic')"
+    overrides: {}
+  airy:
+    label: "Jasny / airy"
+    overrides:
+      tonemap:
+        target_key: 0.62
+        target_white: 0.97
+        black_target: 0.05
+        compress_shadows: 0.6
+        compress_highlights: 0.55
+        contrast: -0.02
+        vibrance: 0.05
+        saturation: 0.98
+      windows:
+        exterior_target: 0.68
+  premium:
+    label: "Premium (więcej kontrastu, głębszy widok okien, jak 'Lisa')"
+    overrides:
+      tonemap:
+        target_key: 0.54
+        target_white: 0.96
+        black_target: 0.02
+        compress_shadows: 0.72
+        compress_highlights: 0.55
+        detail: 1.2
+        contrast: 0.12
+        vibrance: 0.18
+        saturation: 1.05
+      windows:
+        exterior_target: 0.52
+        strength: 1.0

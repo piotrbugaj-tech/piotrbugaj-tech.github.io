@@ -53,7 +53,7 @@ def _scale_h(H: np.ndarray, s: float) -> np.ndarray:
 def estimate_transform(ref_small: np.ndarray, ref_exp: float, mov_small: np.ndarray, mov_exp: float,
                        cfg: dict) -> tuple[np.ndarray, dict]:
     """Homography mapping ref coords -> moving-frame coords (analysis resolution)."""
-    model = cfg.get("model", "homography")
+    model = cfg.get("model", "affine")
     # common log-luminance window
     yr = np.log2(np.maximum(luminance(ref_small) / ref_exp, 1e-6))
     lo, hi = np.percentile(yr, 1), np.percentile(yr, 99.5)
@@ -78,8 +78,12 @@ def estimate_transform(ref_small: np.ndarray, ref_exp: float, mov_small: np.ndar
                     d = np.median(pb - pa, 0)
                     Hc = np.array([[1, 0, d[0]], [0, 1, d[1]], [0, 0, 1]], np.float64)
                     inl = np.linalg.norm(pb - (pa + d), axis=1) < 2.0
-                elif model == "affine":
+                elif model == "similarity":
                     A, inl = cv2.estimateAffinePartial2D(pa, pb, method=cv2.RANSAC, ransacReprojThreshold=2.0)
+                    Hc = np.vstack([A, [0, 0, 1]]) if A is not None else None
+                    inl = inl.ravel().astype(bool) if inl is not None else None
+                elif model == "affine":
+                    A, inl = cv2.estimateAffine2D(pa, pb, method=cv2.RANSAC, ransacReprojThreshold=2.0)
                     Hc = np.vstack([A, [0, 0, 1]]) if A is not None else None
                     inl = inl.ravel().astype(bool) if inl is not None else None
                 else:
@@ -95,10 +99,16 @@ def estimate_transform(ref_small: np.ndarray, ref_exp: float, mov_small: np.ndar
     # --- ECC refinement (on gradients; robust to remaining photometric differences)
     if cfg.get("ecc", True):
         try:
-            ga, gb = _grad(a8), _grad(b8)
+            if cfg.get("ecc_input", "grad") == "log":
+                ga = cv2.GaussianBlur(a8.astype(np.float32), (0, 0), 1.0)
+                gb = cv2.GaussianBlur(b8.astype(np.float32), (0, 0), 1.0)
+            else:
+                ga, gb = _grad(a8), _grad(b8)
             # ECC's warp maps template (reference) coords to input (moving) coords, like H
             warp = (H / H[2, 2]).astype(np.float32)
-            mode = {"translation": cv2.MOTION_TRANSLATION, "affine": cv2.MOTION_AFFINE}.get(model, cv2.MOTION_HOMOGRAPHY)
+            # ECC has no similarity model: use affine and project back to a similarity below
+            mode = {"translation": cv2.MOTION_TRANSLATION, "similarity": cv2.MOTION_AFFINE,
+                    "affine": cv2.MOTION_AFFINE}.get(model, cv2.MOTION_HOMOGRAPHY)
             if mode != cv2.MOTION_HOMOGRAPHY:
                 warp = warp[:2]
             crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 60, 1e-5)
@@ -106,6 +116,10 @@ def estimate_transform(ref_small: np.ndarray, ref_exp: float, mov_small: np.ndar
             if warp.shape[0] == 2:
                 warp = np.vstack([warp, [0, 0, 1]])
             H_ecc = warp.astype(np.float64)
+            if model == "similarity":
+                a, b, c, d = H_ecc[0, 0], H_ecc[0, 1], H_ecc[1, 0], H_ecc[1, 1]
+                pp, qq = (a + d) / 2, (c - b) / 2
+                H_ecc[:2, :2] = [[pp, -qq], [qq, pp]]
             H_ecc /= H_ecc[2, 2]
             H = H_ecc
             info["ecc"] = True
@@ -126,7 +140,9 @@ def estimate_transform(ref_small: np.ndarray, ref_exp: float, mov_small: np.ndar
     corners = np.float32([[0, 0], [w, 0], [w, h], [0, h]]).reshape(-1, 1, 2)
     disp = np.linalg.norm(cv2.perspectiveTransform(corners, H).reshape(-1, 2) - corners.reshape(-1, 2), axis=1)
     info["corner_disp_px"] = float(disp.max())
-    if score < score_id - 0.01 or disp.max() > float(cfg.get("max_shift_frac", 0.08)) * max(w, h):
+    small_motion = disp.max() < 3.0
+    worse = score < score_id - (0.04 if small_motion else 0.01)
+    if worse or disp.max() > float(cfg.get("max_shift_frac", 0.08)) * max(w, h):
         # alignment made things worse or is implausibly large -> MTB translation fallback
         H = _mtb(ref_small, ref_exp, mov_small, mov_exp)
         info["method"] = "mtb-fallback"
@@ -147,19 +163,206 @@ def _mtb(ref_small, ref_exp, mov_small, mov_exp) -> np.ndarray:
     return np.array([[1, 0, dx], [0, 1, dy], [0, 0, 1]], np.float64)
 
 
+def _tile_signal(img_lin: np.ndarray, exposure: float):
+    """Exposure-normalised log luminance of a linear tile and its validity mask."""
+    y = luminance(img_lin)
+    valid = (img_lin.max(-1) < 0.92) & (y > 0.003)
+    ly = np.log2(np.maximum(y / max(exposure, 1e-9), 1e-6)).astype(np.float32)
+    return ly, valid
+
+
+def _fit_correction(p: np.ndarray, q: np.ndarray, w: np.ndarray) -> tuple[np.ndarray, str]:
+    """Pick the simplest of translation / similarity / affine that explains p -> q.
+
+    A richer model is accepted only if it lowers the weighted RMS residual clearly;
+    this avoids extrapolation errors when the usable tiles are clustered."""
+    W = w / w.sum()
+
+    def rms(M):
+        r = (np.hstack([p, np.ones((len(p), 1))]) @ M[:2].T) - q
+        return float(np.sqrt((W * (r ** 2).sum(1)).sum()))
+    t = (W[:, None] * (q - p)).sum(0)
+    T = np.array([[1, 0, t[0]], [0, 1, t[1]], [0, 0, 1]], np.float64)
+    best, name, err = T, "translation", rms(T)
+    if len(p) >= 4:
+        # weighted similarity (Umeyama without reflection)
+        mp = (W[:, None] * p).sum(0)
+        mq = (W[:, None] * q).sum(0)
+        pc, qc = p - mp, q - mq
+        a = (W * (pc[:, 0] * qc[:, 0] + pc[:, 1] * qc[:, 1])).sum()
+        b = (W * (pc[:, 0] * qc[:, 1] - pc[:, 1] * qc[:, 0])).sum()
+        n = (W * (pc ** 2).sum(1)).sum()
+        if n > 0:
+            ca, sb = a / n, b / n
+            R = np.array([[ca, -sb], [sb, ca]])
+            tt = mq - R @ mp
+            S = np.array([[ca, -sb, tt[0]], [sb, ca, tt[1]], [0, 0, 1]], np.float64)
+            e = rms(S)
+            if e < 0.8 * err - 0.02:
+                best, name, err = S, "similarity", e
+    if len(p) >= 8:
+        X = np.hstack([p, np.ones((len(p), 1))])
+        sw = np.sqrt(W)[:, None]
+        coef, *_ = np.linalg.lstsq(X * sw, q * sw, rcond=None)
+        A = np.vstack([coef.T, [0, 0, 1]])
+        e = rms(A)
+        if e < 0.7 * err - 0.02:
+            best, name, err = A, "affine", e
+    return best, name
+
+
+def refine_full_res(ref, mov, H: np.ndarray, cfg: dict) -> tuple[np.ndarray, dict]:
+    """Sub-pixel refinement at full resolution: phase correlation on a grid of tiles,
+    then a least-squares affine correction (applied in reference coordinates)."""
+    h, w = ref.shape[:2]
+    tile = int(cfg.get("tile", 256))
+    grid = int(cfg.get("tile_grid", 6))
+    if min(h, w) < 2 * tile:
+        return H, {"tiles": 0}
+    win = cv2.createHanningWindow((tile, tile), cv2.CV_32F)
+    ys = np.linspace(tile // 2 + 8, h - tile // 2 - 8, grid).astype(int)
+    xs = np.linspace(tile // 2 + 8, w - tile // 2 - 8, grid + 1).astype(int)
+    pts, shifts, wts = [], [], []
+    ref_img = ref.decoded.image
+    for cy in ys:
+        for cx in xs:
+            y0, x0 = cy - tile // 2, cx - tile // 2
+            rt = ref_img[y0:y0 + tile, x0:x0 + tile]
+            rt = ref.lut[rt] if ref.lut is not None else rt.astype(np.float32) / ref.decoded.max_value
+            T = np.array([[1, 0, x0], [0, 1, y0], [0, 0, 1]], np.float64)
+            mt = cv2.warpPerspective(mov.decoded.image, H @ T, (tile, tile),
+                                     flags=cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP, borderMode=cv2.BORDER_REFLECT)
+            mt = mov.lut[mt] if mov.lut is not None else mt.astype(np.float32) / mov.decoded.max_value
+            a, va = _tile_signal(rt, ref.exposure)
+            b, vb = _tile_signal(mt, mov.exposure)
+            # only (almost) fully valid tiles: a shared fill mask would create identical
+            # artificial edges in both tiles and bias the correlation towards zero shift
+            if va.mean() < 0.97 or vb.mean() < 0.97:
+                continue
+            if np.median(luminance(rt)) < 0.02 or np.median(luminance(mt)) < 0.02:
+                continue  # too dark: log-gradients would be mostly noise
+            ga = _grad(a * 64.0)
+            gb = _grad(b * 64.0)
+            if ga.std() < 0.05:
+                continue
+            (dx, dy), resp = cv2.phaseCorrelate(ga, gb, win)
+            if resp < float(cfg.get("min_response", 0.15)) or abs(dx) > tile / 8 or abs(dy) > tile / 8:
+                continue
+            pts.append((cx, cy))
+            shifts.append((dx, dy))
+            wts.append(resp)
+    info = {"tiles": len(pts)}
+    if len(pts) < 3:
+        return H, info
+    p = np.float64(pts)
+    d = np.float64(shifts)
+    wv = np.float64(wts)
+    # robust: iteratively reject tiles inconsistent with the fitted correction
+    keep = np.ones(len(p), bool)
+    C = np.eye(3)
+    for _ in range(4):
+        if keep.sum() < 3:
+            break
+        C, model = _fit_correction(p[keep], p[keep] + d[keep], wv[keep])
+        pred = (np.hstack([p, np.ones((len(p), 1))]) @ C[:2].T) - p
+        r = np.linalg.norm(pred - d, axis=1)
+        thr = max(0.35, 3.0 * 1.4826 * np.median(r[keep]))
+        new_keep = r < thr
+        if (new_keep == keep).all():
+            break
+        keep = new_keep
+    info["model"] = model if keep.sum() >= 3 else "none"
+    info["inlier_tiles"] = int(keep.sum())
+    if keep.sum() < 3:
+        return H, info
+    # sanity: the correction must stay small (this stage only polishes the coarse estimate)
+    corners = np.float64([[0, 0], [w, 0], [w, h], [0, h]])
+    cdisp = np.linalg.norm((np.hstack([corners, np.ones((4, 1))]) @ C[:2].T) - corners, axis=1).max()
+    info["correction_px"] = float(cdisp)
+    if cdisp > float(cfg.get("max_refine_px", 4.0)):
+        info["rejected"] = True
+        return H, info
+    info["mean_shift_px"] = float(np.linalg.norm(d[keep], axis=1).mean())
+    return H @ C, info
+
+
+def _fine_image(f, side: int):
+    """Linear float image of a frame at max side `side` (computed from the full-res data)."""
+    img = f.decoded.image
+    h, w = img.shape[:2]
+    sc = min(1.0, side / max(h, w))
+    if sc < 1.0:
+        img = cv2.resize(img, (round(w * sc), round(h * sc)), interpolation=cv2.INTER_AREA)
+    lin = f.lut[img] if f.lut is not None else img.astype(np.float32) / f.decoded.max_value
+    return lin, sc
+
+
+def ecc_refine(ref_img, ref_exp, mov_img, mov_exp, H: np.ndarray, model: str) -> tuple[np.ndarray, bool]:
+    """Dense ECC refinement on gradient magnitude of exposure-normalised log luminance."""
+    yr = np.log2(np.maximum(luminance(ref_img) / ref_exp, 1e-6))
+    lo, hi = np.percentile(yr, 1), np.percentile(yr, 99.5)
+    hi = max(hi, lo + 1)
+    a8, va = _norm_log(ref_img, ref_exp, lo - 1, hi + 1)
+    b8, vb = _norm_log(mov_img, mov_exp, lo - 1, hi + 1)
+    ga, gb = _grad(a8), _grad(b8)
+    mode = {"translation": cv2.MOTION_TRANSLATION, "similarity": cv2.MOTION_AFFINE,
+            "affine": cv2.MOTION_AFFINE}.get(model, cv2.MOTION_HOMOGRAPHY)
+    warp = (H / H[2, 2]).astype(np.float32)
+    if mode != cv2.MOTION_HOMOGRAPHY:
+        warp = warp[:2]
+    crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 50, 1e-6)
+    try:
+        _, warp = cv2.findTransformECC(ga, gb, warp, mode, crit, vb.astype(np.uint8) * 255, 3)
+    except cv2.error:
+        return H, False
+    if warp.shape[0] == 2:
+        warp = np.vstack([warp, [0, 0, 1]])
+    Hn = warp.astype(np.float64)
+    if model == "similarity":
+        a, b, c, d = Hn[0, 0], Hn[0, 1], Hn[1, 0], Hn[1, 1]
+        pp, qq = (a + d) / 2, (c - b) / 2
+        Hn[:2, :2] = [[pp, -qq], [qq, pp]]
+    return Hn / Hn[2, 2], True
+
+
 def align_series(series, cfg: dict) -> list[dict]:
     """Estimates a full-resolution homography for every frame (stored on the frame)."""
     ref = series.frames[series.ref]
     h_full = ref.shape[0]
     s = ref.small.shape[0] / h_full
     infos = []
+    ref_fine = None
     for i, f in enumerate(series.frames):
         if i == series.ref or not cfg.get("enabled", True):
             f.homography = np.eye(3)
             infos.append({"frame": f.meta.name, "method": "reference" if i == series.ref else "disabled"})
             continue
         H, info = estimate_transform(ref.small, ref.exposure, f.small, f.exposure, cfg)
-        f.homography = _scale_h(H, s)
+        Hf = _scale_h(H, s)
+        fine_side = int(cfg.get("fine_max_side", 3200))
+        if fine_side > ref.small.shape[1] and info["method"] not in ("still",) and cfg.get("fine_ecc", True):
+            if ref_fine is None:
+                ref_fine = _fine_image(ref, fine_side)
+            mov_img, sc = _fine_image(f, fine_side)
+            S = np.diag([sc, sc, 1.0])
+            Hs = S @ Hf @ np.linalg.inv(S)
+            Hs2, ok = ecc_refine(ref_fine[0], ref.exposure, mov_img, f.exposure, Hs, cfg.get("model", "affine"))
+            if ok:
+                d = np.abs(cv2.perspectiveTransform(np.float32([[[0, 0]], [[mov_img.shape[1], mov_img.shape[0]]]]), Hs2)
+                           - cv2.perspectiveTransform(np.float32([[[0, 0]], [[mov_img.shape[1], mov_img.shape[0]]]]), Hs)).max()
+                if d < 4.0:  # fine stage only polishes
+                    Hf = np.linalg.inv(S) @ Hs2 @ S
+                    info["fine_ecc_change_px"] = float(d / sc)
+        if cfg.get("refine_full", False) and info["method"] not in ("still",):
+            for _ in range(int(cfg.get("refine_iters", 3))):
+                H_new, rinfo = refine_full_res(ref, f, Hf, cfg)
+                info["refine"] = rinfo
+                if rinfo.get("rejected") or "mean_shift_px" not in rinfo:
+                    break
+                Hf = H_new
+                if rinfo["mean_shift_px"] < 0.05:
+                    break
+        f.homography = Hf
         info["frame"] = f.meta.name
         infos.append(info)
         log.info("[%s] align %s: %s (%.2f px, ncc %.3f vs %.3f)", series.name, f.meta.name, info["method"],

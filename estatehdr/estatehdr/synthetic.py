@@ -798,6 +798,7 @@ class SeriesSpec:
     exif: bool = True
     start: str = "2026-05-12T10:00:00"
     mid_exposure: float = 2.4  # exposure multiplier of the EV 0 frame
+    focal35: float = 20.0  # 35 mm equivalent focal length written to EXIF
 
 
 def _rational(x: float):
@@ -821,7 +822,7 @@ def write_exif_jpeg(path: str, meta: dict):
     exif["Exif"][piexif.ExifIFD.ExposureBiasValue] = (int(round(meta["ev"] * 100)), 100) if meta["ev"] >= 0 else (int(round(meta["ev"] * 100)), 100)
     exif["Exif"][piexif.ExifIFD.FocalLength] = _rational(meta["focal"])
     exif["Exif"][piexif.ExifIFD.LensModel] = b"Synth 16-35mm f/4"
-    exif["Exif"][piexif.ExifIFD.FocalLengthIn35mmFilm] = int(meta["focal"])
+    exif["Exif"][piexif.ExifIFD.FocalLengthIn35mmFilm] = int(round(meta.get("focal35", meta["focal"])))
     piexif.insert(piexif.dump(exif), path)
 
 
@@ -864,7 +865,7 @@ def write_series(radiance: np.ndarray, out_dir: str, prefix: str, series: Series
         shutter = series.base_shutter * 2.0 ** ev
         meta = {"datetime": t.strftime("%Y:%m:%d %H:%M:%S"), "subsec": f"{int(t.microsecond / 1e4):02d}",
                 "exposure_time": shutter, "fnumber": series.fnumber, "iso": series.iso, "ev": ev,
-                "focal": series.focal_mm}
+                "focal": series.focal_mm, "focal35": series.focal35}
         name = f"{prefix}_{start_index + i:04d}"
         if series.fmt == "jpg":
             img = capture(rad, expo, rng, iso=series.iso, crf="camera", bits=8)
