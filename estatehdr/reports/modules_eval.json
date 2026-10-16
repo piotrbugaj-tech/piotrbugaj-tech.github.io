@@ -379,5 +379,727 @@
     "telea": 17.0717716217041
    }
   ]
+ },
+ "sky": {
+  "exteriors": {
+   "images": 14,
+   "with_sky": 12,
+   "rows": [
+    {
+     "file": "EXT_012_0043_20161103_114437_266.jpg",
+     "sky": true,
+     "frac": 0.264,
+     "reason": null
+    },
+    {
+     "file": "EXT_016_0127_20161107_171749_524.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "EXT_023_0272_20160515_130708_549.jpg",
+     "sky": true,
+     "frac": 0.204,
+     "reason": null
+    },
+    {
+     "file": "EXT_036_0919_20150905_181412_593.jpg",
+     "sky": true,
+     "frac": 0.391,
+     "reason": null
+    },
+    {
+     "file": "EXT_041_0919_20150910_131720_137.jpg",
+     "sky": true,
+     "frac": 0.062,
+     "reason": null
+    },
+    {
+     "file": "EXT_057_33TJ_20150723_184246_613.jpg",
+     "sky": true,
+     "frac": 0.345,
+     "reason": null
+    },
+    {
+     "file": "EXT_060_33TJ_20150810_140637_256.jpg",
+     "sky": true,
+     "frac": 0.164,
+     "reason": null
+    },
+    {
+     "file": "EXT_081_4KK2_20150910_131804_951.jpg",
+     "sky": true,
+     "frac": 0.048,
+     "reason": null
+    },
+    {
+     "file": "EXT_096_5a9e_20141007_173502_483.jpg",
+     "sky": true,
+     "frac": 0.13,
+     "reason": null
+    },
+    {
+     "file": "EXT_104_5a9e_20150403_162152_482.jpg",
+     "sky": true,
+     "frac": 0.235,
+     "reason": null
+    },
+    {
+     "file": "EXT_121_6G7M_20150403_152401_583.jpg",
+     "sky": true,
+     "frac": 0.35,
+     "reason": null
+    },
+    {
+     "file": "EXT_127_6G7M_20150404_132758_328.jpg",
+     "sky": true,
+     "frac": 0.333,
+     "reason": null
+    },
+    {
+     "file": "EXT_128_6G7M_20150410_063210_560.jpg",
+     "sky": true,
+     "frac": 0.193,
+     "reason": null
+    },
+    {
+     "file": "EXT_141_c1b1_20150109_171200_810.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    }
+   ]
+  },
+  "portfolio_interiors": {
+   "images": 104,
+   "with_sky": 2,
+   "rows": [
+    {
+     "file": "01.BtS2Hkmp.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "01.CdzjAPSv.jpg",
+     "sky": true,
+     "frac": 0.192,
+     "reason": null
+    },
+    {
+     "file": "01.Dcya13Wx.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "02.DFR9Ggv3.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "02.DlAjPzxZ.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "02.vXXsFouc.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "03.DWbjOoBA.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "03.GGHkgrLe.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "03.HYGHznkF.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "04.C-1KxZfp.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "04.DN2NlMDe.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "04.DuNIJOW7.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "05.BD.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "05.D76ydgfv.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "05.pxLajv1B.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "06.CFjXhPNF.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "no sky region at the top"
+    },
+    {
+     "file": "06.DyCk6aot.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "06.mZT7q4f7.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "no smooth region at the top"
+    },
+    {
+     "file": "07.BBNoEKzf.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "07.CKUlc6zN.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "07.DPGb7vQ4.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "08.BoA80bvv.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "08.DcVkAWbD.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "08.iMYXcD-t.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "09.6CkXdaHz.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "09.CI592chw.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "09.gwXEqv0B.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "10.B3A9dgZA.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "10.BqLvFFQV.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "10.DsrFWRXm.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "11.CHtKxZT1.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "11.Dbe3hFcQ.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "12.CKrzzr.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "12.D8WL48Pl.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "13.B1g-x1f-.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "13.D2IeXMt-.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "14.dUbPI1Gt.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "15.Dgz.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k001.Dv5qCJrh.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k002.zjSoYUQk.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k003.DyMHPVwH.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k004.DfQSw-Bk.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k005.Dp2ZDagK.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k006.N9jAJc34.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k007.C8MVnAJ9.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k008.Ba5ICFXc.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k009.CpgUMmBA.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k010.C3HK6Pp2.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k011.DWWFp-9q.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k012.B9WcuCsx.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k013.7WEjkXd.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k014.y1fRTN55.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k015.UQEVj0Ty.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k016.DEOLe1Uj.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k017.CcND4ej8.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k018.BzfweylP.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k019.xl6PNC9F.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k020.DJIp9heO.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k021.DcTfIKTU.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k022.NNZWdhQ5.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k023.xcKSomxW.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k024.Dpvgh6E9.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k025.n5j49uzj.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k026.C1BOUhU9.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k027.DJoButba.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k028.BGjiSVt1.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "no sky region at the top"
+    },
+    {
+     "file": "k029.BZV4-8qH.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k033.BYL35.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k034.CRqnKlHB.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k036.kwFT-61B.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k037.C3dMxLHm.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k038.0WU1Ql.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k039.DwHOrV3Z.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k040.wqWqsOuE.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k041.Bmd4vVaV.jpg",
+     "sky": true,
+     "frac": 0.144,
+     "reason": null
+    },
+    {
+     "file": "k042.CnZ04JXZ.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "no smooth region at the top"
+    },
+    {
+     "file": "k046.Dpz2AGJh.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k047.CmY247Be.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k070.D2qVbBPQ.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k072.DP5.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k073.CCFn1mN1.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k074.CeP7zj1o.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k075.DFNbyQDJ.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k076.GobwXfSg.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k077.ClJt9N9P.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k078.NCbtbfRe.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k079.DIZYJ-wF.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k080.BfRxjLGz.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k081.BIJz9WvY.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k095.DMsub4C9.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k096.CpzQ0VUy.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k097.K0jJOsLo.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k098.C.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k099.D96wb8TT.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k100.CHQauETJ.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k101.mynJxi9n.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k102.CJLEfKU3.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k103.D9zcIXsE.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k104.FuuUiAPo.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k105.clrLFyoY.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k106.CNSQFHIF.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k107.WiLqfesp.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k108.C-FShin7.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    },
+    {
+     "file": "k112.C958sp0C.jpg",
+     "sky": false,
+     "frac": null,
+     "reason": "top region is not sky-like (colour/brightness: ceiling, wall)"
+    }
+   ]
+  }
  }
 }

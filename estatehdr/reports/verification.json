@@ -98,59 +98,59 @@
  "windows": {
   "living_room": {
    "unrecoverable_pct": 13.349938263720357,
-   "output_clipped_pct": 11.977176829694061,
+   "output_clipped_pct": 11.993137088649263,
    "recoverable_clipped_pct": 0.0,
-   "view_L": 71.91928100585938,
-   "detail_ratio": 0.9783962368965149,
-   "halo_dL": 0.736358642578125
+   "view_L": 72.0497817993164,
+   "detail_ratio": 0.9861602783203125,
+   "halo_dL": 0.7128181457519531
   },
   "bedroom": {
    "unrecoverable_pct": 43.05391862401435,
-   "output_clipped_pct": 41.88308681321675,
+   "output_clipped_pct": 41.97862779691242,
    "recoverable_clipped_pct": 0.0,
-   "view_L": 71.94459533691406,
-   "detail_ratio": 1.120224118232727,
-   "halo_dL": -0.028562545776367188
+   "view_L": 72.08248138427734,
+   "detail_ratio": 1.121742844581604,
+   "halo_dL": -0.13719940185546875
   },
   "kitchen": {
    "unrecoverable_pct": 0.0,
    "output_clipped_pct": 0.0,
    "recoverable_clipped_pct": 0.0,
-   "view_L": 70.63224029541016,
-   "detail_ratio": 1.0034756660461426,
-   "halo_dL": -3.1060409545898438
+   "view_L": 70.69232940673828,
+   "detail_ratio": 0.9992645978927612,
+   "halo_dL": -3.2698745727539062
   }
  },
  "geometry": {
   "living_room": {
    "k1_true": 0.06,
-   "k1_est": 0.06009091002245802,
+   "k1_est": 0.05838787824304714,
    "pitch_true": -7.0,
-   "pitch_correction": 7.069175072511349,
+   "pitch_correction": 7.0597615693914975,
    "roll_true": 1.2,
-   "roll_correction": -1.1044226028983226,
-   "crop_fraction": 0.03231799576672412,
-   "vert_med_deg_after": 0.13525390625
+   "roll_correction": -1.111750088107267,
+   "crop_fraction": 0.03501734520267119,
+   "vert_med_deg_after": 0.10418701171875
   },
   "bedroom": {
    "k1_true": 0.04,
-   "k1_est": 0.040479779544295796,
+   "k1_est": 0.0400614526334405,
    "pitch_true": 5.0,
-   "pitch_correction": -5.58768744283568,
+   "pitch_correction": -5.5857345078340614,
    "roll_true": -0.8,
-   "roll_correction": 0.819715245858411,
-   "crop_fraction": 0.023233215545008457,
-   "vert_med_deg_after": 0.039947509765625
+   "roll_correction": 0.803237873844468,
+   "crop_fraction": 0.023597727389597867,
+   "vert_med_deg_after": 0.05645751953125
   },
   "kitchen": {
    "k1_true": 0.08,
-   "k1_est": 0.06888325048821528,
+   "k1_est": 0.06847971804278839,
    "pitch_true": -9.0,
-   "pitch_correction": 9.602325133452341,
+   "pitch_correction": 9.606215975681963,
    "roll_true": 0.5,
-   "roll_correction": -0.4447260761924955,
-   "crop_fraction": 0.029940723042150452,
-   "vert_med_deg_after": 0.12027740478515625
+   "roll_correction": -0.43487094641036816,
+   "crop_fraction": 0.030426403052425277,
+   "vert_med_deg_after": 0.174591064453125
   }
  },
  "lens_ca": {
@@ -177,38 +177,38 @@
   }
  },
  "sky": {
-  "synthetic_iou": 0.9362995335855154
+  "synthetic_iou": 0.9387509640456866
  },
  "noise_single_raw": [
   {
    "name": "bar_windows",
    "sigma_before": 0.016883223418928884,
-   "sigma_after": 0.014029281767905124
+   "sigma_after": 0.010442075437495877
   },
   {
    "name": "stair_window",
    "sigma_before": 0.038665899889632475,
-   "sigma_after": 0.031362829394701836
+   "sigma_after": 0.020730199733675004
   },
   {
    "name": "modern_interior",
    "sigma_before": 0.015475862221203006,
-   "sigma_after": 0.014066343964420663
+   "sigma_after": 0.008836804071339795
   },
   {
    "name": "library",
    "sigma_before": 0.017585897078968214,
-   "sigma_after": 0.017038223519700222
+   "sigma_after": 0.010808968460732602
   },
   {
    "name": "piano_room",
    "sigma_before": 0.022088655142230466,
-   "sigma_after": 0.01702539788933638
+   "sigma_after": 0.015213290861468136
   },
   {
    "name": "church",
-   "sigma_before": 0.036670732317422926,
-   "sigma_after": 0.024636306857794235
+   "sigma_before": 0.03693243369446475,
+   "sigma_after": 0.010804363310842223
   }
  ]
 }

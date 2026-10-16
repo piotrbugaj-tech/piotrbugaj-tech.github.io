@@ -1,63 +1,113 @@
 {
- "what": "tryb jednej klatki na 104 gotowych zdjęciach portfolio (config.yaml po kalibracji), porównanie wyniku z wejściem",
+ "what": "tryb jednej klatki na 104 gotowych zdjęciach portfolio (finalna konfiguracja), wynik porównany z wejściem",
  "ok": 104,
  "failed": 0,
- "seconds": 501.9,
+ "seconds": 451.6,
  "workers": 2,
  "metrics": {
   "ssim": {
-   "median": 0.967,
-   "mean": 0.947,
-   "p10": 0.885,
-   "p90": 0.979
+   "median": 0.965,
+   "mean": 0.94,
+   "p10": 0.854,
+   "p90": 0.98,
+   "min": 0.489,
+   "max": 0.991
   },
   "ms_ssim": {
-   "median": 0.948,
-   "mean": 0.937,
-   "p10": 0.904,
-   "p90": 0.965
+   "median": 0.944,
+   "mean": 0.936,
+   "p10": 0.907,
+   "p90": 0.963,
+   "min": 0.58,
+   "max": 0.994
   },
   "grad_ssim": {
-   "median": 0.94,
-   "mean": 0.91,
-   "p10": 0.8,
-   "p90": 0.959
+   "median": 0.935,
+   "mean": 0.903,
+   "p10": 0.791,
+   "p90": 0.956,
+   "min": 0.46,
+   "max": 0.973
   },
   "dE_ref": {
-   "median": 4.568,
-   "mean": 4.897,
-   "p10": 3.464,
-   "p90": 6.347
+   "median": 4.45,
+   "mean": 4.918,
+   "p10": 3.444,
+   "p90": 6.492,
+   "min": 2.512,
+   "max": 12.982
   },
   "wall_dE_auto": {
-   "median": 2.092,
-   "mean": 2.485,
-   "p10": 1.461,
-   "p90": 3.686
+   "median": 2.084,
+   "mean": 2.45,
+   "p10": 1.444,
+   "p90": 3.589,
+   "min": 0.903,
+   "max": 11.188
   },
   "median_luma": {
    "median": 0.685,
    "mean": 0.671,
-   "p10": 0.566,
-   "p90": 0.745
+   "p10": 0.562,
+   "p90": 0.745,
+   "min": 0.495,
+   "max": 0.776
   },
   "clipped_excl_%": {
-   "median": 0.318,
-   "mean": 0.512,
-   "p10": 0.005,
-   "p90": 1.149
+   "median": 0.211,
+   "mean": 0.293,
+   "p10": 0.003,
+   "p90": 0.706,
+   "min": 0.0,
+   "max": 1.837
   },
   "crushed_%": {
-   "median": 0.102,
-   "mean": 0.12,
-   "p10": 0.005,
-   "p90": 0.27
+   "median": 0.078,
+   "mean": 0.161,
+   "p10": 0.001,
+   "p90": 0.287,
+   "min": 0.0,
+   "max": 3.41
   },
   "vert_med_deg": {
-   "median": 0.189,
-   "mean": 0.422,
-   "p10": 0.063,
-   "p90": 0.846
+   "median": 0.198,
+   "mean": 0.494,
+   "p10": 0.081,
+   "p90": 0.707,
+   "min": 0.031,
+   "max": 9.835
   }
- }
+ },
+ "ssim_below_0.85": 10,
+ "images": 104,
+ "worst_ssim": [
+  [
+   "10.BqLvFFQV",
+   0.489
+  ],
+  [
+   "k078.NCbtbfRe",
+   0.693
+  ],
+  [
+   "k106.CNSQFHIF",
+   0.772
+  ],
+  [
+   "02.DlAjPzxZ",
+   0.794
+  ],
+  [
+   "k070.D2qVbBPQ",
+   0.803
+  ],
+  [
+   "k017.CcND4ej8",
+   0.807
+  ],
+  [
+   "k112.C958sp0C",
+   0.828
+  ]
+ ]
 }
