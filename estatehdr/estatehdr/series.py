@@ -11,7 +11,9 @@ Linearisation (per frame, by its own encoding; a series mixing encodings gets a 
     gamma tweak is not identifiable then and stays at sRGB's);
   * 16-bit TIFF of unknown encoding -> linear vs. sRGB decided by agreement of
     pixel ratios with EXIF exposure ratios, without EXIF by which decoding makes
-    the frames differ by one constant ratio (single frame: histogram heuristic).
+    the frames differ by one constant ratio, a linear verdict confirmed by the
+    darkest frame's histogram (a pure power law looks linear to that test);
+    single frame: histogram heuristic.
 """
 from __future__ import annotations
 
@@ -212,8 +214,10 @@ def classify_encoding_blind(codes_small: list[np.ndarray], margin: float = 0.8) 
     two frames differ by one constant ratio at every intensity.  Both decodings are scored with the
     comparametric misfit (ratios profiled out, so the larger log ratios of the sRGB decoding are no
     handicap); one that is clearly better (score ratio < margin) wins.  Returns (choice, or None
-    when undecided, and the scores).  A pure power-law encoding cannot be told from linear this way
-    (exponential ambiguity) - it would be read as linear."""
+    when undecided, and the scores).  "linear" means *linear or a pure power law* (Adobe RGB 2.2,
+    ProPhoto / Apple RGB 1.8 without their profile): x -> x^(1/g) is invisible to this test
+    (exponential ambiguity), only sRGB's linear toe makes "srgb" identifiable.  untagged_encoding()
+    resolves that with the darkest frame's histogram."""
     pairs = _transfer_pairs(_sample_codes(codes_small), lo=0.01)
     if not pairs:
         return None, {}
@@ -225,6 +229,63 @@ def classify_encoding_blind(codes_small: list[np.ndarray], margin: float = 0.8) 
     if s_srgb < margin * s_lin:
         return "srgb", info
     return None, info
+
+
+LINEAR_DARKEST_MAX = 0.06  # darkest frame's median code above this -> not linear (see untagged_encoding)
+HISTOGRAM_LINEAR_MAX = 0.12  # single frame: median code above this -> sRGB
+
+
+def untagged_encoding(codes_small: list[np.ndarray]) -> tuple[str, str, dict]:
+    """Linear vs sRGB for a 16-bit TIFF series of unknown encoding without EXIF.  Returns (choice,
+    decided_by, info).
+
+    Brackets: cross-frame consistency (classify_encoding_blind) first.  An "srgb" verdict is final.
+    A "linear" one only says "linear or a pure power law" - the two explain the pixels equally well
+    and differ by the exposure ratios (a 2 EV step of gamma 2.2 data reads as 0.9 EV), so the absolute
+    level decides: every bracket has a frame at or below the metered exposure, and that frame is dark
+    in linear light (metered median ~0.10, -2 EV -> 0.025) but not after a power law (0.025^(1/2.2) =
+    0.19, ^(1/1.8) = 0.13).  Linear is kept only if the darkest frame's median code (channel mean)
+    is < LINEAR_DARKEST_MAX, else sRGB ("histogram(darkest)").  The same rule decides when
+    consistency is undecided.  sRGB is not exact for power-law data (the exponent is not
+    identifiable from the pixels; with its toe sRGB acts like g ~2.0) but much closer: -2/0/+2 EV
+    off by 0.14-0.29 EV (gamma 2.2) / 0.23-0.36 EV (1.8), against 1.09 / 0.89 EV read as linear.
+
+    Threshold: with the darkest frame u EV under a metering that puts the linear median at 0.10,
+    linear is kept for u > log2(0.10 / t) and a power law g caught for u < log2(0.10 / t^g):
+      t = 0.06: linear u > 0.74, gamma 1.8 u < 3.98, gamma 2.2 u < 5.6
+      t = 0.08: linear u > 0.32, gamma 1.8 u < 3.24, gamma 2.2 u < 4.7
+      t = 0.10: linear u > 0,    gamma 1.8 u < 2.66, gamma 2.2 u < 4.0
+    Generated untagged brackets (9 scenes - 3 synthetic, 6 HDR+ radiances -, metered median 0.05 /
+    0.10 / 0.18, brackets -1/0/+1, -2/0/+2, -3/0/+3, -4..+4, 0/+2), darkest-frame median code:
+    linear 0.003-0.048 for -2/0/+2 and wider, 0.025-0.096 for -1/0/+1, 0.05-0.19 for 0/+2; gamma
+    1.8 / ProPhoto 0.086-0.18 (-2/0/+2), 0.058-0.12 (-3/0/+3), 0.039-0.084 (-4..+4); gamma 2.2
+    0.134-0.25 (-2/0/+2), 0.070-0.13 (-4..+4).  t = 0.06 keeps every linear -2/0/+2 and wider
+    bracket at any metering (-1/0/+1 up to metering 0.10, 0/+2 only at 0.05) and decodes every
+    power-law bracket up to -2/0/+2 as sRGB, -3/0/+3 and -4..+4 too for gamma 2.2, for gamma 1.8
+    from metering 0.10 (-3/0/+3) / at 0.18 (-4..+4).  Brackets with max error > 0.5 EV, of 135
+    linear / 405 power-law ones: t = 0.05: 37 / 62, 0.06: 27 / 78, 0.08: 27 / 83, 0.10: 14 / 134
+    (old pooled-median rule: 62 / 60; linear verdict taken as final: 0 / 351).  On this grid 0.08
+    keeps no more linear brackets than 0.06 and misses more power-law ones; for a log-uniform
+    metering 0.05-0.18 and a bracket mix of 10 / 50 / 15 / 25 % (-1/0/+1 / -2 / -3 / -4 EV
+    darkest), 0.08 is better only when > 84 % of such untagged brackets are linear, and stripped
+    ProPhoto / Adobe RGB exports with wide window brackets are a realistic source.  The bedroom
+    linear bracket (darkest 0.04) keeps a 0.6 EV margin.  Failure modes: a linear bracket whose
+    darkest frame is not under-exposed (0/+2, or -1/0/+1 of a bright scene) is read as sRGB (~2x
+    the EV steps); a power-law bracket reaching ~4 EV (1.8) / ~5.6 EV (2.2) under metering is read
+    as linear (0.56x / 0.45x the EV steps), and caught ones at -3/-4 EV are still 0.25-0.8 EV off.
+
+    Single frame: no consistency to measure - median code < HISTOGRAM_LINEAR_MAX -> linear."""
+    if len(codes_small) < 2:
+        med = float(np.median(codes_small[0].mean(-1)))
+        return ("linear" if med < HISTOGRAM_LINEAR_MAX else "srgb"), "histogram", {}
+    choice, info = classify_encoding_blind(codes_small)
+    dark = min(float(np.median(c.mean(-1))) for c in codes_small)
+    info = {**info, "darkest_median": dark}
+    if choice == "srgb":
+        return "srgb", "pixel-consistency", info
+    if dark < LINEAR_DARKEST_MAX:
+        return "linear", ("pixel-consistency" if choice == "linear" else "histogram(darkest)"), info
+    return "srgb", "histogram(darkest)", info
 
 
 BLIND_ACCEPT = 0.5  # the fitted curve must remove more than half of plain sRGB's misfit
@@ -239,10 +300,14 @@ def _blind_response(codes_small: list[np.ndarray]) -> tuple[tuple[float, float],
     plain sRGB's (Debevec's Memorial Church: 1-4 EV off instead of <= 0.2)."""
     fit = fit_crf_blind(codes_small)
     inside = K_RANGE[0] + 0.01 < fit["k"] < K_RANGE[1] - 0.01
-    k = fit["k"] if inside and fit["fit_score"] < BLIND_ACCEPT * fit["srgb_score"] else 0.0
+    accepted = bool(inside and fit["fit_score"] < BLIND_ACCEPT * fit["srgb_score"])
+    k = fit["k"] if accepted else 0.0
+    # fit_score is the misfit of the curve applied (= srgb_score when the fit is rejected); the
+    # candidate's own misfit is fitted_score
     return (k, 1.0), {"model": "srgb+s-curve", "k": k, "g": 1.0, "fit": "pixels only (no EXIF), g fixed",
-                      "k_fitted": fit["k"], "fit_score": fit["fit_score"], "srgb_score": fit["srgb_score"],
-                      "pairs": fit["pairs"]}
+                      "accepted": accepted, "k_fitted": fit["k"], "fitted_score": fit["fit_score"],
+                      "fit_score": fit["fit_score"] if accepted else fit["srgb_score"],
+                      "srgb_score": fit["srgb_score"], "pairs": fit["pairs"]}
 
 
 # ---------------------------------------------------------------------------
@@ -353,12 +418,9 @@ def load_series(name: str, metas: list[FrameMeta], cfg: dict) -> Series:
                 infos[enc] = {"model": choice, "decided_by": "exif-consistency"}
             else:
                 # no EXIF: cross-frame consistency of the two decodings (a bracket's linear frames
-                # are often bright enough to fool the histogram rule); histogram for one frame
-                choice, scores = classify_encoding_blind(codes) if len(idx) > 1 else (None, {})
-                by = "pixel-consistency"
-                if choice is None:
-                    med = float(np.median(np.concatenate([c.mean(-1).ravel() for c in codes])))
-                    choice, by = ("linear" if med < 0.12 else "srgb"), "histogram"
+                # are often bright enough to fool a pooled histogram rule), a linear verdict
+                # confirmed by the darkest frame (power laws look linear); histogram for one frame
+                choice, by, scores = untagged_encoding(codes)
                 infos[enc] = {"model": choice, "decided_by": by, **({"consistency": scores} if scores else {})}
             params[enc] = (0.0, 1.0) if choice == "srgb" else None
             if choice == "srgb" and mode == "auto" and not exps and len(idx) >= 2:
@@ -369,9 +431,12 @@ def load_series(name: str, metas: list[FrameMeta], cfg: dict) -> Series:
             if mode == "auto" and exps and len(idx) >= 2:
                 k, g, score = fit_crf(codes, exps)
                 base = _pairs_inconsistency([c[::4, ::4] for c in codes], exps, inverse_crf_lut(1024), 1024, 1)
-                if not (score < 0.9 * base):  # keep plain sRGB unless the fit is clearly better
+                accepted = bool(score < 0.9 * base)  # keep plain sRGB unless the fit is clearly better
+                infos[enc] = {"model": "srgb+s-curve", "k": k if accepted else 0.0, "g": g if accepted else 1.0,
+                              "accepted": accepted, "k_fitted": k, "g_fitted": g, "fitted_score": score,
+                              "fit_score": score if accepted else base, "srgb_score": base}  # as in _blind_response
+                if not accepted:
                     k, g = 0.0, 1.0
-                infos[enc] = {"model": "srgb+s-curve", "k": k, "g": g, "fit_score": score, "srgb_score": base}
             elif mode == "auto" and len(idx) >= 2:
                 (k, g), infos[enc] = _blind_response(codes)  # no EXIF: response from the pixels alone
             else:

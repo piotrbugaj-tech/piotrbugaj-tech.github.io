@@ -73,7 +73,7 @@ def test_exposures_without_exif_fit_camera_curve(synth, cfg, tmp_path):
     s, gt = _stripped_series(synth, cfg, "living_room", tmp_path)
     assert s.crf["model"] == "srgb+s-curve" and s.crf["g"] == 1.0
     assert 0.06 < s.crf["k"] < 0.18, s.crf  # generator: k = 0.12
-    assert s.crf["fit_score"] < 0.5 * s.crf["srgb_score"]
+    assert s.crf["accepted"] and s.crf["fit_score"] < 0.5 * s.crf["srgb_score"]
     err = _ev_errors(s, gt)
     assert np.abs(err).max() < 0.1, err
     s_srgb, _ = _stripped_series(synth, {**cfg, "input": {**cfg["input"], "crf": "srgb"}}, "living_room",
@@ -106,6 +106,33 @@ def test_untagged_tiff16_static_bracket(synth, cfg, tmp_path, encoding):
     s = load_series("t", metas, cfg)
     assert s.crf["model"].startswith(encoding) and s.crf["decided_by"] == "pixel-consistency", s.crf
     assert np.abs(_ev_errors(s, evs)).max() < 0.1
+    if encoding == "srgb":  # the blind tone-curve fit reports the curve it applied
+        c = s.crf
+        assert c["k"] == (c["k_fitted"] if c["accepted"] else 0.0), c
+        assert c["fit_score"] == (c["fitted_score"] if c["accepted"] else c["srgb_score"]), c
+
+
+@pytest.mark.parametrize("gamma", [2.2, 1.8])
+def test_untagged_tiff16_power_law_bracket(synth, cfg, tmp_path, gamma):
+    """Pure power-law encoding (Adobe RGB 2.2, ProPhoto / Apple RGB 1.8 saved without profile and
+    EXIF), -2/0/+2 EV: cross-frame consistency cannot tell it from linear (read as linear, a 2 EV
+    step comes out as 2/gamma EV: 1.09 / 0.89 EV off), the darkest frame is too bright for linear
+    data, so it is decoded as sRGB.  The exponent itself is not identifiable from the pixels and sRGB
+    is not a pure power law, so SPEC's 0.1 EV is out of reach: 0.17 (2.2) / 0.30 EV (1.8)."""
+    from estatehdr.synthetic import capture
+    rad = _gt_radiance(synth, "living_room")
+    rng = np.random.default_rng(5)
+    evs, metas = np.array([-2.0, 0.0, 2.0]), []
+    for i, ev in enumerate(evs):
+        lin = capture(rad, 2.4 * 2.0 ** ev, rng, crf="linear", bits=16).astype(np.float64) / 65535
+        path = str(tmp_path / f"G_{i}.tif")
+        tifffile.imwrite(path, np.round(lin ** (1 / gamma) * 65535).astype(np.uint16), photometric="rgb")
+        metas.append(read_metadata(path))
+    s = load_series("t", metas, cfg)
+    c = s.crf
+    assert c["consistency"]["linear_score"] < c["consistency"]["srgb_score"], c  # looks linear ...
+    assert c["model"].startswith("srgb") and c["decided_by"] == "histogram(darkest)", c  # ... but is not
+    assert np.abs(_ev_errors(s, evs)).max() < {2.2: 0.25, 1.8: 0.4}[gamma], _ev_errors(s, evs)
 
 
 # --- alignment --------------------------------------------------------------------------------
