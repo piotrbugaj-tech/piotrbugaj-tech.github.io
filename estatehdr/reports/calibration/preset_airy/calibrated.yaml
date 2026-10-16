@@ -1,0 +1,4 @@
+# tools/calibrate.py (synthetic GT + targets), preset airy
+tonemap:
+  target_key: 0.85
+  compress_shadows: 0.78

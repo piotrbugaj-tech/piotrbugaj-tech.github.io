@@ -1,0 +1,5 @@
+# tools/calibrate.py (synthetic GT + targets), preset premium
+tonemap:
+  target_key: 0.74
+  compress_shadows: 0.82
+  compress_highlights: 0.57

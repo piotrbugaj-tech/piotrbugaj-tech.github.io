@@ -190,10 +190,10 @@ presets:
     label: "Jasny (airy) - więcej światła i lekkości"
     overrides:
       tonemap:
-        target_key: 0.76
+        target_key: 0.85
         target_white: 0.97
         black_target: 0.05
-        compress_shadows: 0.54
+        compress_shadows: 0.78
         compress_highlights: 0.59
         contrast: -0.02
         vibrance: 0.05
