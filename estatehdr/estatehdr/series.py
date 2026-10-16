@@ -6,9 +6,12 @@ Linearisation (per frame, by its own encoding; a series mixing encodings gets a 
     curve; with ``crf: auto`` a two-parameter family (sRGB + S-curve strength,
     gamma tweak) is fitted to the bracket so that exposure-normalised frames
     agree with each other (the response is invisible in one frame, but
-    measurable across exposures);
+    measurable across exposures).  Without EXIF the S-curve strength is fitted
+    to the frames' brightness transfer functions with the ratios unknown (the
+    gamma tweak is not identifiable then and stays at sRGB's);
   * 16-bit TIFF of unknown encoding -> linear vs. sRGB decided by agreement of
-    pixel ratios with EXIF exposure ratios (single frame: histogram heuristic).
+    pixel ratios with EXIF exposure ratios, without EXIF by which decoding makes
+    the frames differ by one constant ratio (single frame: histogram heuristic).
 """
 from __future__ import annotations
 
@@ -117,6 +120,132 @@ def fit_crf(codes_small: list[np.ndarray], exposures: list[float], samples: int 
 
 
 # ---------------------------------------------------------------------------
+# camera response without EXIF: comparametric fit
+# ---------------------------------------------------------------------------
+# Without exposure metadata the response and the exposure ratios are estimated together.  For a
+# response F (code = F(linear)) any two frames i, j obey the brightness transfer function
+# c_j = F(r_ij * F^-1(c_i)) (Mann's comparametric equation; Grossberg & Nayar).  Ambiguities:
+#   * scale: F^-1 -> a F^-1 leaves every ratio unchanged; anchored by F^-1(1) = 1 (as with EXIF);
+#   * exponential: F^-1 -> (F^-1)^c together with r_ij -> r_ij^c explains the pixels exactly as well.
+#     In the curve family used here that is precisely the exponent g, so g cannot be recovered from
+#     the pixels and is fixed at the sRGB value g = 1 (JPEGs are encoded for sRGB displays).  The
+#     S-curve strength k is not a power law; the shape of the transfer functions identifies it.
+# The misfit is measured in code values with each pair's ratio profiled out (median log ratio under
+# the candidate curve).  It is invariant to the exponential ambiguity, so no degenerate solution can
+# lower it (a log-domain dispersion would favour any curve that shrinks all log ratios).  The same
+# criterion decides linear vs sRGB for untagged 16-bit TIFF.
+
+
+def _sample_codes(codes: list[np.ndarray], samples: int = 40000, seed: int = 0) -> list[np.ndarray]:
+    """Code values (0..1) of every frame at one fixed random set of positions; channels pooled."""
+    h, w = codes[0].shape[:2]
+    idx = np.random.default_rng(seed).choice(h * w, size=min(samples, h * w), replace=False)
+    return [c.reshape(-1, 3)[idx].ravel().astype(np.float32) for c in codes]
+
+
+def _transfer_pairs(sub: list[np.ndarray], lo: float, hi: float = 0.92, max_gap: int = 2,
+                    levels: int = 1000, min_n: int = 50) -> list[tuple[int, int, np.ndarray, np.ndarray]]:
+    """Brightness transfer functions by histogram (rank) matching: (i, j, c_i(q), c_j(q)) = code
+    values of frames i and j at the same quantiles q, for frames at most ``max_gap`` apart in
+    brightness order (j brighter), kept where both are well exposed (lo < code < hi).  A monotone
+    response maps ranks to ranks, so this equals the co-located relation without needing the
+    frames aligned: hand-held shifts, parallax and small moving objects barely change histograms,
+    while co-located pixels at shifted edges would dominate the misfit.  Pairs with < min_n
+    levels in the well-exposed range are dropped."""
+    order = np.argsort([float(np.mean(s)) for s in sub])
+    srt = [np.sort(s) for s in sub]
+    out = []
+    for a in range(len(order)):
+        for b in range(a + 1, min(a + 1 + max_gap, len(order))):
+            i, j = int(order[a]), int(order[b])
+            ranks = np.linspace(0, srt[i].size - 1, levels).round().astype(np.int64)
+            ci, cj = srt[i][ranks], srt[j][ranks]
+            ok = (ci > lo) & (ci < hi) & (cj > lo) & (cj < hi)
+            if int(ok.sum()) >= min_n:
+                out.append((i, j, ci[ok], cj[ok]))
+    return out
+
+
+def comparametric_score(pairs, lut: np.ndarray, cap: float = 0.05) -> tuple[float, dict]:
+    """Mean squared code-value misfit (each term truncated at ``cap``) of the transfer functions
+    implied by the inverse response ``lut`` (code grid 0..1 -> linear), symmetric in i and j.
+    Returns (score, {(i, j): log2 exposure_j / exposure_i})."""
+    grid = np.linspace(0.0, 1.0, lut.size)
+    inv = lut.astype(np.float64) + np.arange(lut.size) * 1e-9  # strictly increasing for the forward map
+    errs, logr = [], {}
+    for i, j, ci, cj in pairs:
+        li, lj = np.interp(ci, grid, inv), np.interp(cj, grid, inv)
+        m = float(np.median(np.log2(np.maximum(lj, 1e-9) / np.maximum(li, 1e-9))))
+        pj = np.interp(li * 2.0 ** m, inv, grid)
+        pi = np.interp(lj * 2.0 ** -m, inv, grid)
+        e = np.minimum(np.abs(cj - pj), cap) ** 2 + np.minimum(np.abs(ci - pi), cap) ** 2
+        errs.append(0.5 * float(np.mean(e)))
+        logr[(i, j)] = m
+    return (float(np.mean(errs)) if errs else float("inf")), logr
+
+
+K_RANGE = (-0.1, 0.3)  # S-curve strengths of the response family (the range fit_crf searches)
+
+
+def fit_crf_blind(codes_small: list[np.ndarray], lo: float = 0.03) -> dict:
+    """S-curve strength k (g fixed at 1, see above) from the pixels alone: grid over K_RANGE in
+    0.01 steps, then a parabolic refinement.  Returns {"k", "fit_score", "srgb_score", "pairs"};
+    k = 0 without usable frame pairs."""
+    pairs = _transfer_pairs(_sample_codes(codes_small), lo)
+    if not pairs:
+        return {"k": 0.0, "fit_score": float("inf"), "srgb_score": float("inf"), "pairs": 0}
+    ks = np.round(np.arange(K_RANGE[0], K_RANGE[1] + 1e-9, 0.01), 4)
+    s = [comparametric_score(pairs, inverse_crf_lut(1024, k, 1.0))[0] for k in ks]
+    b = int(np.argmin(s))
+    k = float(ks[b])
+    if 0 < b < len(ks) - 1:
+        den = s[b - 1] - 2 * s[b] + s[b + 1]
+        if den > 0:
+            k = float(np.clip(k + 0.5 * (s[b - 1] - s[b + 1]) / den * 0.01, ks[b - 1], ks[b + 1]))
+    k = round(k, 4)
+    return {"k": k, "fit_score": comparametric_score(pairs, inverse_crf_lut(1024, k, 1.0))[0],
+            "srgb_score": s[int(np.argmin(np.abs(ks)))], "pairs": len(pairs)}
+
+
+def classify_encoding_blind(codes_small: list[np.ndarray], margin: float = 0.8) -> tuple[str | None, dict]:
+    """Linear vs sRGB for an untagged 16-bit bracket from the pixels alone: under the right decoding
+    two frames differ by one constant ratio at every intensity.  Both decodings are scored with the
+    comparametric misfit (ratios profiled out, so the larger log ratios of the sRGB decoding are no
+    handicap); one that is clearly better (score ratio < margin) wins.  Returns (choice, or None
+    when undecided, and the scores).  A pure power-law encoding cannot be told from linear this way
+    (exponential ambiguity) - it would be read as linear."""
+    pairs = _transfer_pairs(_sample_codes(codes_small), lo=0.01)
+    if not pairs:
+        return None, {}
+    s_lin = comparametric_score(pairs, np.linspace(0, 1, 1024, dtype=np.float32))[0]
+    s_srgb = comparametric_score(pairs, inverse_crf_lut(1024))[0]
+    info = {"linear_score": s_lin, "srgb_score": s_srgb}
+    if s_lin < margin * s_srgb:
+        return "linear", info
+    if s_srgb < margin * s_lin:
+        return "srgb", info
+    return None, info
+
+
+BLIND_ACCEPT = 0.5  # the fitted curve must remove more than half of plain sRGB's misfit
+
+
+def _blind_response(codes_small: list[np.ndarray]) -> tuple[tuple[float, float], dict]:
+    """(k, g) and crf info for sRGB-type frames without EXIF.  g = 1 (not identifiable, see above).
+    Regularised towards sRGB: the fitted k is kept only when the family clearly describes the
+    camera - misfit < BLIND_ACCEPT x the sRGB misfit and k inside K_RANGE, not on its bound.  A
+    response outside the family (film / scanner black offset, local tone mapping, flare) leaves
+    much of the misfit unexplained and pushes k to a bound, where the fitted ratios are worse than
+    plain sRGB's (Debevec's Memorial Church: 1-4 EV off instead of <= 0.2)."""
+    fit = fit_crf_blind(codes_small)
+    inside = K_RANGE[0] + 0.01 < fit["k"] < K_RANGE[1] - 0.01
+    k = fit["k"] if inside and fit["fit_score"] < BLIND_ACCEPT * fit["srgb_score"] else 0.0
+    return (k, 1.0), {"model": "srgb+s-curve", "k": k, "g": 1.0, "fit": "pixels only (no EXIF), g fixed",
+                      "k_fitted": fit["k"], "fit_score": fit["fit_score"], "srgb_score": fit["srgb_score"],
+                      "pairs": fit["pairs"]}
+
+
+# ---------------------------------------------------------------------------
 # exposure estimation
 # ---------------------------------------------------------------------------
 
@@ -206,6 +335,7 @@ def load_series(name: str, metas: list[FrameMeta], cfg: dict) -> Series:
 
     # each frame is linearised according to its own encoding (RAW+JPEG mixes must not push the
     # linear RAW data through the inverse sRGB curve); parameters are fitted per encoding
+    mode = mode_of(icfg.get("crf", "auto"))
     params, infos = {}, {}
     for enc in sorted(encodings):
         idx = [i for i, f in enumerate(frames) if f.decoded.encoding == enc]
@@ -220,13 +350,21 @@ def load_series(name: str, metas: list[FrameMeta], cfg: dict) -> Series:
                 score_lin = _pairs_inconsistency(sub, exps, np.linspace(0, 1, 1024, dtype=np.float32), 1024, 1)
                 score_srgb = _pairs_inconsistency(sub, exps, inverse_crf_lut(1024), 1024, 1)
                 choice = "linear" if score_lin < score_srgb else "srgb"
+                infos[enc] = {"model": choice, "decided_by": "exif-consistency"}
             else:
-                med = float(np.median(np.concatenate([c.mean(-1).ravel() for c in codes])))
-                choice = "linear" if med < 0.12 else "srgb"
-            infos[enc] = {"model": choice, "decided_by": "exif-consistency" if exps else "histogram"}
+                # no EXIF: cross-frame consistency of the two decodings (a bracket's linear frames
+                # are often bright enough to fool the histogram rule); histogram for one frame
+                choice, scores = classify_encoding_blind(codes) if len(idx) > 1 else (None, {})
+                by = "pixel-consistency"
+                if choice is None:
+                    med = float(np.median(np.concatenate([c.mean(-1).ravel() for c in codes])))
+                    choice, by = ("linear" if med < 0.12 else "srgb"), "histogram"
+                infos[enc] = {"model": choice, "decided_by": by, **({"consistency": scores} if scores else {})}
             params[enc] = (0.0, 1.0) if choice == "srgb" else None
+            if choice == "srgb" and mode == "auto" and not exps and len(idx) >= 2:
+                params[enc], fit = _blind_response(codes)  # sRGB-encoded: tone curve as for JPEG
+                infos[enc] = {**infos[enc], **fit}
         else:
-            mode = mode_of(icfg.get("crf", "auto"))
             k, g = 0.0, 1.0
             if mode == "auto" and exps and len(idx) >= 2:
                 k, g, score = fit_crf(codes, exps)
@@ -234,6 +372,8 @@ def load_series(name: str, metas: list[FrameMeta], cfg: dict) -> Series:
                 if not (score < 0.9 * base):  # keep plain sRGB unless the fit is clearly better
                     k, g = 0.0, 1.0
                 infos[enc] = {"model": "srgb+s-curve", "k": k, "g": g, "fit_score": score, "srgb_score": base}
+            elif mode == "auto" and len(idx) >= 2:
+                (k, g), infos[enc] = _blind_response(codes)  # no EXIF: response from the pixels alone
             else:
                 infos[enc] = {"model": "srgb"}
             params[enc] = (k, g)

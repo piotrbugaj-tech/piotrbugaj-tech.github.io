@@ -38,6 +38,76 @@ def test_exposures_without_exif(synth, cfg):
     assert abs((ev[1] - ev[0]) - 2.0) < 0.35
 
 
+def _stripped_series(synth, cfg, scene, tmp_path):
+    """The scene's frames with the EXIF removed (JPEG: EXIF segment stripped, pixels untouched;
+    TIFF: rewritten without tags), loaded by the pipeline; returns (series, GT EV of each frame)."""
+    import json
+    import shutil
+    import piexif
+    with open(os.path.join(synth["root"], "gt", scene, "params.json")) as fh:
+        p = json.load(fh)
+    metas = []
+    for f in p["frames"]:
+        src, dst = os.path.join(synth["input"], f["file"]), str(tmp_path / f["file"])
+        if dst.endswith(".tif"):
+            tifffile.imwrite(dst, tifffile.imread(src), photometric="rgb")
+        else:
+            shutil.copyfile(src, dst)
+            piexif.remove(dst)
+        metas.append(read_metadata(dst))
+    assert all(m.exposure_value is None for m in metas)
+    s = load_series(scene, metas, cfg)
+    gt = {f["file"]: f["ev"] for f in p["frames"]}
+    return s, np.array([gt[f.meta.name] for f in s.frames])
+
+
+def _ev_errors(s, gt):
+    ev = np.log2([f.exposure for f in s.frames])
+    return (ev - ev[s.ref]) - (gt - gt[s.ref])
+
+
+def test_exposures_without_exif_fit_camera_curve(synth, cfg, tmp_path):
+    """JPEG bracket (sRGB + S-curve camera response, -4..+4 EV) without EXIF: response and ratios
+    fitted together from the pixels give the exposures within SPEC's 0.1 EV; plain sRGB would be
+    ~0.2 EV off per 2 EV step."""
+    s, gt = _stripped_series(synth, cfg, "living_room", tmp_path)
+    assert s.crf["model"] == "srgb+s-curve" and s.crf["g"] == 1.0
+    assert 0.06 < s.crf["k"] < 0.18, s.crf  # generator: k = 0.12
+    assert s.crf["fit_score"] < 0.5 * s.crf["srgb_score"]
+    err = _ev_errors(s, gt)
+    assert np.abs(err).max() < 0.1, err
+    s_srgb, _ = _stripped_series(synth, {**cfg, "input": {**cfg["input"], "crf": "srgb"}}, "living_room",
+                                 tmp_path)
+    assert np.abs(_ev_errors(s_srgb, gt)).max() > 0.2  # the test can tell the two apart
+
+
+def test_untagged_linear_tiff16_series(synth, cfg, tmp_path):
+    """Linear 16-bit TIFF bracket without tags: classified linear by cross-frame consistency (the
+    +2 EV frame is bright enough for the single-image histogram rule to call it sRGB: 1.6-2 EV off)."""
+    s, gt = _stripped_series(synth, cfg, "bedroom", tmp_path)
+    assert s.crf["model"] == "linear" and s.crf["decided_by"] == "pixel-consistency", s.crf
+    # hand-held (the generator's ~6 px shakes are large on a 480 px frame) with a moving object:
+    # the co-located pre-alignment ratio of the -2 EV frame is ~0.09 EV off here (0.003 at 2400 px)
+    assert np.abs(_ev_errors(s, gt)).max() < 0.15
+
+
+@pytest.mark.parametrize("encoding", ["linear", "srgb"])
+def test_untagged_tiff16_static_bracket(synth, cfg, tmp_path, encoding):
+    """Static -2/0/+2 EV bracket written as untagged 16-bit TIFF, linear or sRGB-encoded: the
+    decoding is told apart by consistency and the exposures are within 0.1 EV."""
+    from estatehdr.synthetic import capture
+    rad = _gt_radiance(synth, "living_room")
+    rng = np.random.default_rng(5)
+    evs, metas = np.array([-2.0, 0.0, 2.0]), []
+    for i, ev in enumerate(evs):
+        path = str(tmp_path / f"T_{i}.tif")
+        tifffile.imwrite(path, capture(rad, 2.4 * 2.0 ** ev, rng, crf=encoding, bits=16), photometric="rgb")
+        metas.append(read_metadata(path))
+    s = load_series("t", metas, cfg)
+    assert s.crf["model"].startswith(encoding) and s.crf["decided_by"] == "pixel-consistency", s.crf
+    assert np.abs(_ev_errors(s, evs)).max() < 0.1
+
+
 # --- alignment --------------------------------------------------------------------------------
 def test_estimate_transform_recovers_shift(synth, cfg):
     s = _series(synth, cfg, ["IMG_0002.jpg"])
