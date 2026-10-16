@@ -275,6 +275,10 @@
       "model": "srgb+s-curve",
       "k": 0.12,
       "g": 1.0,
+      "accepted": true,
+      "k_fitted": 0.12,
+      "g_fitted": 1.0,
+      "fitted_score": 0.025873937238900583,
       "fit_score": 0.025873937238900583,
       "srgb_score": 0.22470232167868423
      }
@@ -358,6 +362,10 @@
       "model": "srgb+s-curve",
       "k": 0.12,
       "g": 1.0,
+      "accepted": true,
+      "k_fitted": 0.12,
+      "g_fitted": 1.0,
+      "fitted_score": 0.019051425368178627,
       "fit_score": 0.019051425368178627,
       "srgb_score": 0.09803778382325938
      }
@@ -404,7 +412,9 @@
       "k": 0.1147,
       "g": 1.0,
       "fit": "pixels only (no EXIF), g fixed",
+      "accepted": true,
       "k_fitted": 0.1147,
+      "fitted_score": 9.009665459323765e-06,
       "fit_score": 9.009665459323765e-06,
       "srgb_score": 9.017136246587902e-05,
       "pairs": 7
@@ -438,7 +448,8 @@
       "decided_by": "pixel-consistency",
       "consistency": {
        "linear_score": 1.028410298900694e-05,
-       "srgb_score": 0.0010249802371534859
+       "srgb_score": 0.0010249802371534859,
+       "darkest_median": 0.039144475013017654
       }
      }
     },
@@ -494,7 +505,9 @@
       "k": 0.1273,
       "g": 1.0,
       "fit": "pixels only (no EXIF), g fixed",
+      "accepted": true,
       "k_fitted": 0.1273,
+      "fitted_score": 4.070695142003259e-06,
       "fit_score": 4.070695142003259e-06,
       "srgb_score": 6.796009764807414e-05,
       "pairs": 11
@@ -1162,7 +1175,7 @@
     "pass_every_image": false
    }
   },
-  "seconds": 170.6,
+  "seconds": 199.4,
   "last_run_parts": [
    "exposures"
   ]

@@ -37,10 +37,14 @@ align:
   # gęste dopasowania ECC afiniczne i homograficzne są porównywane na niezależnych dopasowaniach SIFT
   # (log. iloraz wiarygodności > auto_llr, czyli > 20:1) i modele różnią się w rogu o > auto_min_px
   # (pełna rozdzielczość). Sama homografia z ECC bywa fałszywa (przepalenia, szum, ruchome obiekty);
+  # perspektywa jest globalna, ruchomy obiekt lokalny: dowód liczony też w siatce auto_grid x auto_grid
+  # pól kadru - bez najkorzystniejszego pola nadal > auto_llr i żadne pole nie przemawia za modelem
+  # afinicznym silniej niż auto_llr (raport: align[].model_select.cell_llr);
   # oba etapy ECC liczą się w modelu wybranym dla klatki (raport: align[].model)
   model: auto
   auto_llr: 3.0
   auto_min_px: 0.5
+  auto_grid: 3
   features: 4000
   ecc: true
   fine_ecc: true
@@ -149,7 +153,8 @@ denoise:
   strong_sigma: 0.015      # tryb silny (NLM po stabilizacji wariancji), gdy szum całego obrazu jest większy...
   strong_dark_sigma: 0.06  # ...albo szum cieni
   strong_dark_sigma_raw: 0.02  # pojedyncza klatka RAW: podniesione cienie
-  strong_sigma_developed: 0.02 # gotowe JPEG-i: szum mierzony tylko na najgładszych blokach (faktura to nie szum, D-49)
+  strong_sigma_developed: 0.02 # gotowe JPEG-i: szum mierzony na najgładszych blokach w każdym paśmie jasności (podniesione
+                               # cienie obok czystych ścian), bez części, którą tłumaczy faktura (faktura to nie szum, D-49)
 single_image:
   denoise_boost: 1.6       # tryb pojedynczego zdjęcia: mocniejsze odszumianie
   # pojedynczy, już wywołany plik (JPEG): fotograf ustalił ekspozycję i balans bieli -
@@ -159,8 +164,10 @@ single_image:
                            # ciemne, nastrojowe ujęcia rozjaśniane najwyżej do 0.45; D-49)
   white_range: [-0.12, 0.0] # biel gotowego zdjęcia zostaje (najwyżej tonemap.target_white, najniżej o 0.12 mniej; D-49)
   wb_strength: 0.8         # mnożnik siły globalnego WB ...
-  wb_target_cct: 6500      # ... względem neutralnej bieli autora (D-49: neutralne zostaje neutralne, dominanta znika w ~40%)
-  wb_mixed_light: 0.2      # mnożnik lokalnej korekty mieszanego światła (na zbliżeniach brała kolor tkanin za światło)
+  wb_target_cct: neutral   # ... względem neutralnej bieli autora (R=G=B; D-49: neutralne zostaje neutralne, dominanta znika
+                           # w ~40%); liczba = cel w K jak white_balance.target_cct (6500 K nie jest neutralne: R/G 0.96)
+  wb_mixed_light: 0.2      # mnożnik lokalnej korekty mieszanego światła (na zbliżeniach brała kolor tkanin za światło); nocą × night.wb_strength
+  noise_floor_code: 1.0    # próg szumu tone mappingu gotowego JPEG-a: co najmniej tyle kodów 8-bit (czysta czerń nie staje się outlierem -20 EV)
   compress_shadows_min: 0.8
   distortion: off          # gotowe JPEG-i są zwykle już skorygowane w edytorze: bez auto-dystorsji (piony zostają)
   # pojedynczy RAW: im głośniejsze cienie (szum / mediana sygnału, pełna rozdzielczość), tym słabiej

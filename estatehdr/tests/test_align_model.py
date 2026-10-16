@@ -49,14 +49,24 @@ def _frame(lin, exposure, seed):
                            exposure=exposure, shape=img16.shape, meta=SimpleNamespace(name=f"f{seed}"))
 
 
-def _align(M, model, exposure=0.5):
-    """Aligns a -1 EV frame moved by the GT homography M to the reference; returns (info, grid error)."""
+def _align(M, model, exposure=0.5, region=None, shift=(0.0, 0.0)):
+    """Aligns a -1 EV frame moved by the GT homography M to the reference; returns (info, grid error).
+
+    ``region`` (x0, y0, x1, y1): that part of the frame moves by a further ``shift`` [px] (a moving
+    object: curtain, branches, a person); the error is then measured on the static scene only."""
     scene = _scene()
     mov = cv2.warpPerspective(scene, M, (W, H), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
+    if region is not None:
+        x0, y0, x1, y1 = region
+        Mo = np.array([[1, 0, shift[0]], [0, 1, shift[1]], [0, 0, 1]]) @ M
+        obj = cv2.warpPerspective(scene, Mo, (W, H), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
+        mov[y0:y1, x0:x1] = obj[y0:y1, x0:x1]
     series = SimpleNamespace(name="t", ref=0, frames=[_frame(scene, 1.0, 1), _frame(mov, exposure, 2)])
     cfg = {"model": model, "fine_max_side": 2600}
     info = align.align_series(series, cfg)[1]
     pts = np.array([[x, y, 1.0] for x in np.linspace(40, W - 40, 9) for y in np.linspace(40, H - 40, 7)]).T
+    if region is not None:
+        pts = pts[:, ~((pts[0] >= x0) & (pts[0] < x1) & (pts[1] >= y0) & (pts[1] < y1))]
     a, b = series.frames[1].homography @ pts, M @ pts
     return info, np.hypot(*(a[:2] / a[2] - b[:2] / b[2]))
 
@@ -76,6 +86,33 @@ def test_auto_keeps_affine_for_shake():
     info, e = _align(M, "auto")
     assert info["model"] == "affine", info
     assert e.mean() < 0.25 and e.max() < 0.5, (e.mean(), e.max())
+
+
+# a few-pixel coherent motion of an edge / corner region (~10 % of the frame): the dense homography ECC
+# bends towards it and its matches favour the homography (llr 64 / 7 / 211 / 67 before the regional
+# test, all four picked the homography and were worse than affine on the static scene)
+MOVING = [(_motion(6, -4, 0.35), (620, 0, 960, 260), (4, 3)),
+          (_motion(6, -4, 0.35), (700, 0, 960, 200), (6, 0)),
+          (np.eye(3), (760, 440, 960, 640), (3, 2)),
+          (np.eye(3), (660, 0, 960, 240), (4, 3))]
+
+
+@pytest.mark.parametrize("M,region,shift", MOVING, ids=["shake-corner", "shake-edge", "tripod-corner", "tripod-edge"])
+def test_auto_ignores_moving_object(M, region, shift):
+    info, e = _align(M, "auto", region=region, shift=shift)
+    assert info["model"] == "affine", info
+    sel = info["model_select"]
+    assert sel["llr_rest"] <= 3.0 or sel["cell_llr_min"] <= -3.0, sel  # the regional test rejected it
+    _, e_aff = _align(M, "affine", region=region, shift=shift)
+    assert np.allclose(e, e_aff), (e.mean(), e_aff.mean())  # auto = the affine result on the static scene
+
+
+def test_auto_keeps_perspective_with_moving_object():
+    M = _motion(7, -5, 0.4, 3e-5, -2e-5)
+    info, e = _align(M, "auto", region=(620, 0, 960, 260), shift=(4, 3))
+    assert info["model"] == "homography", info
+    _, e_aff = _align(M, "affine", region=(620, 0, 960, 260), shift=(4, 3))
+    assert e.mean() < 0.5 * e_aff.mean(), (e.mean(), e_aff.mean())
 
 
 @pytest.mark.parametrize("model", ["translation", "similarity", "affine", "homography"])

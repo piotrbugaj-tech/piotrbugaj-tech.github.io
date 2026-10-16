@@ -93,10 +93,13 @@ class Prepared:
     night: bool = False        # night / late-dusk exterior (dark, smooth sky band at the top)
     own_black: float | None = None  # display black level of a finished rendering (its 0.5th percentile)
     own_white: float | None = None  # ... and its white level (percentile tonemap.white_percentile)
+    own_luma: np.ndarray | None = None  # linear luminance of that rendering (<= 800 px): ``finish`` re-measures
+    #                                     key, black and white on the pixels the tone curve anchors on
 
     def copy(self) -> "Prepared":
         return Prepared(self.rad.copy(), self.clipped.copy(), self.ref_meta, self.single, self.developed,
-                        self.own_key, StageTimer(), self.night, self.own_black, self.own_white)
+                        self.own_key, StageTimer(), self.night, self.own_black, self.own_white,
+                        None if self.own_luma is None else self.own_luma.copy())
 
 
 def detect_night(rad: np.ndarray, cfg: dict) -> tuple[bool, dict]:
@@ -137,16 +140,14 @@ def prepare(group: Group, cfg: Config, result: dict, progress=None) -> Prepared:
     result["reference"] = s.frames[s.ref].meta.name
     result["exposures_ev"] = [round(float(np.log2(f.exposure)), 2) for f in s.frames]
     single = len(s.frames) == 1
-    own_key = own_black = own_white = None
+    own_key = own_black = own_white = y_in = None
     developed = single and s.frames[0].decoded.encoding == "srgb"
     if developed and cfg.get("single_image", {}).get("key_from_input", True):
-        # display key of the photographer's own rendering (median display luminance)
+        # display key of the photographer's own rendering (median display luminance); whole frame here,
+        # ``finish`` re-measures it without windows / lamps / sun patches once they are detected
         im, _ = resize_max(s.frames[0].decoded.as_float(), 800)
-        y_in = luminance(srgb_to_linear(im))
-        own_key = float(linear_to_srgb(np.float32(np.median(y_in))))
-        own_black = float(linear_to_srgb(np.float32(np.percentile(y_in, 0.5))))
-        own_white = float(linear_to_srgb(np.float32(np.percentile(
-            y_in, float(cfg.get("tonemap", {}).get("white_percentile", 99.0))))))
+        y_in = luminance(srgb_to_linear(im)).astype(np.float32)
+        own_key, own_black, own_white = own_levels(y_in, cfg)
         result["input_key"] = round(own_key, 3)
     timer.mark("load")
     _p(progress, 0.15, "wyrównanie")
@@ -167,7 +168,45 @@ def prepare(group: Group, cfg: Config, result: dict, progress=None) -> Prepared:
     night, ninfo = detect_night(rad, cfg)
     result["scene"] = {"night": night, **ninfo}
     timer.mark("lens")
-    return Prepared(rad, clipped, ref_meta, single, developed, own_key, timer, night, own_black, own_white)
+    return Prepared(rad, clipped, ref_meta, single, developed, own_key, timer, night, own_black, own_white, y_in)
+
+
+def own_levels(y_in: np.ndarray, cfg: Config, exclude: np.ndarray | None = None) -> tuple[float, float, float]:
+    """Display key, black and white of a finished rendering (median, 0.5th and white_percentile of its
+    linear luminance), measured like the tone curve's anchors: without the pixels of ``exclude``
+    (windows, lamps, sun patches; any resolution) unless fewer than 5% would remain."""
+    y = y_in
+    if exclude is not None:
+        ex = cv2.resize(np.asarray(exclude, np.float32), (y_in.shape[1], y_in.shape[0]), interpolation=cv2.INTER_LINEAR)
+        inside = ex < 0.5
+        if inside.sum() >= 0.05 * inside.size:
+            y = y_in[inside]
+    tc = cfg.get("tonemap", {})
+    key, black, white = np.percentile(y, [50.0, float(tc.get("black_percentile", 0.5)),
+                                          float(tc.get("white_percentile", 99.0))])
+    return tuple(float(linear_to_srgb(np.float32(v))) for v in (key, black, white))
+
+
+def wb_config(cfg: Config, developed: bool, night: bool) -> dict:
+    """Configuration of the white balance stage for a finished rendering and/or a night scene."""
+    if not (developed or night):
+        return cfg
+    scfg, ncfg = cfg.get("single_image", {}), cfg.get("night", {})
+    fn = float(ncfg.get("wb_strength", 0.5)) if night else 1.0  # artificial light at night is coloured
+    f = (float(scfg.get("wb_strength", 0.5)) if developed else 1.0) * fn
+    w = dict(cfg.get("white_balance", {}))
+    w["global_strength"] = float(w.get("global_strength", 0.9)) * f
+    fl = f
+    if developed and scfg.get("wb_mixed_light") is not None:
+        # its own local factor (close-ups: fabric colour is not light colour), still halved at night
+        fl = float(scfg["wb_mixed_light"]) * fn
+    w["mixed_light_strength"] = float(w.get("mixed_light_strength", 0.6)) * fl
+    tgt = scfg.get("wb_target_cct")
+    if developed and tgt is not None:
+        # a finished rendering is already balanced by its author: its neutral stays neutral (D-49);
+        # "neutral" = R=G=B (a black-body target such as 6500 K is not: R/G 0.96)
+        w["target_cct"] = tgt if isinstance(tgt, str) else float(tgt)
+    return {**cfg, "white_balance": w}
 
 
 def finish(prep: Prepared, group: Group, cfg: Config, result: dict, out_dir: str | None = None, progress=None,
@@ -196,19 +235,7 @@ def finish(prep: Prepared, group: Group, cfg: Config, result: dict, out_dir: str
 
     # --- white balance -----------------------------------------------------------
     _p(progress, 0.55, "balans bieli")
-    wb_cfg = cfg
-    if prep.developed or prep.night:
-        f = float(scfg.get("wb_strength", 0.5)) if prep.developed else 1.0
-        f *= float(ncfg.get("wb_strength", 0.5)) if prep.night else 1.0
-        w = dict(cfg.get("white_balance", {}))
-        w["global_strength"] = float(w.get("global_strength", 0.9)) * f
-        fl = float(scfg.get("wb_mixed_light", f)) if prep.developed else f
-        w["mixed_light_strength"] = float(w.get("mixed_light_strength", 0.6)) * fl
-        if prep.developed and scfg.get("wb_target_cct") is not None:
-            # a finished rendering is already balanced by its author: its neutral stays neutral (D-49)
-            w["target_cct"] = float(scfg["wb_target_cct"])
-        wb_cfg = {**cfg, "white_balance": w}
-    rad, result["white_balance"] = color.white_balance(rad, rad_small, win, wb_cfg)
+    rad, result["white_balance"] = color.white_balance(rad, rad_small, win, wb_config(cfg, prep.developed, prep.night))
     rad_small, _ = resize_max(rad, side)
     timer.mark("white_balance")
 
@@ -232,23 +259,6 @@ def finish(prep: Prepared, group: Group, cfg: Config, result: dict, out_dir: str
         tcfg["target_key"] = float(ncfg.get("target_key", 0.32))
         tcfg["compress_shadows"] = max(float(tcfg.get("compress_shadows", 0.7)),
                                        float(ncfg.get("compress_shadows", 0.9)))
-    if prep.own_key is not None:
-        tk = float(tcfg.get("target_key", 0.56))
-        lo, hi = scfg.get("key_range", [-0.08, 0.2])
-        tcfg["target_key"] = float(np.clip(prep.own_key, tk + float(lo), tk + float(hi)))
-        if prep.own_black is not None:
-            # keep the photographer's black: the darkest 0.5% stays where it was (no crushed shadows)
-            tcfg["black_target"] = float(np.clip(prep.own_black, float(tcfg.get("black_target", 0.03)), 0.15))
-        if prep.own_white is not None:
-            # ... and its white: a soft, low-key edit is not stretched to full white (D-49)
-            tw = float(tcfg.get("target_white", 0.96))
-            wlo, whi = scfg.get("white_range", [-0.12, 0.0])
-            tcfg["target_white"] = float(np.clip(prep.own_white, tw + float(wlo), tw + float(whi)))
-        # texture of a finished photo is not sensor noise: robust shadow-noise floor (D-49)
-        tcfg["noise_floor_robust"] = True
-        tcfg["compress_shadows"] = max(float(tcfg.get("compress_shadows", 0.7)),
-                                       float(scfg.get("compress_shadows_min", 0.75)))
-        result["single_key_target"] = round(tcfg["target_key"], 3)
     wmask = wweight = exclude = None
     extra = []
     if win is not None:
@@ -257,6 +267,33 @@ def finish(prep: Prepared, group: Group, cfg: Config, result: dict, out_dir: str
         if win.patch_mask.max() > 0.5:
             pw = cv2.GaussianBlur(win.patch_mask.astype(np.float32), (0, 0), 3.0)
             extra.append((pw, float(cfg.get("windows", {}).get("sun_patch_target", 0.88)), 1.0, "sun_patch"))
+    if prep.developed:
+        # texture of a finished photo is not sensor noise: robust shadow-noise floor (D-49), but at
+        # least one 8-bit code value (radiance of a developed single = its decoded linear value, code
+        # 255 = 1), so pure-black areas sit ~1 EV below code 1 instead of becoming -20 EV outliers
+        tcfg["noise_floor_robust"] = True
+        tcfg["noise_floor_min"] = float(srgb_to_linear(np.float32(float(scfg.get("noise_floor_code", 1.0)) / 255.0)))
+    if prep.own_key is not None:
+        own_key, own_black, own_white = prep.own_key, prep.own_black, prep.own_white
+        if prep.own_luma is not None and exclude is not None:
+            # the author's levels on the pixels the tone curve anchors on (windows, lamps, sun patches
+            # excluded): a bright window must not stand in for the interior white
+            own_key, own_black, own_white = own_levels(prep.own_luma, cfg, exclude)
+            result["input_key"] = round(own_key, 3)
+        tk = float(tcfg.get("target_key", 0.56))
+        lo, hi = scfg.get("key_range", [-0.08, 0.2])
+        tcfg["target_key"] = float(np.clip(own_key, tk + float(lo), tk + float(hi)))
+        if own_black is not None:
+            # keep the photographer's black: the darkest 0.5% stays where it was (no crushed shadows)
+            tcfg["black_target"] = float(np.clip(own_black, float(tcfg.get("black_target", 0.03)), 0.15))
+        if own_white is not None:
+            # ... and its white: a soft, low-key edit is not stretched to full white (D-49)
+            tw = float(tcfg.get("target_white", 0.96))
+            wlo, whi = scfg.get("white_range", [-0.12, 0.0])
+            tcfg["target_white"] = float(np.clip(own_white, tw + float(wlo), tw + float(whi)))
+        tcfg["compress_shadows"] = max(float(tcfg.get("compress_shadows", 0.7)),
+                                       float(scfg.get("compress_shadows_min", 0.75)))
+        result["single_key_target"] = round(tcfg["target_key"], 3)
     dbg = {}
     img = tonemap.tone_map(rad, tcfg, window_mask=wmask, window_weight=wweight, exclude_small=exclude,
                            window_cfg=cfg.get("windows", {}), analysis_side=side, debug=dbg, extra_pulls=extra,

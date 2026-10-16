@@ -222,7 +222,13 @@ def local_field(img: np.ndarray, shift: np.ndarray, exclude: np.ndarray | None, 
     lo, hi = float(cfg.get("support_lo", 0.15)), float(cfg.get("support_hi", 0.6))
 
     def certainty(d):
-        t = np.clip((d / (np.percentile(d, 75) + 1e-6) - lo) / max(hi - lo, 1e-3), 0, 1)
+        # 'typical' = p75 over all cells; den carries a 1e-6 floor, so when most cells have no evidence
+        # within the kernel the p75 is that floor and every evidence-free cell looked well covered.
+        # The reference is therefore at least the p25 of the cells with real evidence (unchanged while
+        # they are more than a third of the grid)
+        ev = d > 1e-3 * float(d.max())
+        ref = max(float(np.percentile(d, 75)), float(np.percentile(d[ev], 25)) if ev.any() else 0.0)
+        t = np.clip((d / (ref + 1e-6) - lo) / max(hi - lo, 1e-3), 0, 1)
         return t * t * (3 - 2 * t)
 
     support = certainty(den)
@@ -264,10 +270,15 @@ def white_balance(rad: np.ndarray, rad_small: np.ndarray, win, cfg: dict) -> tup
         exclude = np.clip(win.mask + win.lamp_mask, 0, 1)
     est, info = estimate_illuminant(rad_small, exclude)
     gs = float(wcfg.get("global_strength", 0.9))
-    # target white: slightly warm neutral looks natural (configurable CCT)
-    tk = float(wcfg.get("target_cct", 6000))
-    tc = kelvin_rgb(tk)
-    target = np.array([math.log(tc[0] / tc[1]), math.log(tc[2] / tc[1])])
+    # target white: slightly warm neutral looks natural (configurable CCT); "neutral" = R=G=B, the
+    # target for a finished rendering whose author already balanced it (kelvin_rgb(6500) is R/G 0.96)
+    tk = wcfg.get("target_cct", 6000)
+    if isinstance(tk, str) and tk.strip().lower() == "neutral":
+        target = np.zeros(2)
+    else:
+        tk = float(tk)
+        tc = kelvin_rgb(tk)
+        target = np.array([math.log(tc[0] / tc[1]), math.log(tc[2] / tc[1])])
     # project the estimate: keep the locus component and only part of the tint
     p_est, d_est, _ = project_to_locus(est[None])
     est_eff = p_est[0] + float(wcfg.get("tint_strength", 0.6)) * (est - p_est[0])

@@ -57,6 +57,63 @@ def estimate_sigma_flat(y: np.ndarray, block: int = 32, pct: float = 10.0) -> fl
     return float(np.sqrt(np.pi / 2) * np.percentile(r[ok], pct) / 6.0)
 
 
+def noise_bands(y: np.ndarray, block: int = 32, pct: float = 10.0, bands: int = 6):
+    """Noise sigma of a finished rendering per brightness band: (band centres, sigmas), or None.
+
+    The noise of a developed JPEG depends on brightness: shadows lifted in post are several times
+    noisier than a clean wall, whose noise JPEG flattens further, so one percentile over the whole
+    frame is set by the clean walls (D-49 review).  Blocks are therefore split into quantile bands of
+    their mean and the flat-block percentile is taken in each band.  A band can be a single textured
+    object (a boucle armchair is the whole darkest quarter of a close-up), so each block's noise is
+    the part of its finest-scale (Immerkaer) response that a flat spectrum cannot explain: white
+    noise halves on 2x2 averaging, texture and edges do not (r_half >= r_full), so
+    n^2 = (r_full^2 - r_half^2) / (1 - 1/4).  Strongly correlated noise (blurred over > 0.5 px,
+    heavy JPEG) reads as texture - the whole-frame flat estimate is the lower bound for that."""
+    h, w = y.shape
+    step = max(1, int(np.sqrt(h * w / 4e6)))
+    ys = (y[::step, ::step] if step > 1 else y).astype(np.float32)
+    bh, bw = ys.shape[0] // block, ys.shape[1] // block
+    if bh < 2 or bw < 2:
+        return None
+    ys = np.ascontiguousarray(ys[:bh * block, :bw * block])
+    k = np.array([[1, -2, 1], [-2, 4, -2], [1, -2, 1]], np.float32)
+    c = float(np.sqrt(np.pi / 2) / 6.0)
+    r1 = cv2.resize(np.abs(cv2.filter2D(ys, -1, k, borderType=cv2.BORDER_REFLECT)), (bw, bh),
+                    interpolation=cv2.INTER_AREA) * c
+    half = cv2.resize(ys, (bw * block // 2, bh * block // 2), interpolation=cv2.INTER_AREA)
+    r2 = cv2.resize(np.abs(cv2.filter2D(half, -1, k, borderType=cv2.BORDER_REFLECT)), (bw, bh),
+                    interpolation=cv2.INTER_AREA) * c
+    m = cv2.resize(ys, (bw, bh), interpolation=cv2.INTER_AREA)
+    n = np.sqrt(np.maximum(r1 * r1 - r2 * r2, 0.0) / 0.75)
+    ok = (m > 0.03) & (m < 0.95)
+    nb = int(min(bands, ok.sum() // 8))
+    if nb < 1:
+        return None
+    mm, nn = m[ok], n[ok]
+    edges = np.quantile(mm, np.linspace(0, 1, nb + 1))
+    xs, sig = [], []
+    for lo, hi in zip(edges[:-1], edges[1:]):
+        sel = (mm >= lo) & (mm <= hi)
+        if sel.sum() < 4:
+            continue
+        xs.append(float(np.median(mm[sel])))
+        sig.append(float(np.percentile(nn[sel], pct)))
+    if not xs:
+        return None
+    return np.array(xs), np.array(sig)
+
+
+def developed_noise(y: np.ndarray):
+    """Noise of a finished rendering: (largest band sigma, lookup brightness -> sigma).  The
+    whole-frame flat-block estimate (D-49) is the floor of every band."""
+    flat = estimate_sigma_flat(y)
+    nb = noise_bands(y)
+    if nb is None:
+        return flat, lambda v: np.full_like(v, flat, dtype=np.float32)
+    xs, sig = nb[0], np.maximum(nb[1], flat)
+    return float(sig.max()), lambda v: np.interp(v, xs, sig).astype(np.float32)
+
+
 def noise_level_function(y: np.ndarray, bins: int = 16):
     """Noise sigma as a function of brightness (display values after tone mapping: lifted
     shadows are much noisier than the global estimate).  Immerkaer response on non-edge pixels,
@@ -99,13 +156,17 @@ def denoise(img: np.ndarray, cfg: dict, single: bool = False, raw_single: bool =
     s_l = float(dcfg.get("luma", 0.6)) * boost
     s_c = float(dcfg.get("chroma", 1.0)) * boost
     y = img @ LUMA
-    sigma = estimate_sigma_flat(y) if developed else estimate_sigma(y)
+    nlf = None  # developed: noise per brightness band (lifted shadows next to clean walls)
+    if developed:
+        sigma, nlf = developed_noise(y)
+    else:
+        sigma = estimate_sigma(y)
     if sigma < 0.002:
         log.info("denoise: sigma %.4f - image clean, skipped", sigma)
         return img
     # strong mode when the global noise OR the noise of the darker part of the image is high:
     # lifted shadows of a single frame can be 3x noisier than the global estimate suggests.
-    # A finished rendering: only its flat-block noise counts (texture inflates the dark-bin estimate)
+    # A finished rendering: its noisiest band (flat blocks, texture rejected) decides
     if developed:
         strong = sigma > float(dcfg.get("strong_sigma_developed", 0.02))
     else:
@@ -114,16 +175,31 @@ def denoise(img: np.ndarray, cfg: dict, single: bool = False, raw_single: bool =
                                   0.02 if raw_single else 0.06))
         strong = sigma > float(dcfg.get("strong_sigma", 0.015)) or sig_dark > dark_lim
     if strong:
+        sig_in = sigma
         img = _strong(img, sigma, s_l, s_c, float(dcfg.get("nlm_strength", 1.1)), int(dcfg.get("nlm_template", 5)),
-                      int(dcfg.get("nlm_search", 15)))
+                      int(dcfg.get("nlm_search", 15)), developed=developed)
         y = img @ LUMA
-        sigma = estimate_sigma_flat(y) if developed else estimate_sigma(y)
-    # luminance: two scales of a self-guided filter
-    eps = (2.0 * sigma * s_l) ** 2
-    y1 = guided_filter(y, y, 2, eps)
+        if developed:
+            sigma, nlf = developed_noise(y)
+        else:
+            sigma = estimate_sigma(y)
+        log.info("denoise: strong mode, sigma %.4f -> %.4f", sig_in, sigma)
+    # luminance: two scales of a self-guided filter; a finished rendering gets eps from the noise of
+    # each pixel's brightness band (clean walls are not smoothed for the sake of noisy shadows)
     h, w = y.shape
+    if nlf is not None:
+        sig_map = np.maximum(nlf(cv2.GaussianBlur(y, (0, 0), 2.0)), 1e-3)  # > 0: flat areas stay defined
+        eps = (2.0 * sig_map * s_l) ** 2
+        eps_h = cv2.resize(eps, (w // 2, h // 2), interpolation=cv2.INTER_AREA)
+        eps_c = (3.0 * cv2.resize(sig_map, (w // 2, h // 2), interpolation=cv2.INTER_AREA)) ** 2 + 1e-5
+        eps_c = eps_c[..., None]
+    else:
+        eps = (2.0 * sigma * s_l) ** 2
+        eps_h = eps
+        eps_c = (3.0 * sigma) ** 2 + 1e-5
+    y1 = guided_filter(y, y, 2, eps)
     ys = cv2.resize(y1, (w // 2, h // 2), interpolation=cv2.INTER_AREA)
-    ys2 = guided_filter(ys, ys, 3, eps * 0.5)
+    ys2 = guided_filter(ys, ys, 3, eps_h * 0.5)
     y2 = y1 + cv2.resize(ys2 - ys, (w, h), interpolation=cv2.INTER_LINEAR) * min(1.0, s_l)
     a = min(1.0, s_l)
     y_out = y + a * (y2 - y)
@@ -134,7 +210,7 @@ def denoise(img: np.ndarray, cfg: dict, single: bool = False, raw_single: bool =
         cs = cv2.resize(c, (w // 2, h // 2), interpolation=cv2.INTER_AREA)
         g = cv2.resize(y_out, (w // 2, h // 2), interpolation=cv2.INTER_AREA)
         r = max(2, int(round(3 * min(2.0, s_c))))
-        cd = guided_filter(g, cs, r, (3.0 * sigma) ** 2 + 1e-5)
+        cd = guided_filter(g, cs, r, eps_c)
         cd = cv2.resize(cd, (w, h), interpolation=cv2.INTER_LINEAR)
         b = min(1.0, s_c)
         out = y_out[..., None] + (1.0 - b) * c + b * cd
@@ -144,7 +220,7 @@ def denoise(img: np.ndarray, cfg: dict, single: bool = False, raw_single: bool =
 
 
 def _strong(img: np.ndarray, sigma: float, s_l: float, s_c: float, k_h: float = 1.1, tw: int = 5,
-            sw: int = 15) -> np.ndarray:
+            sw: int = 15, developed: bool = False) -> np.ndarray:
     """Very noisy input (single under-exposed frame): non-local means at half resolution on a
     variance-stabilised image, plus the original high-frequency detail gated by the noise level.
 
@@ -152,10 +228,19 @@ def _strong(img: np.ndarray, sigma: float, s_l: float, s_c: float, k_h: float = 
     times noisier than the global estimate), so a single NLM strength either leaves the
     shadows speckled or smears the mid-tones.  The noise level function sigma(y) measured on
     the half-resolution image gives the transform F(v) = integral dv / sigma(v), under which the
-    noise is uniform; NLM runs on F(img) and the result is mapped back."""
+    noise is uniform; NLM runs on F(img) and the result is mapped back.
+
+    ``developed`` (finished rendering): sigma(y) from flat blocks per band with texture rejected
+    (``developed_noise``), and the detail threshold floor is the whole-frame flat noise, not the
+    noisiest band: texture in clean, brighter parts keeps its full-resolution detail."""
     h, w = img.shape[:2]
     small = cv2.resize(img, (w // 2, h // 2), interpolation=cv2.INTER_AREA)
-    nlf = noise_level_function(small @ LUMA)
+    if developed:
+        nlf = developed_noise(small @ LUMA)[1]
+        t_floor = estimate_sigma_flat(img @ LUMA)
+    else:
+        nlf = noise_level_function(small @ LUMA)
+        t_floor = sigma
     grid = np.linspace(0.0, 1.0, 1025, dtype=np.float32)
     # sigma range capped at 6:1 so the shadows (largest sigma, flattest F) still get enough 8-bit
     # codes for NLM; otherwise the darkest values collapse onto code 0 (crushed blacks)
@@ -175,7 +260,7 @@ def _strong(img: np.ndarray, sigma: float, s_l: float, s_c: float, k_h: float = 
     detail = (img - base) @ LUMA
     # keep only detail clearly above the noise (edges), soft-thresholded with the noise level
     # at each pixel's brightness (x2: the full-resolution noise is twice the half-res one)
-    t = 2.5 * np.maximum(2.0 * nlf(up @ LUMA), sigma)
+    t = 2.5 * np.maximum(2.0 * nlf(up @ LUMA), t_floor)
     detail = np.sign(detail) * np.maximum(np.abs(detail) - t, 0)
     log.info("denoise: strong mode (sigma %.3f, shadows %.3f, stabilised NLM h=%.1f/%.1f)", sigma,
              float(nlf(np.float32(0.15))), hl, hc)

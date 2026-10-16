@@ -17,7 +17,13 @@ likelihood ratio above ``auto_llr`` (log, default 3 = 20:1) and the two models
 differ by more than ``auto_min_px`` at a corner (full resolution).  A dense
 homography fit alone is not trusted, because ECC turns systematic differences
 between exposures (clipping / noise-floor contours, moving objects) into a
-spurious perspective term more easily than into an affine one.  Both ECC stages
+spurious perspective term more easily than into an affine one.  Perspective is
+global, a moving object is local: the dense homography partly bends towards a
+moving object, whose matches then favour it while the static scene beside it
+favours the affine model.  So the evidence is also checked region by region
+(``auto_grid`` x ``auto_grid`` cells of the frame): the homography needs
+log-ratio > ``auto_llr`` even without its most favourable cell, and no cell may
+favour the affine model by more than ``auto_llr``.  Both ECC stages
 then run in the chosen model (``info["model"]``).  Without ECC (``ecc: false``)
 or without feature matches, ``auto`` keeps the affine model.
 """
@@ -121,7 +127,8 @@ def _corner_diff(H1: np.ndarray, H2: np.ndarray, w: int, h: int) -> float:
     return float(np.linalg.norm(cv2.perspectiveTransform(c, H1) - cv2.perspectiveTransform(c, H2), axis=2).max())
 
 
-def perspective_evidence(HA: np.ndarray, HH: np.ndarray, pa: np.ndarray, pb: np.ndarray, thr: float = 2.0) -> dict:
+def perspective_evidence(HA: np.ndarray, HH: np.ndarray, pa: np.ndarray, pb: np.ndarray, thr: float = 2.0,
+                         size: tuple[int, int] | None = None, grid: int = 3) -> dict:
     """How strongly point matches pa -> pb favour the homography HH over the affine HA.
 
     Both transforms are fixed (estimated densely by ECC, not fitted to these matches), so this is a
@@ -130,7 +137,16 @@ def perspective_evidence(HA: np.ndarray, HH: np.ndarray, pa: np.ndarray, pb: np.
     match residual under HA and D = HH(p) - HA(p) the predicted difference, the Gaussian
     log-likelihood ratio is llr = (sum|r|^2 - sum|r - D|^2) / (2 sigma^2), where sigma^2 is the
     residual variance about the best fit r ~ beta * D (beta ~ 1 when the matches follow HH,
-    ~ 0 when they follow HA).  Few matches or matches only where the models agree give llr ~ 0."""
+    ~ 0 when they follow HA).  Few matches or matches only where the models agree give llr ~ 0.
+
+    The llr is a sum over matches, so it splits exactly into regions: with ``size`` = (w, h) of the
+    reference image, the matches are binned by their reference position into a ``grid`` x ``grid``
+    grid and ``cell_llr`` holds each cell's share.  A real perspective term is global: the matches
+    follow HH all over the frame.  A moving object (a curtain, branches in a window, a person) is
+    local: the dense homography ECC partly bends towards it, its matches then favour HH strongly,
+    and the static scene next to it favours HA.  Reported for that test: ``llr_rest`` = llr without
+    the most favourable cell (the evidence must not rest on one region) and ``cell_llr_min`` = the
+    cell that favours HA most (no region may contradict HH)."""
     out = {"matches": 0, "llr": 0.0, "beta": None}
     if pa is None or len(pa) < 8:
         return out
@@ -146,8 +162,17 @@ def perspective_evidence(HA: np.ndarray, HH: np.ndarray, pa: np.ndarray, pb: np.
     dd = float((D * D).sum())
     beta = float((r * D).sum() / max(dd, 1e-12))
     sig2 = max(float(((r - beta * D) ** 2).sum()) / (2 * n - 1), 1e-6)
-    out.update(llr=float(((r * r).sum() - ((r - D) ** 2).sum()) / (2 * sig2)), beta=beta,
-               sigma_px=float(np.sqrt(sig2)), model_diff_rms_px=float(np.sqrt(dd / n)))
+    lm = ((r * r).sum(1) - ((r - D) ** 2).sum(1)) / (2 * sig2)  # per-match log-likelihood ratio
+    llr = float(lm.sum())
+    out.update(llr=llr, beta=beta, sigma_px=float(np.sqrt(sig2)), model_diff_rms_px=float(np.sqrt(dd / n)))
+    if size is not None:
+        w, h = size
+        p = pa[inl].astype(np.float64)
+        cx = np.clip((p[:, 0] * grid / w).astype(int), 0, grid - 1)
+        cy = np.clip((p[:, 1] * grid / h).astype(int), 0, grid - 1)
+        cell = np.bincount(cy * grid + cx, weights=lm, minlength=grid * grid)
+        out.update(llr_rest=llr - max(float(cell.max()), 0.0), cell_llr_min=float(cell.min()),
+                   cell_llr=[round(float(v), 1) for v in cell])
     return out
 
 
@@ -208,9 +233,11 @@ def estimate_transform(ref_small: np.ndarray, ref_exp: float, mov_small: np.ndar
             sel = {}
             try:
                 HH = _ecc(ga, gb, H, "homography", mask, 5)
-                sel = perspective_evidence(H, HH, pa, pb)
+                sel = perspective_evidence(H, HH, pa, pb, size=(w, h), grid=int(cfg.get("auto_grid", 3)))
                 sel["corner_diff_px"] = _corner_diff(H, HH, w, h) / scale
-                if (sel["llr"] > float(cfg.get("auto_llr", 3.0))
+                lim = float(cfg.get("auto_llr", 3.0))
+                # global evidence (also without its best cell) and no region contradicting it at the same odds
+                if (sel["llr"] > lim and sel.get("llr_rest", 0.0) > lim and sel.get("cell_llr_min", 0.0) > -lim
                         and sel["corner_diff_px"] > float(cfg.get("auto_min_px", 0.5))):
                     H = HH
                     info["model"] = "homography"
