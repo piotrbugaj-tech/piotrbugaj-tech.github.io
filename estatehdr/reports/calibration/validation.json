@@ -1,0 +1,110 @@
+{
+ "what": "walidacja kandydatów kalibracji (preset neutral) na danych nieużytych w kalibracji; uruchomione przez skrypt walidacyjny na kodzie z etapu kalibracji (przed poprawkami z audytu DoD)",
+ "configs": {
+  "before": "reports/calibration/config_before_full.yaml",
+  "cal2": "config_before_full + reports/calibration/calibrated.yaml",
+  "cal3": "config_before_full + reports/calibration/continuation/calibrated.yaml (przyjęta)"
+ },
+ "portfolio_subset": "co 5. zdjęcie z 104 (21 zdjęć), tryb jednej klatki, metryki względem wejścia; cal3 przed zmianą single_image.key_range",
+ "results": {
+  "before": {
+   "synthetic": {
+    "median_luma": 0.57,
+    "clipped_excl_%": 1.146,
+    "crushed_%": 0.004,
+    "wall_dE_auto": 4.898,
+    "wall_dE_gt": 5.567,
+    "wall_L_gt": 62.616,
+    "win_L": 74.951,
+    "ssim": 0.921,
+    "dE_ref": 10.195
+   },
+   "hdrplus": {
+    "median_luma": 0.581,
+    "clipped_excl_%": 0.58,
+    "crushed_%": 0.003,
+    "wall_dE_auto": 6.696
+   },
+   "opencv": {
+    "median_luma": 0.43,
+    "clipped_excl_%": 1.384,
+    "crushed_%": 0.025,
+    "wall_dE_auto": 7.155
+   },
+   "portfolio": {
+    "median_luma": 0.646,
+    "clipped_excl_%": 0.404,
+    "crushed_%": 0.136,
+    "wall_dE_auto": 2.98,
+    "ssim": 0.924,
+    "dE_ref": 4.599
+   }
+  },
+  "cal2": {
+   "synthetic": {
+    "median_luma": 0.636,
+    "clipped_excl_%": 1.135,
+    "crushed_%": 0.005,
+    "wall_dE_auto": 4.242,
+    "wall_dE_gt": 3.491,
+    "wall_L_gt": 69.648,
+    "win_L": 71.018,
+    "ssim": 0.906,
+    "dE_ref": 11.446
+   },
+   "hdrplus": {
+    "median_luma": 0.648,
+    "clipped_excl_%": 0.591,
+    "crushed_%": 0.003,
+    "wall_dE_auto": 6.216
+   },
+   "opencv": {
+    "median_luma": 0.467,
+    "clipped_excl_%": 1.485,
+    "crushed_%": 0.039,
+    "wall_dE_auto": 6.868
+   },
+   "portfolio": {
+    "median_luma": 0.66,
+    "clipped_excl_%": 0.395,
+    "crushed_%": 0.135,
+    "wall_dE_auto": 2.586,
+    "ssim": 0.916,
+    "dE_ref": 5.754
+   }
+  },
+  "cal3": {
+   "synthetic": {
+    "median_luma": 0.704,
+    "clipped_excl_%": 1.165,
+    "crushed_%": 0.004,
+    "wall_dE_auto": 3.927,
+    "wall_dE_gt": 3.087,
+    "wall_L_gt": 75.593,
+    "win_L": 71.499,
+    "ssim": 0.889,
+    "dE_ref": 13.917
+   },
+   "hdrplus": {
+    "median_luma": 0.712,
+    "clipped_excl_%": 0.61,
+    "crushed_%": 0.004,
+    "wall_dE_auto": 5.963
+   },
+   "opencv": {
+    "median_luma": 0.503,
+    "clipped_excl_%": 2.005,
+    "crushed_%": 0.045,
+    "wall_dE_auto": 7.409
+   },
+   "portfolio": {
+    "median_luma": 0.683,
+    "clipped_excl_%": 0.426,
+    "crushed_%": 0.138,
+    "wall_dE_auto": 2.646,
+    "ssim": 0.915,
+    "dE_ref": 6.74
+   }
+  }
+ }
+}

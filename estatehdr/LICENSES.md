@@ -47,6 +47,7 @@ przeglądarką Chromium (BSD) preinstalowaną w środowisku.
 | opencv-python-headless | OpenCV | Apache-2.0 | bez ograniczeń |
 | opencv-python-headless | FFmpeg (libavcodec, libavformat, libavutil, libswscale, libswresample) | LGPL-2.1+ | używane tylko przez wideo-I/O OpenCV (EstateHDR z niego nie korzysta). Biblioteki dzielone (`.so`), więc LGPL pozwala na użycie komercyjne przy dołączeniu licencji i możliwości podmiany bibliotek |
 | opencv-python-headless | libvpx, libaom, libavif, libpng, libjpeg, OpenBLAS, OpenSSL 1.1 | BSD / BSD-2 / libpng / IJG / BSD-3 / OpenSSL | permisywne |
+| opencv-python-headless | libgfortran, libquadmath, libdrm | GPL-3 z GCC Runtime Library Exception / LGPL-2.1 / MIT | wyjątek GCC pozwala na użycie w dowolnym programie; libquadmath jako biblioteka dzielona (LGPL); libdrm permisywne |
 | rawpy | LibRaw | LGPL-2.1 **lub** CDDL-1.0 (podwójna licencja LibRaw; koło zawiera tekst LGPL-2.1) | biblioteka dzielona, więc wolno jej używać komercyjnie (LGPL, dynamiczne linkowanie) |
 | rawpy | lcms2, libjpeg, JasPer, libgomp | MIT / IJG / JasPer 2.0 / GPL-3 z GCC Runtime Library Exception | permisywne (wyjątek GCC pozwala na użycie w dowolnym programie) |
 
@@ -62,7 +63,8 @@ Pełne teksty: `site-packages/opencv_python_headless-*.dist-info/LICENSE-3RD-PAR
 ### Zainstalowane w środowisku deweloperskim, ale nieużywane przez kod
 
 scikit-image (BSD-3), onnxruntime (MIT), imageio (BSD-2), networkx (BSD-3), protobuf (BSD-3), flatbuffers
-(Apache-2.0), opentelemetry-api (Apache-2.0) zostały po wcześniejszych próbach. Nie ma ich w
+(Apache-2.0), opentelemetry-api (Apache-2.0), lazy-loader (BSD-3) i pyflakes (MIT, tylko do sprawdzania kodu) zostały po
+wcześniejszych próbach. Nie ma ich w
 `requirements.txt` i kod ich nie importuje.
 
 ## Algorytmy z literatury (zaimplementowane od zera)

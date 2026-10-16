@@ -1,0 +1,383 @@
+{
+ "ca": {
+  "truth": [
+   1.0012,
+   0.9988
+  ],
+  "scenes": {
+   "living_room": {
+    "linear": [
+     1.00086,
+     0.9986
+    ],
+    "jpeg_444": [
+     1.00087,
+     0.9986
+    ],
+    "jpeg_420": [
+     1.0006,
+     0.99891
+    ]
+   },
+   "bedroom": {
+    "linear": [
+     1.00097,
+     0.99896
+    ],
+    "jpeg_444": [
+     1.00097,
+     0.99896
+    ],
+    "jpeg_420": [
+     1.00067,
+     0.99925
+    ]
+   },
+   "kitchen": {
+    "linear": [
+     1.00075,
+     0.99867
+    ],
+    "jpeg_444": [
+     1.00075,
+     0.99867
+    ],
+    "jpeg_420": [
+     1.00045,
+     0.99904
+    ]
+   }
+  }
+ },
+ "removal": {
+  "images": 26,
+  "mean_de2000_in_hole": {
+   "homogeneous": {
+    "patch": 3.375,
+    "telea": 3.691,
+    "patch_better": 19,
+    "n": 26
+   },
+   "random": {
+    "patch": 7.987,
+    "telea": 8.73,
+    "patch_better": 18,
+    "n": 26
+   }
+  },
+  "rows": [
+   {
+    "file": "01.BtS2Hkmp.jpg",
+    "place": "homogeneous",
+    "patch": 2.2680740356445312,
+    "telea": 2.313842296600342
+   },
+   {
+    "file": "01.BtS2Hkmp.jpg",
+    "place": "random",
+    "patch": 9.631816864013672,
+    "telea": 11.67421817779541
+   },
+   {
+    "file": "02.DlAjPzxZ.jpg",
+    "place": "homogeneous",
+    "patch": 6.09883975982666,
+    "telea": 6.719125270843506
+   },
+   {
+    "file": "02.DlAjPzxZ.jpg",
+    "place": "random",
+    "patch": 12.543084144592285,
+    "telea": 14.67026424407959
+   },
+   {
+    "file": "03.HYGHznkF.jpg",
+    "place": "homogeneous",
+    "patch": 0.6170522570610046,
+    "telea": 0.8068652153015137
+   },
+   {
+    "file": "03.HYGHznkF.jpg",
+    "place": "random",
+    "patch": 11.124791145324707,
+    "telea": 11.102392196655273
+   },
+   {
+    "file": "05.BD.jpg",
+    "place": "homogeneous",
+    "patch": 8.503301620483398,
+    "telea": 7.5480852127075195
+   },
+   {
+    "file": "05.BD.jpg",
+    "place": "random",
+    "patch": 5.733051300048828,
+    "telea": 5.3979268074035645
+   },
+   {
+    "file": "06.DyCk6aot.jpg",
+    "place": "homogeneous",
+    "patch": 0.7972684502601624,
+    "telea": 1.1712356805801392
+   },
+   {
+    "file": "06.DyCk6aot.jpg",
+    "place": "random",
+    "patch": 16.456859588623047,
+    "telea": 18.198749542236328
+   },
+   {
+    "file": "07.DPGb7vQ4.jpg",
+    "place": "homogeneous",
+    "patch": 1.4531892538070679,
+    "telea": 1.8888038396835327
+   },
+   {
+    "file": "07.DPGb7vQ4.jpg",
+    "place": "random",
+    "patch": 7.222995281219482,
+    "telea": 13.250307083129883
+   },
+   {
+    "file": "09.6CkXdaHz.jpg",
+    "place": "homogeneous",
+    "patch": 4.010609149932861,
+    "telea": 4.521943092346191
+   },
+   {
+    "file": "09.6CkXdaHz.jpg",
+    "place": "random",
+    "patch": 3.973100423812866,
+    "telea": 4.603516101837158
+   },
+   {
+    "file": "10.BqLvFFQV.jpg",
+    "place": "homogeneous",
+    "patch": 5.755585193634033,
+    "telea": 4.862104415893555
+   },
+   {
+    "file": "10.BqLvFFQV.jpg",
+    "place": "random",
+    "patch": 4.770125865936279,
+    "telea": 6.619898796081543
+   },
+   {
+    "file": "12.CKrzzr.jpg",
+    "place": "homogeneous",
+    "patch": 4.328779697418213,
+    "telea": 4.2175374031066895
+   },
+   {
+    "file": "12.CKrzzr.jpg",
+    "place": "random",
+    "patch": 3.4101219177246094,
+    "telea": 1.9030870199203491
+   },
+   {
+    "file": "14.dUbPI1Gt.jpg",
+    "place": "homogeneous",
+    "patch": 0.6727272868156433,
+    "telea": 1.2255405187606812
+   },
+   {
+    "file": "14.dUbPI1Gt.jpg",
+    "place": "random",
+    "patch": 2.838456153869629,
+    "telea": 2.805999517440796
+   },
+   {
+    "file": "k003.DyMHPVwH.jpg",
+    "place": "homogeneous",
+    "patch": 0.5110275149345398,
+    "telea": 0.8859419822692871
+   },
+   {
+    "file": "k003.DyMHPVwH.jpg",
+    "place": "random",
+    "patch": 4.737813949584961,
+    "telea": 5.270973205566406
+   },
+   {
+    "file": "k007.C8MVnAJ9.jpg",
+    "place": "homogeneous",
+    "patch": 0.5988680124282837,
+    "telea": 1.063591718673706
+   },
+   {
+    "file": "k007.C8MVnAJ9.jpg",
+    "place": "random",
+    "patch": 12.934676170349121,
+    "telea": 12.90429973602295
+   },
+   {
+    "file": "k011.DWWFp-9q.jpg",
+    "place": "homogeneous",
+    "patch": 3.083767890930176,
+    "telea": 6.342974662780762
+   },
+   {
+    "file": "k011.DWWFp-9q.jpg",
+    "place": "random",
+    "patch": 5.679653644561768,
+    "telea": 6.585964202880859
+   },
+   {
+    "file": "k015.UQEVj0Ty.jpg",
+    "place": "homogeneous",
+    "patch": 8.196019172668457,
+    "telea": 4.757571220397949
+   },
+   {
+    "file": "k015.UQEVj0Ty.jpg",
+    "place": "random",
+    "patch": 15.656381607055664,
+    "telea": 13.61280345916748
+   },
+   {
+    "file": "k019.xl6PNC9F.jpg",
+    "place": "homogeneous",
+    "patch": 1.0255060195922852,
+    "telea": 1.361682653427124
+   },
+   {
+    "file": "k019.xl6PNC9F.jpg",
+    "place": "random",
+    "patch": 9.858169555664062,
+    "telea": 11.230758666992188
+   },
+   {
+    "file": "k023.xcKSomxW.jpg",
+    "place": "homogeneous",
+    "patch": 7.5914788246154785,
+    "telea": 10.005375862121582
+   },
+   {
+    "file": "k023.xcKSomxW.jpg",
+    "place": "random",
+    "patch": 2.5287435054779053,
+    "telea": 3.6625239849090576
+   },
+   {
+    "file": "k027.DJoButba.jpg",
+    "place": "homogeneous",
+    "patch": 1.304682731628418,
+    "telea": 1.660491943359375
+   },
+   {
+    "file": "k027.DJoButba.jpg",
+    "place": "random",
+    "patch": 13.367037773132324,
+    "telea": 13.969400405883789
+   },
+   {
+    "file": "k034.CRqnKlHB.jpg",
+    "place": "homogeneous",
+    "patch": 0.7993326783180237,
+    "telea": 2.302328109741211
+   },
+   {
+    "file": "k034.CRqnKlHB.jpg",
+    "place": "random",
+    "patch": 7.576637268066406,
+    "telea": 6.78200626373291
+   },
+   {
+    "file": "k039.DwHOrV3Z.jpg",
+    "place": "homogeneous",
+    "patch": 6.311727523803711,
+    "telea": 4.824090003967285
+   },
+   {
+    "file": "k039.DwHOrV3Z.jpg",
+    "place": "random",
+    "patch": 13.060327529907227,
+    "telea": 14.272858619689941
+   },
+   {
+    "file": "k046.Dpz2AGJh.jpg",
+    "place": "homogeneous",
+    "patch": 1.0962333679199219,
+    "telea": 2.710716485977173
+   },
+   {
+    "file": "k046.Dpz2AGJh.jpg",
+    "place": "random",
+    "patch": 1.5449345111846924,
+    "telea": 3.6267688274383545
+   },
+   {
+    "file": "k073.CCFn1mN1.jpg",
+    "place": "homogeneous",
+    "patch": 4.464951038360596,
+    "telea": 3.103459358215332
+   },
+   {
+    "file": "k073.CCFn1mN1.jpg",
+    "place": "random",
+    "patch": 0.8396492004394531,
+    "telea": 1.2779054641723633
+   },
+   {
+    "file": "k077.ClJt9N9P.jpg",
+    "place": "homogeneous",
+    "patch": 5.2882819175720215,
+    "telea": 4.762280464172363
+   },
+   {
+    "file": "k077.ClJt9N9P.jpg",
+    "place": "random",
+    "patch": 6.831618785858154,
+    "telea": 7.524439334869385
+   },
+   {
+    "file": "k081.BIJz9WvY.jpg",
+    "place": "homogeneous",
+    "patch": 1.0703492164611816,
+    "telea": 1.3391772508621216
+   },
+   {
+    "file": "k081.BIJz9WvY.jpg",
+    "place": "random",
+    "patch": 7.499055862426758,
+    "telea": 8.332064628601074
+   },
+   {
+    "file": "k098.C.jpg",
+    "place": "homogeneous",
+    "patch": 4.085822582244873,
+    "telea": 4.654935359954834
+   },
+   {
+    "file": "k098.C.jpg",
+    "place": "random",
+    "patch": 7.9921650886535645,
+    "telea": 8.35884952545166
+   },
+   {
+    "file": "k102.CJLEfKU3.jpg",
+    "place": "homogeneous",
+    "patch": 2.986859083175659,
+    "telea": 3.7468767166137695
+   },
+   {
+    "file": "k102.CJLEfKU3.jpg",
+    "place": "random",
+    "patch": 1.962672233581543,
+    "telea": 2.278078079223633
+   },
+   {
+    "file": "k106.CNSQFHIF.jpg",
+    "place": "homogeneous",
+    "patch": 4.826818466186523,
+    "telea": 7.164592266082764
+   },
+   {
+    "file": "k106.CNSQFHIF.jpg",
+    "place": "random",
+    "patch": 17.895225524902344,
+    "telea": 17.0717716217041
+   }
+  ]
+ }
+}
