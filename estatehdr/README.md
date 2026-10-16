@@ -388,62 +388,78 @@ Pełna lista z uzasadnieniami jest w [DECISIONS.md](DECISIONS.md). Najważniejsz
 
 ## 9. Znane ograniczenia
 
-Uczciwie, z pomiarami (szczegóły w `reports/`):
+Uczciwie, z pomiarami. Liczby są w §6 (tabela kryteriów: §6.7), a pełne dane w `reports/`.
 
 1. **Bez modeli AI.** Wszystkie etapy są algorytmiczne. Tam, gdzie AutoHDR ma modele uczone na ponad 1 mln par,
    EstateHDR jest słabszy:
    - **Twilight** to deterministyczny relighting: niebo zmierzchu, przyciemnienie i ochłodzenie fasady, świecące
-     szyby. Wygląda wiarygodnie na prostych fasadach. Okna wykrywa jednak jako ciemne prostokąty, więc czasem
-     „zapala” ciemny cień (np. pod schodami) albo pomija okno odbijające niebo. Nie generuje nowych źródeł światła
-     (latarnie, oświetlenie ogrodu).
+     szyby. Okna szuka tylko na elewacji, jako prostokątnych, oprawionych obszarów powyżej gruntu (D-45). Pomija
+     okna zasłonięte firankami lub roletami i szyby odbijające jasne niebo. Nie dodaje nowych źródeł światła
+     (latarni, oświetlenia ogrodu).
    - **Usuwanie obiektów wymaga maski** (pędzel w UI lub `<nazwa>.mask.png`); nie ma automatycznego wykrywania
-     bałaganu. Inpainting exemplar-based dobrze wypełnia jednorodne powierzchnie i faktury (ściana, podłoga,
-     trawa, liście): ΔE 1.12 do oryginału przy dziurach na jednorodnym tle, wobec 1.43 dla Telea. Duże dziury na
-     styku kilku struktur mogą jednak przedłużyć linię albo krawędź tam, gdzie nie powinna być (np. fuga deski o
-     jedną deskę za daleko).
-   - **Wymiana nieba:** detekcja opiera się na regułach (rozrost od gładkich nasion u góry kadru i walidacja
-     kolor/jasność). Na 14 exteriorach z HDR+ niebo wykryte w 12. Nie wykrywa nieba na zachodzie słońca z silnie
-     teksturowanymi chmurami. Chmury o mocnej teksturze, które leżą tuż nad dachem, mogą zostać w obrazie obok nowego
-     nieba. W prześwitach koron drzew zdarzają się drobne jasne plamki starego nieba. Na 104 wnętrzach jedna
-     fałszywa detekcja (prześwietlone okno u góry kadru).
-2. **Okna przepalone w najciemniejszej klatce** są renderowane jako czysta biel z miękką krawędzią. Danych nie
-   da się odzyskać (pomiar: przepalone w wyniku = przepalone w ciemnej klatce, a odzyskiwalne przepalenia 0%).
-   AutoHDR w takiej sytuacji może „dorysować” widok, my nie.
+     bałaganu. Inpainting exemplar-based wypełnia jednorodne powierzchnie i faktury lepiej niż Telea (§6.4), ale
+     duże dziury na styku kilku struktur mogą przedłużyć linię albo krawędź tam, gdzie jej nie było.
+   - **Wymiana nieba:** detekcja opiera się na regułach (rozrost od gładkich nasion u góry kadru, walidacja koloru
+     i jasności). Nie wykrywa nieba o zachodzie z silnie teksturowanymi chmurami, a w prześwitach koron drzew
+     zostają drobne jasne plamki starego nieba. We wnętrzach portfolio wykrywa niebo widoczne przez szklany dach
+     albo okno u góry kadru; wymiana jest opcjonalna i wtedy podmienia także to niebo.
+2. **Okna przepalone w najciemniejszej klatce** są renderowane jako czysta biel z miękką krawędzią. Tych danych nie
+   da się odzyskać. AutoHDR może w takiej sytuacji „dorysować” widok, a EstateHDR tego nie robi.
 3. **Balans bieli:**
-   - bardzo silne dominanty (np. 3000 K przy WB „dzień”) są korygowane tylko częściowo, przez celowy miękki limit,
-     który chroni wnętrza pełne drewna przed zsinieniem. Od ok. 4000 K korekta jest pełna;
-   - neutralność ścian w scenach mieszanego światła (żarówki + okno): ΔE 3.1 przy celu SPEC ≤ 3.0 (≤ 5 w strefie
-     żarówek jest spełnione);
+   - lokalne pole mieszanego światła bierze za biel powierzchnie o kolorze bliskim barwie światła: drewnianą
+     podłogę w świetle lampy (wychodzi bledsza) i duże terakotowe lub pastelowe płaszczyzny przy świetle ok. 4000 K
+     (D-51). Kolorem samym w sobie nie da się ich odróżnić od dominanty;
+   - bardzo silne dominanty (np. 3000 K przy WB „dzień”) są korygowane globalnie tylko częściowo. Miękki limit chroni
+     wnętrza pełne drewna przed zsinieniem;
+   - na prawdziwych zdjęciach HDR+ neutralność jasnych powierzchni ma ΔE ok. 6, wyraźnie gorzej niż na scenach
+     syntetycznych (§6.2). Część to prawdziwe kolorowe powierzchnie, które ta miara też liczy;
    - na starych zdjęciach o nieznanej krzywej odpowiedzi (OpenCV Memorial Church) zostaje różowa dominanta na
-     drewnie i kolorowy szum w ciemnych narożnikach. Neutralność ΔE 7.4, czyli gorzej niż przed kalibracją (7.2).
+     drewnie.
 4. **Tryb jednej klatki (pseudo-HDR)** nie ma informacji spoza zakresu jednego zdjęcia. Przepalone okna zostają
-   białe, a szum cieni ograniczamy, więc cienie są podnoszone ostrożniej. Dla już wywołanych JPEG-ów pipeline
-   świadomie „nie przerabia” zdjęcia: na 104 gotowych zdjęciach portfolio SSIM ma medianę 0.967, a ΔE 4.57.
-5. **GPU** działa przez OpenCL (OpenCV T-API) tylko dla części operacji. Ścieżka jest testowana na zgodność
-   wyników na CPU, ale przyspieszenie na prawdziwym GPU nie zostało zmierzone (brak GPU w środowisku).
-6. **Kalibracja bez par.** Nie było par „wejście → wynik AutoHDR”, więc presety są dostrojone do celów ze SPEC
-   (opis wyglądu AutoHDR) na 3 scenach syntetycznych z GT i sprawdzone na danych odłożonych (HDR+, OpenCV,
-   portfolio). Nie są dopasowane 1:1 do AutoHDR, a kilka parametrów skończyło na granicach przedziałów (D-32).
-   Jasność ścian w `neutral` (L* 75.6) jest celowo poniżej pasma SPEC 78–88, bo jaśniejszy klucz wyglądał na
-   prawdziwych zdjęciach na wyprany. `tools/calibrate.py --pairs` jest gotowe na pary.
-7. **LPIPS** nie jest liczony (brak `torch` i wag o jasnej licencji). Raport podaje SSIM, MS-SSIM, gradient-SSIM
-   (zgodność krawędzi) i ΔE2000.
-8. **Wydajność** (4 rdzenie CPU, bez GPU): seria 3×24 Mpx 79 s, 3×60 Mpx 137 s; szczyt pamięci
-   2.25 GB i 2.71 GB. Wolniej niż usługa w chmurze, ale lokalnie i równolegle dla wielu serii.
-9. **RAW**: odczyt przez LibRaw (rawpy) obejmuje praktycznie wszystkie aparaty, ale bez profili obiektywów.
-   Korekcja dystorsji, winiety i CA jest estymowana z obrazu, a winieta automatycznie tylko przy spójnym
-   profilu.
-10. **Aberracja chromatyczna:**
-    - na danych liniowych (RAW/TIFF) korekta usuwa 75–90% bocznej CA; resztka ok. 0.4 px na brzegu;
-    - w JPEG-ach z subsamplingiem 4:2:0 część przesunięcia kolorów jest rozmyta już w pliku, więc korekta jest
-      mniejsza (ok. 40%, resztka ok. 1 px);
-    - cel SPEC ≤ 0.3 px nie jest spełniony.
-11. **Miara pionowości** w raportach liczy odchylenie wszystkich długich, prawie pionowych linii. Na zdjęciach
-    bez architektonicznych pionów (portret w restauracji, zbliżenie lunety, kopuła z rybiego oka) mediana wynosi
-    1.5–3.3° i nie oznacza krzywych ścian. Na wnętrzach z GT wynosi 0.04–0.14°.
-12. **Odszumianie** jest umiarkowane. Po kalibracji jaśniejszy klucz tonalny uwidacznia szum cieni, więc spadek
-    σ szumu na pojedynczych RAW wynosi 3–33% (wcześniej 20–35%).
+   białe, a szum cieni ograniczamy, więc cienie są podnoszone ostrożniej. Gotowe, wywołane zdjęcia są świadomie
+   „oszczędzane” (D-47–D-49, D-53):
+   - zostaje ich czerń, biel i większość klucza tonalnego;
+   - szum jest mierzony tylko na gładkich fragmentach, więc faktura nie jest rozmywana;
+   - WB poprawia wyraźną dominantę, ale nie wybiela kolorowych materiałów;
+   - bez automatycznej korekcji dystorsji.
 
+   Ciemne, nastrojowe ujęcia są rozjaśniane umiarkowanie (najwyżej do klucza 0.45). Szum gotowego JPEG-a, który
+   kompresja już wygładziła, bywa brany za fakturę i zostaje (D-53). Bardzo zaszumione pojedyncze RAW (np. HDR+
+   „kościół”, „schody”) zachowują po odszumianiu drobne kropki w cieniach (D-39).
+5. **GPU** działa przez OpenCL (OpenCV T-API) tylko dla części operacji. Ścieżka jest testowana na zgodność wyników
+   na CPU, ale przyspieszenia na prawdziwym GPU nie zmierzyłem (brak GPU w środowisku).
+6. **Kalibracja bez par.** Nie było par „wejście → wynik AutoHDR”, więc presety są dostrojone do celów ze SPEC
+   (opis wyglądu AutoHDR) na scenach syntetycznych z GT i sprawdzone na danych odłożonych (HDR+, OpenCV, portfolio).
+   Nie są dopasowane 1:1 do AutoHDR. Jasność ścian w `neutral` jest celowo poniżej pasma SPEC (L* 78–88). Jaśniejszy
+   klucz wyglądał na prawdziwych zdjęciach na wyprany (D-32). `tools/calibrate.py --pairs` jest gotowe na pary.
+7. **LPIPS** nie jest liczony (brak `torch` i wag o jasnej licencji). Raport podaje SSIM, MS-SSIM, gradient-SSIM
+   i ΔE2000.
+8. **Wydajność** (4 rdzenie CPU, bez GPU) jest w §6.6. Wolniej niż usługa w chmurze, ale lokalnie i równolegle dla
+   wielu serii.
+9. **RAW i obiektyw:**
+   - odczyt przez LibRaw (rawpy) obejmuje praktycznie wszystkie aparaty, ale bez bazy profili obiektywów;
+   - mapy cieniowania zapisane w DNG (GainMap, np. z telefonów) są stosowane (D-43);
+   - dystorsja, winieta i CA są poza tym szacowane z obrazu;
+   - winieta jest korygowana automatycznie tylko wtedy, gdy gradienty radialne są spójne we wszystkich sektorach
+     (D-44). We wnętrzach światło okien i lamp blisko środka kadru wygląda jak winieta, więc tam korekta zwykle się
+     nie włącza (ręcznie: `lens.vignetting: 0.3`);
+   - w części serii HDR+ (telefon) winieta zostaje.
+10. **Aberracja chromatyczna:** korekta usuwa większość bocznej CA na danych liniowych, mniej w JPEG-ach z
+    subsamplingiem 4:2:0 (przesunięcie kolorów jest rozmyte już w pliku). Resztka 0.3–1.1 px na brzegu, więc cel
+    SPEC ≤ 0.3 px nie jest spełniony (§6.3).
+11. **Miara pionowości** w raportach liczy odchylenie wszystkich długich, prawie pionowych linii. Na zdjęciach bez
+    architektonicznych pionów (portret, zbliżenie lunety, kopuła z rybiego oka, schody) mediana wynosi kilka stopni
+    i nie oznacza krzywych ścian. Na wnętrzach z GT wynosi 0.06–0.17°.
+12. **Wyrównanie przy perspektywie:** model ruchu wybierany per klatka (D-52) obniża błąd przy obrocie aparatu z
+    ręki, ale klatka prześwietlona w ok. 80% ma za mało dopasowań, by rozstrzygnąć model. Zostaje afiniczna i ma błąd
+    ok. 1 px przy celu SPEC ≤ 0.8 px (§6.7). Typowy bracketing ze statywu albo z ręki bez dużego obrotu tego nie
+    dotyczy.
+13. **Ekspozycje bez EXIF** są szacowane z pikseli razem z krzywą odpowiedzi (D-50). Wykładnika krzywej nie da się
+    jednak z samych pikseli odróżnić od stosunków ekspozycji, więc przyjmowany jest jak w sRGB. Aparat o innej
+    gamma i bez EXIF dostanie ekspozycje przeskalowane o ten czynnik. Odpowiedzi spoza modelu (film, skaner) wracają
+    do zwykłego sRGB. 16-bitowe TIFF-y bez tagów i profilu z czystą krzywą potęgową (Adobe RGB, ProPhoto) są
+    dekodowane jak sRGB, z błędem ekspozycji ok. 0.2–0.3 EV na bracket −2/0/+2. Liniowy TIFF bez niedoeksponowanej
+    klatki (np. 0/+2) jest czytany jako sRGB (D-50).
 
 ## 10. Następne kroki (największy zysk)
 
@@ -453,6 +469,8 @@ Uczciwie, z pomiarami (szczegóły w `reports/`):
    grupowania AutoHDR, ale wyłącznie po potwierdzeniu licencji i za zgodą właściciela projektu (D-18).
 2. **Modele uczone na licencjach komercyjnych** (MIT/Apache, z wagami o jasnym pochodzeniu):
    - segmentacja nieba i okien zamiast reguł (twilight, wymiana nieba, okna z firankami);
+   - rozpoznawanie materiałów (drewno, terakota, pastele), żeby lokalny balans bieli nie brał ich koloru za kolor
+     światła (D-51);
    - odszumianie pojedynczych RAW, które jest dziś najsłabszym punktem trybu jednej klatki.
 3. **Profile obiektywów** dla dystorsji, winiety i CA. Estymacja z obrazu jest ostrożna (winieta we wnętrzach jest
    świadomie pomijana, D-44). Warunek: baza o licencji pozwalającej na użycie komercyjne albo własna kalibracja
