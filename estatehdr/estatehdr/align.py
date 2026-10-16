@@ -18,7 +18,8 @@ differ by more than ``auto_min_px`` at a corner (full resolution).  A dense
 homography fit alone is not trusted, because ECC turns systematic differences
 between exposures (clipping / noise-floor contours, moving objects) into a
 spurious perspective term more easily than into an affine one.  Both ECC stages
-then run in the chosen model (``info["model"]``).
+then run in the chosen model (``info["model"]``).  Without ECC (``ecc: false``)
+or without feature matches, ``auto`` keeps the affine model.
 """
 from __future__ import annotations
 
@@ -43,6 +44,17 @@ def _norm_log(img: np.ndarray, exposure: float, lo: float, hi: float):
     ly = np.log2(np.maximum(y, 1e-6))
     g = np.clip((ly - lo) / (hi - lo), 0, 1)
     return (g * 255).astype(np.uint8), valid
+
+
+def _log_pair(ref_img, ref_exp: float, mov_img, mov_exp: float):
+    """8-bit exposure-normalised log luminance of both images (+ validity masks) in one common
+    window: the reference's 1-99.5 % range +-1 EV."""
+    yr = np.log2(np.maximum(luminance(ref_img) / ref_exp, 1e-6))
+    lo, hi = np.percentile(yr, 1), np.percentile(yr, 99.5)
+    hi = max(hi, lo + 1)
+    a8, va = _norm_log(ref_img, ref_exp, lo - 1, hi + 1)
+    b8, vb = _norm_log(mov_img, mov_exp, lo - 1, hi + 1)
+    return a8, va, b8, vb
 
 
 def _ncc(a, b, mask):
@@ -146,13 +158,11 @@ def estimate_transform(ref_small: np.ndarray, ref_exp: float, mov_small: np.ndar
     ``scale``: analysis / full resolution, so that ``auto_min_px`` is measured at full resolution.
     ``info["model"]`` is the motion model used (the per-frame choice for ``model: auto``)."""
     model = cfg.get("model", "auto")
+    if model not in MODELS:
+        log.warning("unknown align.model '%s', using auto (%s)", model, " | ".join(MODELS))
+        model = "auto"
     base = "affine" if model == "auto" else model
-    # common log-luminance window
-    yr = np.log2(np.maximum(luminance(ref_small) / ref_exp, 1e-6))
-    lo, hi = np.percentile(yr, 1), np.percentile(yr, 99.5)
-    hi = max(hi, lo + 1)
-    a8, va = _norm_log(ref_small, ref_exp, lo - 1, hi + 1)
-    b8, vb = _norm_log(mov_small, mov_exp, lo - 1, hi + 1)
+    a8, va, b8, vb = _log_pair(ref_small, ref_exp, mov_small, mov_exp)
     info = {"method": "identity"}
     H = np.eye(3)
     pa = pb = None
@@ -380,11 +390,7 @@ def _fine_image(f, side: int):
 
 def ecc_refine(ref_img, ref_exp, mov_img, mov_exp, H: np.ndarray, model: str) -> tuple[np.ndarray, bool]:
     """Dense ECC refinement on gradient magnitude of exposure-normalised log luminance."""
-    yr = np.log2(np.maximum(luminance(ref_img) / ref_exp, 1e-6))
-    lo, hi = np.percentile(yr, 1), np.percentile(yr, 99.5)
-    hi = max(hi, lo + 1)
-    a8, va = _norm_log(ref_img, ref_exp, lo - 1, hi + 1)
-    b8, vb = _norm_log(mov_img, mov_exp, lo - 1, hi + 1)
+    a8, va, b8, vb = _log_pair(ref_img, ref_exp, mov_img, mov_exp)
     try:
         return _ecc(_grad(a8), _grad(b8), H, model, vb.astype(np.uint8) * 255, 3), True
     except cv2.error:

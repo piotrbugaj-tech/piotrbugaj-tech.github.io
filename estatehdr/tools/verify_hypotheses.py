@@ -118,27 +118,41 @@ def exp_three_of_n(cfg):
     return out
 
 
-def exp_alignment(cfg):
-    out = {}
+def _model_info(info):
+    """Motion model the alignment used for a frame (align.model auto: the per-frame choice) + evidence."""
+    sel = info.get("model_select") or {}
+    return {"model": info.get("model"), **({"model_llr": sel.get("llr"), "model_corner_diff_px": sel.get("corner_diff_px")}
+                                           if sel else {})}
+
+
+def exp_alignment(cfg, models=()):
+    """Per frame grid error vs GT with the configured align.model; ``models``: the same series also
+    aligned with these explicit models (summary per model under the key "models")."""
+    out, cmp_ = {}, {}
     for scene in ("bedroom", "living_room"):
         p = gt_params(scene)
         s = load_series(scene, [read_metadata(os.path.join(SYN, "input", f["file"])) for f in p["frames"]], cfg)
-        align.align_series(s, cfg["align"])
         H = [np.array(f["homography"]) for f in p["frames"]]
         w, h = p["camera"]["width"], p["camera"]["height"]
         pts = np.array([[x, y, 1.0] for x in np.linspace(50, w - 50, 9) for y in np.linspace(50, h - 50, 7)]).T
-        errs = []
-        for i, f in enumerate(s.frames):
-            if i == s.ref:
-                continue
-            E = H[i] @ np.linalg.inv(H[s.ref])
-            a, b = f.homography @ pts, E @ pts
-            e = np.hypot(*(a[:2] / a[2] - b[:2] / b[2]))
-            shift = np.hypot(*(b[:2] / b[2] - pts[:2]))
-            errs.append({"frame": f.meta.name, "true_shift_px": float(shift.mean()), "mean_err_px": float(e.mean()),
-                         "max_err_px": float(e.max())})
-        out[scene] = errs
-    return out
+        for model in (None, *models):
+            acfg = dict(cfg["align"], **({"model": model} if model else {}))
+            infos = align.align_series(s, acfg)
+            errs = []
+            for i, f in enumerate(s.frames):
+                if i == s.ref:
+                    continue
+                E = H[i] @ np.linalg.inv(H[s.ref])
+                a, b = f.homography @ pts, E @ pts
+                e = np.hypot(*(a[:2] / a[2] - b[:2] / b[2]))
+                shift = np.hypot(*(b[:2] / b[2] - pts[:2]))
+                errs.append({"frame": f.meta.name, "true_shift_px": float(shift.mean()), "mean_err_px": float(e.mean()),
+                             "max_err_px": float(e.max()), **_model_info(infos[i])})
+            if model is None:
+                out[scene] = errs
+            else:
+                cmp_.setdefault(model, {})[scene] = [{k: e[k] for k in ("frame", "mean_err_px", "max_err_px")} for e in errs]
+    return out, cmp_
 
 
 def exp_from_outputs(out_dir):
@@ -409,7 +423,7 @@ def _spec_align20(cfg, moves=ALIGN20_MOVES):
                     cv2.imwrite(dst, im, [cv2.IMWRITE_JPEG_QUALITY, 95])
                     piexif.transplant(src, dst)
             s = load_series(scene, [read_metadata(os.path.join(tmp, f["file"])) for f in p["frames"]], cfg)
-            align.align_series(s, cfg["align"])
+            infos = align.align_series(s, cfg["align"])
             pts = np.array([[x, y, 1.0] for x in np.linspace(50, w - 50, 9) for y in np.linspace(50, h - 50, 7)]).T
             iref, errs = _ref_index(s, p), []
             for i, f in enumerate(s.frames):
@@ -420,7 +434,7 @@ def _spec_align20(cfg, moves=ALIGN20_MOVES):
                 e = np.hypot(*(a[:2] / a[2] - b[:2] / b[2]))
                 shift = np.hypot(*(b[:2] / b[2] - pts[:2]))
                 errs.append({"frame": f.meta.name, "true_shift_px": float(shift.mean()), "true_shift_max_px": float(shift.max()),
-                             "mean_err_px": float(e.mean()), "max_err_px": float(e.max())})
+                             "mean_err_px": float(e.mean()), "max_err_px": float(e.max()), **_model_info(infos[i])})
             out[scene] = errs
             for f in p["frames"]:
                 os.remove(os.path.join(tmp, f["file"]))
@@ -676,9 +690,11 @@ def exp_spec_extras(cfg, out_dir, parts=None, prev=None):
                     "worst_frame_mean_err_px": max(e["mean_err_px"] for e in allf),
                     "max_err_px": max(e["max_err_px"] for e in allf),
                     "true_shift_px_range": [min(e["true_shift_px"] for e in allf), max(e["true_shift_px"] for e in allf)],
-                    "pass": max(e["mean_err_px"] for e in allf) <= 0.8}
+                    "pass": max(e["mean_err_px"] for e in allf) <= 0.8,
+                    "models": {m: sum(e.get("model") == m for e in allf) for m in sorted({e.get("model") for e in allf} - {None})}}
         a20 = _spec_align20(cfg)
         sim = _spec_align20(cfg, [(tx, ty, ang, 0.0, 0.0) for tx, ty, ang, _, _ in ALIGN20_MOVES])
+        aff = _spec_align20(load_config(None, "neutral", ["align.model=affine"]))
         hom = _spec_align20(load_config(None, "neutral", ["align.model=homography"]))
         R["alignment_20px"] = {
             "spec": "SPEC 4: mean grid error <= 0.8 px hand-held (shifts up to 20 px), 2400x1600",
@@ -688,14 +704,17 @@ def exp_spec_extras(cfg, out_dir, parts=None, prev=None):
                           "px, rotation 0.25-0.35 deg, perspective h31/h32 1-2e-6 /px about the centre (a real hand-held "
                           "rotation giving 17 px with this 84 deg lens has ~1e-5 /px). align.align_series at full resolution "
                           "with the configured model (align.model); error = distance between estimated and GT mapping of a "
-                          "9x7 grid (50 px margin), as in experiment C. Diagnostics: similarity_only = the same motion without "
-                          "the perspective term; homography_model = the full motion with align.model=homography.",
+                          "9x7 grid (50 px margin), as in experiment C; per frame the model used (align.model auto: "
+                          "the per-frame choice, with its log-likelihood ratio). Diagnostics: similarity_only = the same "
+                          "motion without the perspective term (configured model); affine_model / homography_model = the "
+                          "full motion with align.model=affine / homography.",
             "align_model": cfg.get("align", {}).get("model"),
             "per_scene": a20, "summary": a20_summary(a20),
             "similarity_only": {"per_scene": sim, "summary": a20_summary(sim)},
+            "affine_model": {"per_scene": aff, "summary": a20_summary(aff)},
             "homography_model": {"per_scene": hom, "summary": a20_summary(hom)}}
         print("I alignment_20px", R["alignment_20px"]["summary"], "similarity only", a20_summary(sim),
-              "homography model", a20_summary(hom))
+              "affine model", a20_summary(aff), "homography model", a20_summary(hom))
 
     if want("white_balance"):
         wb = _spec_white_balance(series_of)
@@ -827,9 +846,15 @@ def main(argv=None):
         print("B done")
         done.append("three_of_n")
     if "C" in sel:
-        R["alignment"] = exp_alignment(cfg)
-        print("C done")
-        done.append("alignment")
+        R["alignment"], other = exp_alignment(cfg, ("affine", "homography"))
+        R["alignment_models"] = {
+            "definition": "Experiment C (key 'alignment': configured align.model, per frame the model it used) "
+                          "repeated with explicit align.model values on the same loaded series: per scene / frame "
+                          "mean and max grid error [px] vs GT.",
+            "configured": cfg["align"].get("model"), **other}
+        print("C done", {m: [round(e["mean_err_px"], 3) for v in r.values() for e in v]
+                         for m, r in [("configured", R["alignment"]), *other.items()]})
+        done += ["alignment", "alignment_models"]
     if sel & set("DEF"):
         R["windows"], R["geometry"], R["lens_ca"] = exp_from_outputs(out_dir)
         done += ["windows", "geometry", "lens_ca"]

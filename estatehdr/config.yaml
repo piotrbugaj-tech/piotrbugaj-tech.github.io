@@ -32,7 +32,15 @@ grouping:
 
 align:
   enabled: true
-  model: affine            # translation | similarity | affine | homography
+  # model ruchu: translation | similarity | affine | homography | auto.
+  # auto: model afiniczny, a perspektywa (homografia) tylko dla klatki, w której dane ją potwierdzają:
+  # gęste dopasowania ECC afiniczne i homograficzne są porównywane na niezależnych dopasowaniach SIFT
+  # (log. iloraz wiarygodności > auto_llr, czyli > 20:1) i modele różnią się w rogu o > auto_min_px
+  # (pełna rozdzielczość). Sama homografia z ECC bywa fałszywa (przepalenia, szum, ruchome obiekty);
+  # oba etapy ECC liczą się w modelu wybranym dla klatki (raport: align[].model)
+  model: auto
+  auto_llr: 3.0
+  auto_min_px: 0.5
   features: 4000
   ecc: true
   fine_ecc: true

@@ -171,3 +171,47 @@ def test_finished_low_key_photo_keeps_its_white(synth, tmp_path):
     yi, yo = (cv2.cvtColor(x, cv2.COLOR_BGR2GRAY) for x in (low, out))
     assert np.percentile(yo, 99) <= np.percentile(yi, 99) + 0.12 * 255 * 0.5
     assert (out.max(-1) >= 254).mean() <= (low.max(-1) >= 254).mean() + 0.005  # SPEC: < 0.5% clipped
+
+
+def test_white_balance_tungsten_zone_and_accent_wall():
+    """SPEC 7 mechanism: a white wall next to a 2700 K lamp in an 8000 K daylit room is corrected
+    locally (before: the local correction scaled with a confidence that drops near lamps, the wall
+    kept ~half of the cast, |uv| 0.07); a sage accent panel lit by daylight keeps its colour and hue
+    (before: hue turned by ~50 deg).  The locus tests use camera chroma (lamps lie on the locus there)."""
+    from estatehdr import color
+    H, W = 400, 600
+    rng = np.random.default_rng(0)
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    alb = np.full((H, W, 3), 0.8, np.float32) * rng.uniform(0.97, 1.03, (H, W, 1)).astype(np.float32)
+    sage = np.array([0.42, 0.55, 0.45], np.float32)
+    acc = np.zeros((H, W), bool)
+    acc[80:220, 40:200] = True
+    alb[acc] = sage
+    floor = yy > 0.8 * H
+    alb[floor] = (np.array([0.50, 0.34, 0.20], np.float32) * ((np.floor(xx / 23) % 3)[..., None] * 0.08 + 0.85))[floor]
+    luma = np.array([0.2126, 0.7152, 0.0722], np.float32)
+    day, tung = (color.kelvin_rgb(k).astype(np.float32) for k in (8000, 2700))
+    day, tung = day / (day @ luma), tung / (tung @ luma)
+    r2 = ((xx - 0.78 * W) ** 2 + (yy - 0.45 * H) ** 2) / (0.13 * W) ** 2
+    et = 5.0 * np.exp(-r2 / 2)  # lamp light (luminance relative to daylight)
+    img = (alb * (day[None, None] + et[..., None] * tung[None, None]) * 0.1).astype(np.float32)
+    out, info = color.white_balance(img.copy(), img.copy(), None, load_config(None, "neutral"))
+    u, v = color._uv(out)
+    wall = ~floor & ~acc & (r2 > 0.05)
+    zone, daylit = wall & (et > 1.0), wall & (et < 0.05)
+    assert np.hypot(u[zone].mean(), v[zone].mean()) < 0.04
+    assert np.hypot(u[daylit].mean(), v[daylit].mean()) < 0.08
+    inner = cv2.erode(acc.astype(np.uint8), np.ones((15, 15), np.uint8)).astype(bool)
+    rel = np.array([u[inner].mean() - u[daylit].mean(), v[inner].mean() - v[daylit].mean()])
+    true = np.log(sage[[0, 2]] / sage[1])
+    assert 0.7 < np.hypot(*rel) / np.hypot(*true) < 1.4  # not neutralised
+    ang = np.degrees(np.arctan2(rel[1], rel[0]) - np.arctan2(true[1], true[0]))
+    assert abs((ang + 180) % 360 - 180) < 20
+    # camera-chroma locus distance: a white under any black body ~0, the sage under daylight ~0.33
+    for k in (2700, 4000, 6500, 10000):
+        c = color.kelvin_rgb(k)
+        assert color.locus_distance(np.full((2, 2), np.log(c[0] / c[1]), np.float32),
+                                    np.full((2, 2), np.log(c[2] / c[1]), np.float32)).max() < 0.01
+    c = sage / sage[1] * color.kelvin_rgb(8000)
+    d = color.locus_distance(np.full((2, 2), np.log(c[0] / c[1]), np.float32), np.full((2, 2), np.log(c[2] / c[1]), np.float32))
+    assert 0.3 < d.mean() < 0.37
