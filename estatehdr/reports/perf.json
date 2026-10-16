@@ -1,0 +1,73 @@
+{
+ "machine": "4 rdzenie CPU, bez GPU (OpenCL niedostępny), 15 GB RAM",
+ "series": {
+  "3x24Mpx": {
+   "frames": 3,
+   "width": 6000,
+   "height": 4000,
+   "seconds": 79.3,
+   "peak_rss_gb": 2.25,
+   "timings": {
+    "load": 3.546,
+    "align": 22.24,
+    "merge": 11.739,
+    "lens": 2.416,
+    "windows": 0.668,
+    "white_balance": 3.105,
+    "tonemap": 26.317,
+    "denoise": 0.201,
+    "modules": 0.0,
+    "geometry": 5.944,
+    "export": 3.009
+   },
+   "peak_rss_gb_after_stage": {
+    "load": 0.44,
+    "align": 0.94,
+    "merge": 1.47,
+    "lens": 1.47,
+    "windows": 1.47,
+    "white_balance": 1.47,
+    "tonemap": 2.25,
+    "denoise": 2.25,
+    "modules": 2.25,
+    "geometry": 2.25,
+    "export": 2.25
+   },
+   "device": "cpu"
+  },
+  "3x60Mpx": {
+   "frames": 3,
+   "width": 9504,
+   "height": 6336,
+   "seconds": 136.8,
+   "peak_rss_gb": 2.71,
+   "timings": {
+    "load": 3.268,
+    "align": 21.582,
+    "merge": 34.539,
+    "lens": 2.783,
+    "windows": 0.672,
+    "white_balance": 4.884,
+    "tonemap": 42.492,
+    "denoise": 0.327,
+    "modules": 0.0,
+    "geometry": 18.241,
+    "export": 7.709
+   },
+   "peak_rss_gb_after_stage": {
+    "load": 0.74,
+    "align": 1.24,
+    "merge": 2.71,
+    "lens": 2.71,
+    "windows": 2.71,
+    "white_balance": 2.71,
+    "tonemap": 2.71,
+    "denoise": 2.71,
+    "modules": 2.71,
+    "geometry": 2.71,
+    "export": 2.71
+   },
+   "device": "cpu"
+  }
+ }
+}
