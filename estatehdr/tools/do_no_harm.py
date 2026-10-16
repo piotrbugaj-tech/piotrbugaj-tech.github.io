@@ -40,26 +40,32 @@ def main(argv=None):
     py = sys.executable
     if not (a.reuse and os.path.exists(os.path.join(a.out, "report.json"))):
         shutil.rmtree(a.out, ignore_errors=True)
-        subprocess.run([py, "-m", "estatehdr", "process", a.input, "-o", a.out, "--single", "--workers", str(a.workers)],
-                       cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # exit code 2 = some photo failed: still evaluated, and counted in "failed" / "inputs"
+        r = subprocess.run([py, "-m", "estatehdr", "process", a.input, "-o", a.out, "--single", "--workers",
+                            str(a.workers)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if r.returncode not in (0, 2):
+            sys.exit(f"estatehdr process failed with exit code {r.returncode}")
     subprocess.run([py, os.path.join(ROOT, "tools", "evaluate.py"), a.out, "--pairs", a.input], cwd=ROOT, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     with open(os.path.join(a.out, "report.json"), encoding="utf-8") as fh:
         rep = json.load(fh)
+    if not rep.get("complete", True) or rep.get("pending"):
+        sys.exit(f"{a.out}: the batch is incomplete (pending {len(rep.get('pending') or [])}); run without --reuse")
+    inputs = len(rep.get("series") or []) + len(rep.get("unreadable") or [])  # every photo, failed ones too
     with open(os.path.join(a.out, "quality.json"), encoding="utf-8") as fh:
         rows = {k: summarize(v) for k, v in json.load(fh).items()}
-    ssim = sorted(((n, round(r["ssim"], 3)) for n, r in rows.items() if r.get("ssim") is not None), key=lambda t: t[1])
+    ssim = sorted(((n, r["ssim"]) for n, r in rows.items() if r.get("ssim") is not None), key=lambda t: t[1])
     out = {"what": f"tryb jednej klatki na {len(rows)} gotowych zdjęciach portfolio (finalna konfiguracja), "
                    "wynik porównany z wejściem",
            "ok": rep.get("ok"), "failed": rep.get("failed"), "seconds": rep.get("seconds"), "workers": a.workers,
            "metrics": {k: stats([r[k] for r in rows.values() if r.get(k) is not None]) for k in KEYS},
-           "ssim_below_0.85": int(sum(s < 0.85 for _, s in ssim)), "images": len(rows),
-           "worst_ssim": [list(t) for t in ssim[:8]]}
+           "ssim_below_0.85": int(sum(s < 0.85 for _, s in ssim)), "images": len(rows), "inputs": inputs,
+           "worst_ssim": [[n, round(s, 3)] for n, s in ssim[:8]]}
     path = os.path.join(ROOT, "reports", "portfolio_do_no_harm.json")
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(out, fh, indent=1, ensure_ascii=False)
     m = out["metrics"]
-    print(f"{out['ok']}/{out['images']} ok; SSIM median {m['ssim']['median']}, below 0.85: {out['ssim_below_0.85']}; "
+    print(f"{out['ok']}/{inputs} ok; SSIM median {m['ssim']['median']}, below 0.85: {out['ssim_below_0.85']}; "
           f"dE mean {m['dE_ref']['mean']}")
 
 

@@ -233,7 +233,8 @@ def section_portfolio():
     m = p["metrics"]
     worst = ", ".join(f"{n} ({x:.2f})" for n, x in p["worst_ssim"][:3])
     return ["### 6.5 Test „nie psuć” (tryb jednej klatki, gotowe zdjęcia z portfolio)", "",
-            f"{p['ok']} z {p['images']} zdjęć bez błędu. Wynik względem wejścia:",
+            f"{p['ok']} z {p.get('inputs', p['images'])} zdjęć bez błędu"
+            + (f" (nieudane: {p['failed']})" if p.get("failed") else "") + ". Wynik względem wejścia:",
             f"- SSIM: mediana **{m['ssim']['median']:.3f}**, p10 {m['ssim']['p10']:.3f}, minimum {m['ssim']['min']:.3f};",
             f"  poniżej 0.85: {p['ssim_below_0.85']}/{p['images']} zdjęć (najniższe: {worst});",
             f"- ΔE2000: mediana **{m['dE_ref']['median']:.2f}**, średnia {m['dE_ref']['mean']:.2f}, "
@@ -241,8 +242,9 @@ def section_portfolio():
             f"- przepalenia poza nieodzyskiwalnymi średnio {m['clipped_excl_%']['mean']:.2f}%, zaczernienia średnio "
             f"{m['crushed_%']['mean']:.2f}% (maksimum {m['crushed_%']['max']:.2f}%);",
             f"- pionowość: mediana {m['vert_med_deg']['median']:.2f}°.", "",
-            "Cel SPEC: SSIM ≥ 0.85 i średnie ΔE ≤ 6. Najniższe SSIM mają głównie zdjęcia, którym pipeline prostuje piony:",
-            "zamierzona zmiana geometrii obniża SSIM. Plik: [reports/portfolio_do_no_harm.json](reports/portfolio_do_no_harm.json)."]
+            "Cel SPEC: SSIM ≥ 0.85 i średnie ΔE ≤ 6. SSIM obniżają też zmiany zamierzone (prostowanie pionów, rozjaśnienie",
+            "ciemnych ujęć), więc niski wynik nie zawsze oznacza szkodę; przyczyny dla tego zbioru opisuje D-49. Plik:",
+            "[reports/portfolio_do_no_harm.json](reports/portfolio_do_no_harm.json)."]
 
 
 # --- 6.6 ------------------------------------------------------------------------------------------
@@ -272,81 +274,99 @@ def section_acceptance():
     d = load("calibration", "full_pipeline.json")
     p, pf = load("portfolio_do_no_harm.json"), load("perf.json")["series"]
     v, ex = s["v"], s["extras"]
+    tests_ok = tests_result()[1]
     rows = []
 
-    def after(key):
-        return [d[q][key]["after"] for q in PRESETS if key in d.get(q, {})]
+    def scenes(key, presets=PRESETS):
+        """Per-scene values after calibration (every GT scene, all given presets); the mean if the
+        report predates per-series values."""
+        out = []
+        for q in presets:
+            x = d.get(q, {}).get(key)
+            if x:
+                out += list(x["per_series"].values()) if x.get("per_series") else [x["after"]]
+        return out
 
     def per_preset(key, n=1):
-        return ", ".join(f"{q} {d[q][key]['after']:.{n}f}" for q in PRESETS if key in d.get(q, {}))
+        return ", ".join(f"{q} {rng(scenes(key, (q,)), n)}" for q in PRESETS if key in d.get(q, {}))
 
     def row(crit, goal, result, ok):
         rows.append((f"| {crit} | {goal} | {result} | {ok} |", ok))
 
+    def tested(ok_text="tak (test)"):
+        return ok_text if tests_ok is not False else "**nie** (testy nie przechodzą)"
+
+    def part(name):
+        x = ex.get(name)
+        return x if isinstance(x, dict) else {}
+
     g = v["grouping"]
     row("Odporność batcha", "błędny plik nie zatrzymuje batcha",
-        "uszkodzony plik, niepełna seria, brak EXIF, awaria workera (`tests/test_robustness.py`)", "tak (test)")
+        "uszkodzony plik, niepełna seria, brak EXIF, awaria workera (`tests/test_robustness.py`)", tested())
     row("Grupowanie", "100% z EXIF i bez", f"{g['with_exif']['series_exact']}/{g['with_exif']['of']} i "
         f"{g['without_exif']['series_exact']}/{g['without_exif']['of']}",
         status(all(g[k]["series_exact"] == g[k]["of"] for k in ("with_exif", "without_exif"))))
-    e = (ex.get("exposures") or {}).get("summary")
-    if e:
-        row("Ekspozycje względne (z EXIF)", "±0.1 EV od GT", f"maks. błąd {e['with_exif_max_abs_err_ev']:.2f} EV",
-            status(e["pass_with_exif"]))
-        row("Ekspozycje względne (bez EXIF)", "±0.1 EV od GT", f"maks. błąd {e['without_exif_max_abs_err_ev']:.2f} EV",
-            status(e["pass_without_exif"]))
-    else:
-        row("Ekspozycje względne", "±0.1 EV od GT", "`test_exposures_without_exif`", "tak (test)")
+    e = part("exposures").get("summary") or {}
+    for lab, k, pk in (("z EXIF", "with_exif_max_abs_err_ev", "pass_with_exif"),
+                       ("bez EXIF", "without_exif_max_abs_err_ev", "pass_without_exif")):
+        if e.get(k) is not None:
+            row(f"Ekspozycje względne ({lab})", "±0.1 EV od GT", f"maks. błąd {e[k]:.2f} EV", status(bool(e.get(pk))))
+        else:
+            row(f"Ekspozycje względne ({lab})", "±0.1 EV od GT", "—", "nie zmierzone")
     row("Wyrównanie (serie GT)", "≤ 0.6 px statyw, ≤ 0.8 px z ręki",
         f"{rng(s['tri'])} px i {rng(s['hand'])} px (przesunięcia do {max(s['hand_shift'], default=0):.0f} px)",
         status(max(s["tri"]) <= 0.6 and max(s["hand"]) <= 0.8))
-    a20 = (ex.get("alignment_20px") or {}).get("summary")
-    if a20:
+    a20 = part("alignment_20px").get("summary") or {}
+    if a20.get("mean_err_px") is not None:
         lo, hi = a20["true_shift_px_range"]
         row("Wyrównanie: z ręki z perspektywą", "≤ 0.8 px przy przesunięciach do 20 px",
             f"średnio {a20['mean_err_px']:.2f} px, najgorsza klatka {a20['worst_frame_mean_err_px']:.2f} px "
-            f"(przesunięcia {lo:.0f}–{hi:.0f} px)", status(a20["pass"]))
-    gh = (ex.get("ghost") or {}).get("summary")
-    if gh:
+            f"(przesunięcia {lo:.0f}–{hi:.0f} px)", status(bool(a20.get("pass"))))
+    gh = part("ghost").get("summary") or {}
+    if gh.get("frac_dev_gt_0.5ev") is not None:
         row("Duchy", "< 2% maski ducha odbiega o > 0.5 EV",
             f"{100 * gh['frac_dev_gt_0.5ev']:.2f}% (bez deghostingu {100 * gh['frac_dev_gt_0.5ev_deghost_off']:.1f}%)",
-            status(gh["pass"]))
+            status(bool(gh.get("pass"))))
     else:
-        row("Duchy", "< 2% maski ducha odbiega o > 0.5 EV", "`test_deghosting_moving_object`", "tak (test)")
-    row("Przepalenia poza światłami", "< 0.5%", f"{rng(after('clipped_nonlight_%'))}%",
-        status(max(after("clipped_nonlight_%")) < 0.5))
-    row("Zaczernienia", "< 0.5%", f"{rng(after('crushed_%'))}%", status(max(after("crushed_%")) < 0.5))
-    halo = [abs(x) for x in after("halo_dL")] + [abs(x["halo_dL"]) for x in v["windows"].values()]
+        row("Duchy", "< 2% maski ducha odbiega o > 0.5 EV", "`test_deghosting_moving_object`", tested())
+    clip, crush = scenes("clipped_nonlight_%"), scenes("crushed_%")
+    row("Przepalenia poza światłami", "< 0.5% (każda scena)", f"{rng(clip)}%", status(max(clip) < 0.5))
+    row("Zaczernienia", "< 0.5% (każda scena)", f"{rng(crush)}%", status(max(crush) < 0.5))
+    halo = [abs(x) for x in scenes("halo_dL")] + [abs(x["halo_dL"]) for x in v["windows"].values()]
     row("Halo okno/ściana", "< 4 L*", f"maks. {max(halo):.1f} L*", status(max(halo) < 4))
     for q, (lo, hi) in (("neutral", (78, 88)), ("airy", (84, 92)), ("premium", (74, 86))):
-        wl = d[q]["wall_L_gt"]["after"]
-        row(f"Jasność ścian `{q}`", f"L* {lo}–{hi}", f"{wl:.1f}", status(lo <= wl <= hi))
-    row("Okna: odzyskiwalne przepalenia", "< 5%", f"{rng(after('win_clip_recov_%'), 1)}%",
-        status(max(after("win_clip_recov_%")) < 5))
-    ok_view = all((45 <= d[q]["win_L"]["after"] <= 70) if q == "premium" else (55 <= d[q]["win_L"]["after"] <= 80)
-                  for q in PRESETS)
+        wl = scenes("wall_L_gt", (q,))
+        inside = sum(lo <= x <= hi for x in wl)
+        row(f"Jasność ścian `{q}`", f"L* {lo}–{hi}", f"{rng(wl, 1)} (w paśmie {inside}/{len(wl)} scen)",
+            status(inside == len(wl), partial=0 < inside < len(wl)))
+    recov = scenes("win_clip_recov_%")
+    row("Okna: odzyskiwalne przepalenia", "< 5%", f"{rng(recov, 1)}%", status(max(recov) < 5))
+    ok_view = all((45 <= x <= 70) if q == "premium" else (55 <= x <= 80) for q in PRESETS for x in scenes("win_L", (q,)))
     row("Okna: L* widoku", "55–80 (premium 45–70)", per_preset("win_L"), status(ok_view))
-    row("Okna: detal", "≥ 0.6× GT", f"{rng(after('win_detail_ratio'))}×", status(min(after("win_detail_ratio")) >= 0.6))
-    wi = (ex.get("window_iou") or {}).get("summary")
-    if wi:
-        row("Okna: IoU maski", "≥ 0.8", f"min. {wi['min_iou_glass']:.2f} (szyby)", status(wi["pass_glass"]))
+    det = scenes("win_detail_ratio")
+    row("Okna: detal", "≥ 0.6× GT", f"{rng(det)}×", status(min(det) >= 0.6))
+    wi = part("window_iou").get("summary") or {}
+    if wi.get("min_iou_glass") is not None:
+        row("Okna: IoU maski", "≥ 0.8", f"min. {wi['min_iou_glass']:.2f} (szyby)", status(bool(wi.get("pass_glass"))))
     else:
-        row("Okna: IoU maski", "≥ 0.8", "test sprawdza > 0.6", "nie zmierzone")
-    row("Neutralność ścian", "ΔE ≤ 3.0", per_preset("wall_dE_gt", 2), status(max(after("wall_dE_gt")) <= 3.0))
-    wb = (ex.get("white_balance") or {}).get("summary") or {}
-    if "zone_dE_max" in wb:
-        zones = [ex["white_balance"][sc]["zone_dE"] for sc in ("living_room", "bedroom", "kitchen")
-                 if isinstance(ex["white_balance"].get(sc), dict) and "zone_dE" in ex["white_balance"][sc]]
-        row("Neutralność w strefie żarówek", "ΔE ≤ 5.0", rng(zones) if zones else f"maks. {wb['zone_dE_max']:.2f}",
-            status(wb["pass_zone_5"]))
+        row("Okna: IoU maski", "≥ 0.8", "—", "nie zmierzone")
+    wd = scenes("wall_dE_gt")
+    row("Neutralność ścian", "ΔE ≤ 3.0 (każda scena)", per_preset("wall_dE_gt", 2), status(max(wd) <= 3.0))
+    wbp = part("white_balance")
+    wb = wbp.get("summary") or {}
+    zones = [wbp[sc]["zone_dE"] for sc in ("living_room", "bedroom", "kitchen")
+             if isinstance(wbp.get(sc), dict) and wbp[sc].get("zone_dE") is not None]
+    if zones:
+        row("Neutralność w strefie żarówek", "ΔE ≤ 5.0", f"{rng(zones)} ({len(zones)}/3 scen)",
+            status(max(zones) <= 5.0 and len(zones) == 3, partial=max(zones) <= 5.0 and len(zones) < 3))
     else:
         row("Neutralność w strefie żarówek", "ΔE ≤ 5.0", "—", "nie zmierzone")
-    if "accent_dH_deg" in wb:
-        row("Ściana akcentowa", "ΔH < 10°", f"{wb['accent_dH_deg']:.0f}° (kolor o małym nasyceniu)",
-            status(wb["pass_accent_10"]))
+    if wb.get("accent_dH_deg") is not None:
+        row("Ściana akcentowa", "ΔH < 10°", f"{wb['accent_dH_deg']:.1f}° (kolor o małym nasyceniu)",
+            status(bool(wb.get("pass_accent_10"))))
     else:
-        row("Ściana akcentowa", "ΔH < 10°", "`test_white_balance_removes_cast` (akcent zostaje czerwony)", "tak (test)")
-    vert = after("vert_med_deg") + s["vert_after"]
+        row("Ściana akcentowa", "ΔH < 10°", "—", "nie zmierzone")
+    vert = scenes("vert_med_deg") + s["vert_after"]
     row("Piony", "mediana ≤ 0.5°", f"{rng(vert)}°", status(max(vert) <= 0.5))
     row("Dystorsja", "\\|k1 − k1_GT\\| ≤ 0.02", f"maks. {max(s['k1_err']):.3f}", status(max(s["k1_err"]) <= 0.02))
     row("Winieta", "resztka w rogu ≤ 8%", "płaskie sceny ≤ 8% (test); wnętrza syntetyczne: korekta odrzucana przez "
@@ -355,44 +375,77 @@ def section_acceptance():
         status(max(s["ca_lin"] + s["ca_pipe"]) <= 0.3))
     row("Szum", "σ niższe niż w klatce", f"{s['noise_lower']}/{s['noise_n']} RAW, o {rng(s['noise_red'], 0)}%",
         status(s["noise_n"] > 0 and s["noise_lower"] == s["noise_n"]))
-    sh = (ex.get("sharpness") or {}).get("summary")
-    if sh:
-        row("Ostrość krawędzi", "≥ 0.9× wejścia", f"min. {sh['min_acutance_ratio']:.2f}×", status(sh["pass"]))
+    shp = part("sharpness")
+    sh = shp.get("summary") or {}
+    if sh.get("min_acutance_ratio") is not None:
+        grad = [x["gradient_ratio_same_edges"] for x in shp.values()
+                if isinstance(x, dict) and x.get("gradient_ratio_same_edges") is not None]
+        row("Ostrość krawędzi*", "≥ 0.9× wejścia", f"min. {sh['min_acutance_ratio']:.2f}× (energia gradientu "
+            f"{rng(grad)}×)", status(bool(sh.get("pass"))))
     else:
-        row("Ostrość krawędzi", "≥ 0.9× wejścia", "—", "nie zmierzone")
-    sf = (ex.get("single_frame") or {}).get("summary")
-    if sf:
+        row("Ostrość krawędzi*", "≥ 0.9× wejścia", "—", "nie zmierzone")
+    sfp = part("single_frame")
+    sf = sfp.get("summary") or {}
+    if sf.get("images"):
         n_img = sf["images"]
+        imgs = [x for x in (sfp.get("images") or {}).values() if isinstance(x, dict)]
+        cr_max = max((x["crushed_pct_after"] for x in imgs if x.get("crushed_pct_after") is not None), default=None)
+        fail = f", {sf['failed']} nieudanych" if sf.get("failed") else ""
         row("Jedna klatka: przepalenia", "spadają", f"{sf['clipped_pct_before']:.2f} → {sf['clipped_pct_after']:.2f}% "
-            f"(spadek na {sf['clipped_down']}/{n_img})", status(sf["clipped_down"] == n_img))
+            f"(spadek na {sf['clipped_down']}/{n_img}{fail})", status(sf["clipped_down"] == n_img and not sf.get("failed")))
+        crushed_down = sf["crushed_pct_after"] < sf["crushed_pct_before"]
         row("Jedna klatka: zaczernienia", "spadają", f"{sf['crushed_pct_before']:.3f} → {sf['crushed_pct_after']:.3f}% "
-            f"(spadek na {sf['crushed_down']}/{n_img}; wszędzie < 0.5%)", status(sf["pass_mean"]))
-    ss, de, below = p["metrics"]["ssim"], p["metrics"]["dE_ref"], p["ssim_below_0.85"]
+            f"(spadek na {sf['crushed_down']}/{n_img}" + (f"; maks. po {cr_max:.2f}%)" if cr_max is not None else ")"),
+            status(crushed_down and sf["crushed_down"] == n_img, partial=crushed_down and sf["crushed_down"] < n_img))
+    ss, de = p["metrics"]["ssim"], p["metrics"]["dE_ref"]
+    below, total = p["ssim_below_0.85"], p.get("inputs", p["images"])
     row("„Nie psuć” (portfolio)", "SSIM ≥ 0.85, średnie ΔE ≤ 6",
-        f"SSIM mediana {ss['median']:.3f}, {below}/{p['images']} zdjęć poniżej 0.85; ΔE średnie {de['mean']:.2f}",
-        status(ss["min"] >= 0.85 and de["mean"] <= 6, partial=below > 0 and ss["median"] >= 0.85 and de["mean"] <= 6))
+        f"SSIM mediana {ss['median']:.3f}, {below}/{total} zdjęć poniżej 0.85; ΔE średnie {de['mean']:.2f}",
+        status(below == 0 and de["mean"] <= 6, partial=below > 0 and ss["median"] >= 0.85 and de["mean"] <= 6))
     row("Maska nieba", "IoU ≥ 0.85", f"{v['sky']['synthetic_iou']:.2f}", status(v["sky"]["synthetic_iou"] >= 0.85))
-    row("Twilight", "niebo w stylu, okna świecą, fasada ciemniejsza", "`test_twilight_*`", "tak (test)")
-    row("Usuwanie obiektów", "poza maską bez zmian (poza otoczką 8 px)", "`test_object_removal_*`", "tak (test)")
+    row("Twilight", "niebo w stylu, okna świecą, fasada ciemniejsza", "`test_twilight_*`", tested())
+    row("Usuwanie obiektów", "poza maską bez zmian (poza otoczką 8 px)", "`test_object_removal_*`", tested())
     row("Eksport", "sRGB ICC, wymiary, EXIF", "`test_exports_sizes_profile_exif`, `test_jpeg_has_srgb_icc_and_exif`",
-        "tak (test)")
+        tested())
     t24 = [x for k, x in pf.items() if "24" in k]
     if t24:
         row("Czas 3×24 Mpx", "≤ 90 s (4 rdzenie)", f"{t24[0]['seconds']:.0f} s", status(t24[0]["seconds"] <= 90))
     big = [x["peak_rss_gb"] for k, x in pf.items() if "60" in k]
     if big:
         row("Pamięć 3×60 Mpx", "≤ 6 GB na workera", f"{max(big):.2f} GB", status(max(big) <= 6))
-    n_no = sum(ok == "**nie**" for _, ok in rows)
+    n_no = sum(ok.startswith("**nie**") for _, ok in rows)
     n_part = sum(ok == "częściowo" for _, ok in rows)
     n_unm = sum(ok == "nie zmierzone" for _, ok in rows)
     return ["### 6.7 Kryteria akceptacji ze SPEC: podsumowanie", "",
             f"Ta tabela też powstaje z raportów. {len(rows)} {pl(len(rows), 'kryterium', 'kryteria', 'kryteriów')}: "
-            f"niespełnione {n_no}, spełnione częściowo {n_part}, bez pomiaru {n_unm}.",
-            "„Tak (test)” oznacza, że kryterium sprawdza test automatyczny, bez osobnej liczby w raporcie. Przyczyny braków",
-            "opisuje §9.", "", "| Kryterium | Cel (SPEC) | Wynik | Spełnione |", "|---|---|---|---|"] + [r for r, _ in rows]
+            f"niespełnione {n_no}, spełnione częściowo {n_part}, bez pomiaru {n_unm}. Kryteria ze sceną w nazwie są",
+            "sprawdzane na każdej scenie z GT osobno (wynik to zakres scen), nie na średniej. „Tak (test)” oznacza, że",
+            "kryterium sprawdza test automatyczny, a cały zestaw testów przechodzi (§6.8). Przyczyny braków opisuje §9.", "",
+            "| Kryterium | Cel (SPEC) | Wynik | Spełnione |", "|---|---|---|---|"] + [r for r, _ in rows] + [
+            "", "\\* SPEC mierzy ostrość energią gradientu na krawędziach. Ta miara rośnie i maleje z kontrastem, który",
+            "tone mapping celowo zmienia, więc o wyniku decyduje miara niezależna od kontrastu (stromość krawędzi względem",
+            "jej wysokości, czyli odwrotność szerokości krawędzi). Rozmycie o 1 px obniża ją do ok. 0.8–0.9×. Energię",
+            "gradientu na tych samych krawędziach podajemy w nawiasie."]
 
 
 # --- 6.8 ------------------------------------------------------------------------------------------
+TESTS_LOG = os.path.join(ROOT, "output", "refresh_logs", "tests.log")
+
+
+def tests_result():
+    """(summary line, passed?) of the last full test run written by tools/refresh_reports.sh, or
+    (None, None) when there is no such log."""
+    try:
+        with open(TESTS_LOG, encoding="utf-8") as fh:
+            lines = [ln.strip() for ln in fh if re.search(r"\d+ (passed|failed)", ln)]
+    except OSError:
+        return None, None
+    if not lines:
+        return None, None
+    last = lines[-1].strip("= ")
+    return last, ("failed" not in last and "error" not in last)
+
+
 def section_tests(count):
     n = None
     if count:
@@ -402,14 +455,17 @@ def section_tests(count):
             n = int(re.search(r"(\d+) tests? collected", out).group(1))
         except Exception:
             n = None
+    last, ok = tests_result()
+    run = (f" Ostatni pełny przebieg (`tools/refresh_reports.sh`): {last}." if last else "")
     return ["### 6.8 Testy automatyczne", "",
-            f"`./estatehdr.sh test`: **{n if n else '?'} testów** w `tests/`. Pokrycie:",
+            f"`./estatehdr.sh test`: **{n if n else '?'} {pl(n or 0, 'test', 'testy', 'testów')}** w `tests/`.{run} Pokrycie:",
             "- wejście, EXIF, profile ICC, mapy cieniowania DNG, uszkodzone pliki;",
-            "- grupowanie;",
-            "- ekspozycje i krzywa odpowiedzi, wyrównanie względem GT, merge i duchy;",
-            "- okna, WB, tone mapping (kolejność jasności, czerń scen o małym kontraście), odszumianie, CA, winieta,",
-            "  dystorsja, piony, tryb nocny;",
-            "- tryb jednej klatki (przepalenia, szum), moduły (usuwanie lokalne, niebo, twilight, trawa);",
+            "- grupowanie; ekspozycje i krzywa odpowiedzi z EXIF i bez (TIFF bez tagów);",
+            "- wyrównanie względem GT i wybór modelu ruchu, merge i duchy;",
+            "- okna, WB (strefa żarówek, ściana akcentowa), tone mapping (kolejność jasności, czerń scen o małym",
+            "  kontraście), odszumianie (faktura a szum), CA, winieta, dystorsja, piony, tryb nocny;",
+            "- tryb jednej klatki (przepalenia, szum, biel i czerń gotowych zdjęć), moduły (usuwanie lokalne, niebo,",
+            "  twilight, trawa);",
             "- batch: izolacja błędów i awarii workera, logi, kody wyjścia;",
             "- eksport (ICC v2, EXIF, rozmiary), CLI, web UI, ścieżka GPU (UMat) zgodna z CPU."]
 

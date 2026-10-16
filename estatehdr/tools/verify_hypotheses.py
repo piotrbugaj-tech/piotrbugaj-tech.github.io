@@ -873,7 +873,8 @@ def main(argv=None):
             cur = json.load(fh)
         for k in done:
             if k == "spec_extras" and parts:
-                cur[k] = {**cur.get(k, {}), **{p: v for p, v in R[k].items() if p in parts or p.startswith("batch_")}}
+                cur[k] = {**cur.get(k, {}), **{p: v for p, v in R[k].items()
+                                               if p in parts or p.startswith("batch_") or p in ("seconds", "last_run_parts")}}
             else:
                 cur[k] = R[k]
         R = cur

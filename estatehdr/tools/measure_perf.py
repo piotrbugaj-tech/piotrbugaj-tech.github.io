@@ -78,8 +78,8 @@ def main(argv=None):
                                "timings": {k: round(float(v), 1) for k, v in s.get("timings", {}).items()},
                                "device": s.get("device", "cpu")}
         print(name, json.dumps(res["series"][name]), flush=True)
-    with open(path, "w", encoding="utf-8") as fh:
-        json.dump(res, fh, indent=1, ensure_ascii=False)
+        with open(path, "w", encoding="utf-8") as fh:  # after every series: a later failure keeps it
+            json.dump(res, fh, indent=1, ensure_ascii=False)
 
 
 if __name__ == "__main__":

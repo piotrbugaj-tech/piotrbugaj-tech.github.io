@@ -123,7 +123,11 @@ def section(preset, qb, qa, summary):
         elif better == "max":
             mark = "lepiej" if mf > mb + 1e-3 else ("gorzej" if mf < mb - 1e-3 else "=")
         md.append(f"| {label} | {mb:.3f} | {mf:.3f} | {mark} |")
-        summary[preset][key] = {"before": mb, "after": mf}
+        summary[preset][key] = {"before": mb, "after": mf,  # means; per-series values for per-scene criteria
+                                "per_series": {n: float(y) for n, (x, y) in zip(names, zip(b, f))
+                                               if x is not None and y is not None},
+                                "per_series_before": {n: float(x) for n, (x, y) in zip(names, zip(b, f))
+                                                      if x is not None and y is not None}}
     md += ["", f"### Preset `{preset}`: serie", "", "| seria | metryka | przed | po |", "|---|---|---|---|"]
     for n in names:
         for key, label, _ in COLS:
