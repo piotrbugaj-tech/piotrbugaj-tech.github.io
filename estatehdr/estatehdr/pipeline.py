@@ -23,7 +23,7 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-from .config import Config
+from .config import Config, mode_of
 from .grouping import Group
 from .imgutil import linear_to_srgb, luminance, resize_max, srgb_to_linear
 
@@ -261,7 +261,11 @@ def finish(prep: Prepared, group: Group, cfg: Config, result: dict, out_dir: str
             result["windows"] = {**(result.get("windows") or {}),
                                  "view": {k: (round(float(v), 3) if v is not None else None) for k, v in wm.items()}}
     # geometry is estimated before the optional modules (retouch / new sky must not move lines)
-    geo_plan = geometry.estimate(img, cfg, prep.ref_meta)
+    gcfg_run = cfg
+    if prep.developed and mode_of(cfg.get("single_image", {}).get("distortion", "off")) == "off":
+        # a finished JPEG/TIFF is normally lens-corrected already (D-47): verticals only
+        gcfg_run = {**cfg, "geometry": {**cfg.get("geometry", {}), "distortion": "off"}}
+    geo_plan = geometry.estimate(img, gcfg_run, prep.ref_meta)
     _p(progress, 0.76, "moduły")
     img, result["modules"] = run_modules(img, cfg, group, win, extra_masks or {})
     timer.mark("modules")

@@ -88,6 +88,7 @@ geometry:
   distortion: auto         # auto | off
   max_k1: 0.18
   min_k1: 0.03             # mniejsze |k1| mieści się w błędzie estymacji - nie korygujemy
+  min_chains: 12           # min. liczba prostych krawędzi do estymacji dystorsji (zbliżenia mebli, tkanin: brak korekty)
   crop: true
   max_crop: 0.15           # jeśli kadr byłby większy, korekcja pionów jest osłabiana
   default_focal_35mm: 24
@@ -142,6 +143,7 @@ single_image:
   key_range: [-0.15, 0.10] # dopuszczalne odchylenie klucza od tonemap.target_key (gotowe JPEG-i: bez rozjaśniania)
   wb_strength: 0.4         # mnożnik siły WB (globalnego i lokalnego)
   compress_shadows_min: 0.8
+  distortion: off          # gotowe JPEG-i są zwykle już skorygowane w edytorze: bez auto-dystorsji (piony zostają)
   # pojedynczy RAW: im głośniejsze cienie (szum / mediana sygnału, pełna rozdzielczość), tym słabiej
   # podnoszone cienie i niższy klucz - szumu z jednej klatki nie da się usunąć (D-39)
   noise_nsr: [0.03, 0.06, 0.15]

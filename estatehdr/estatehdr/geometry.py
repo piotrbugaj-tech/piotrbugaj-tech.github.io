@@ -135,11 +135,13 @@ def plumb_line_cost(chains, k1: float, trim: float = 0.2) -> float:
 
 
 def estimate_distortion(gray8: np.ndarray, max_k1: float = 0.18, min_k1: float = 0.03,
-                        min_gain: float = 0.05) -> tuple[float, dict]:
+                        min_gain: float = 0.05, min_chains: int = 12) -> tuple[float, dict]:
     """Radial k1 from plumb lines.  Estimates below ``min_k1`` are within the estimation error
-    (measured |err| <= 0.02 on synthetic scenes) and are not applied."""
+    (measured |err| <= 0.02 on synthetic scenes) and are not applied; neither are estimates from
+    few edges or at the end of the search range (curved objects - fabric, furniture - in a
+    close-up are not distorted straight lines)."""
     chains = edge_chains(gray8)
-    if len(chains) < 6:
+    if len(chains) < max(6, min_chains):
         return 0.0, {"accepted": False, "reason": "few straight edges", "chains": len(chains)}
     ks = np.linspace(-max_k1 * 0.6, max_k1, 29)
     costs = np.array([plumb_line_cost(chains, k) for k in ks])
@@ -154,6 +156,8 @@ def estimate_distortion(gray8: np.ndarray, max_k1: float = 0.18, min_k1: float =
     best = plumb_line_cost(chains, k_best)
     gain = 1.0 - best / max(base, 1e-18)  # fraction of curvature removed
     info = {"k1": k_best, "gain": gain, "chains": len(chains)}
+    if i in (0, len(ks) - 1):
+        return 0.0, {**info, "accepted": False, "reason": "minimum at the end of the search range"}
     if gain < min_gain or abs(k_best) < min_k1:
         return 0.0, {**info, "accepted": False}
     return k_best, {**info, "accepted": True}
@@ -328,7 +332,8 @@ def estimate(img: np.ndarray, cfg: dict, meta=None) -> dict:
     # 1. distortion
     k1 = 0.0
     if mode_of(gcfg.get("distortion", "auto")) == "auto":
-        k1, info["distortion"] = estimate_distortion(g8, float(gcfg.get("max_k1", 0.18)), float(gcfg.get("min_k1", 0.03)))
+        k1, info["distortion"] = estimate_distortion(g8, float(gcfg.get("max_k1", 0.18)), float(gcfg.get("min_k1", 0.03)),
+                                                     min_chains=int(gcfg.get("min_chains", 12)))
     if abs(k1) > 0:
         mx, my = undistort_map(ws, hs, k1)
         g8u = cv2.remap(g8, mx, my, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
