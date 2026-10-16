@@ -54,7 +54,7 @@ Czego nie sprawdziłem **[unverified]**: Core Web Vitals / Lighthouse, wizualna 
 | Salva López | Barcelona | Vitra, Kettal, Arper, Andreu World, Vibia, Santa & Cole, Loewe, Zara Home, Airbnb | Monocle, WSJ, NYT, Kinfolk, Openhouse, FvF | Laus Oro 2012/2015, PhotoEspaña 2011 | Rocafort (ES/ROW), Artist Management (DACH) | Commissioned/Personal, duże pionowe obrazy, maile agentów |
 | Jan Bitter | Berlin | Sauerbruch Hutton, Libeskind, Caruso St John, Brandlhuber, J. MAYER H. | Bauwelt, Divisare; wystawa z Iwanem Baanem 2012 | brak | brak | indeks ~50 architektów, bez bio, tylko telefon |
 | Maxime Delvaux | Bruksela | XDGA, 51N4E, Kerez, Holtrop, Bruther, Baukunst, HdM | A+, Perimeter, WBA, Divisare | BEAU | brak; kolektyw 354 | jedna lista Architekt/Projekt/Miasto, headless WP |
-| Fernando Guerra (FG+SG) | Lizbona | Siza, Aires Mateus, Carrilho da Graça, Kogan, Weinfeld, ZHA | Domus, ArchDaily, Metalocus; własne wydawnictwo | Arcaid 2015, ArchDaily 2015, Architizer 2016, MoMA 2015, Canon ambassador | FAB PICS (DE), VIEW (UK) | 600+ reportaży, sklep |
+| Fernando Guerra (FG+SG) | Lizbona | Siza, Aires Mateus, Carrilho da Graça, Kogan, Weinfeld, ZHA | Domus, ArchDaily, Metalocus; własne wydawnictwo | Arcaid 2015, ArchDaily 2015, Architizer 2016, MoMA 2015, Canon ambassador | VIEW (UK); „FAB PICS" (DE) [unverified: nazwa nieodnaleziona w tej sesji] | 600+ reportaży, sklep |
 | José Hevia | Barcelona | Andrés Jaque, MAIO, Peris+Toral, Arquitectura-G, David Kohn | Quaderns, 2G, Divisare Books, ArchDaily | brak | brak | Recent/Archive/Information, siatka Architekt — Projekt |
 | Filip Dujardin | Gandawa | de vylder vinck taillieu, EM2N, FELT | Hatje Cantz (monografia 2014), Divisare | [unverified] | [unverified] | pusta przez proxy |
 | Iñigo Bujedo Aguirre | Barcelona | HdM, Carme Pinós, IDOM, Institut Ramon Llull | Wallpaper*, Domus, Abitare, AD, Frame, Icon | brak | PhotoShelter (stock) | konto zawieszone (10.2026) |
@@ -70,7 +70,7 @@ Nikolas Koenig (Nowy Jork) został usunięty z benchmarku; europejscy fotografow
 | Publikacje | Divisare 13/13, ArchDaily, Dezeen, designboom; druk: Domus, Record, AR; książki | 0 | Profil Divisare, 1 publikacja na kwartał w roku 1 |
 | Nagrody | APA, Arcaid, Architizer, Laus/BEAU, Sony | 0 | 2 zgłoszenia rocznie tylko tam, gdzie wygrani dostają redakcyjny zasięg (`nagrody_eventy.md`) |
 | Książki / wystawy / dydaktyka | Park Books, Perimeter, Hatje Cantz; galerie; Elisava, UPC | 0 | Zine w roku 1, wystawa w showroomie marki w roku 2, wykład na festiwalu designu w roku 2–3 |
-| Reprezentacja | Rzadka i tylko komercyjno-edytorska (Rocafort, Artist Management, View, FAB PICS) | brak | Rok 2: syndykacja wnętrz; rok 3: agent regionalny DACH |
+| Reprezentacja | Rzadka i tylko komercyjno-edytorska (Rocafort i Artist Management wg salvalopez.com z poprzedniej sesji, View Pictures; Quadriga i Initials LA u Vercruysse'a) | brak | Rok 2: syndykacja wnętrz; rok 3: agent regionalny DACH |
 | Strona | 2–4 pozycje nav, podpisy Architekt/Projekt/Miasto/Rok, własny kod z kredytami, bez cen i formularzy | 5 pozycji + 11-krokowy formularz + 284 kadry bez podpisów | Kuratorstwo, credit-block, dwutorowość (architekci/marki vs hotele) |
 | Język marki | Autor/dokumentalista, EN | Usługodawca, PL-first | EN jako język marki globalnej, PL jako rynek lokalny |
 | Wykształcenie | Architektura u 5/13 (Bossi, Ghinițoiu, Guerra, Marinescu, Delvaux) | Projektowanie mebli | Rzadki atut: pierwsze zdanie bio, nie ostatnie |
