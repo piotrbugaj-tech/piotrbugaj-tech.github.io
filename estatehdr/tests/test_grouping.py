@@ -19,8 +19,9 @@ def test_groups_match_manifest(synth, cfg):
     for ser in synth["manifest"]["series"]:
         assert ser["files"] in got, (ser["name"], got)
     assert synth["manifest"]["extras"]["noexif_incomplete"] in got  # EXIF-less pair kept together
-    assert ["IMG_9999.jpg"] in got  # truncated file: own group, fails later without stopping the batch
-    assert not failures
+    # truncated file: its pixels cannot be decoded, so it is reported as unreadable, not grouped
+    assert "IMG_9999.jpg" not in [f for g in got for f in g]
+    assert [os.path.basename(f["file"]) for f in failures] == ["IMG_9999.jpg"]
 
 
 def test_mask_files_ignored(synth, tmp_path):

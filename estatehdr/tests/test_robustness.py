@@ -95,8 +95,13 @@ def test_raw_jpeg_siblings_collapse_to_raw():
                                                              ("/s/img_3.tif", "RAW sibling used")]
 
 
-def test_raw_sibling_reported_in_batch(synth, tmp_path):
-    inp = _folder(tmp_path, synth, ["IMG_1.jpg", "IMG_1.cr2"])  # the "RAW" is a renamed JPEG (unreadable as RAW)
+def test_raw_sibling_reported_in_batch(synth, tmp_path, monkeypatch):
+    from estatehdr import grouping
+    inp = _folder(tmp_path, synth, ["IMG_1.jpg", "IMG_1.cr2"])  # the "RAW" is a renamed JPEG
+    real = grouping.thumbnail
+    # treat the fake RAW as readable (a real one would be); an unreadable RAW keeps its JPEG instead
+    monkeypatch.setattr(grouping, "thumbnail", lambda m, *a: np.ones((32, 48), np.float32) if m.kind == "raw"
+                        else real(m, *a))
     rep = run_batch(inp, str(tmp_path / "out"), load_config(None, "neutral", ["runtime.workers=1"]))
     assert [os.path.basename(s["file"]) for s in rep["skipped"]] == ["IMG_1.jpg"]
 
