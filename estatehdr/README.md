@@ -172,17 +172,17 @@ tabela per seria: [reports/calibration/full_pipeline.md](reports/calibration/ful
 
 | Metryka (cel ze SPEC) | neutral przed → po | airy przed → po | premium przed → po |
 |---|---|---|---|
-| Neutralność ścian ΔE2000, GT (≤ 3.0) | 5.53 → **3.06** | 5.52 → **3.03** | 5.58 → **3.14** |
-| Jasność ścian L*, GT (neutral 78–88, airy 84–92, premium 74–86) | 62.7 → **75.6** | 67.7 → **87.1** | 61.0 → **76.0** |
-| Jasność widoku za oknem L*, GT (55–80, premium 45–70) | 75.0 → 72.0 | 79.6 → 76.4 | 71.5 → 66.5 |
+| Neutralność ścian ΔE2000, GT (≤ 3.0) | 4.96 → **1.62** | 4.91 → **1.68** | 5.02 → **1.68** |
+| Jasność ścian L*, GT (neutral 78–88, airy 84–92, premium 74–86) | 62.7 → **75.6** | 67.8 → **87.1** | 61.0 → **76.0** |
+| Jasność widoku za oknem L*, GT (55–80, premium 45–70) | 74.8 → 72.0 | 79.3 → 76.5 | 71.2 → 67.2 |
 | Odzyskiwalne przepalenia okna, % (< 5) | 0.0 → 0.0 | 0.0 → 0.0 | 0.0 → 0.0 |
-| Przepalenia poza źródłami światła, %, GT (< 0.5) | 0.03 → 0.03 | 0.02 → 0.02 | 0.04 → 0.03 |
+| Przepalenia poza źródłami światła, %, GT (< 0.5) | 0.03 → 0.02 | 0.02 → 0.02 | 0.04 → 0.02 |
 | Zaczernienia, % (< 0.5) | 0.00 → 0.00 | 0.00 → 0.00 | 0.01 → 0.01 |
-| Halo przy oknie ΔL* (< 4) | −0.7 → −0.9 | −0.9 → −0.5 | −0.8 → −0.5 |
-| Pionowość, mediana [°] (≤ 0.5) | 0.07 → 0.10 | 0.08 → 0.10 | 0.07 → 0.10 |
-| Detal widoku okna / GT (≥ 0.6) | 1.06 → 1.04 | 0.94 → 1.12 | 1.22 → 1.22 |
-| Neutralność jasnych powierzchni ΔE (auto) | 4.91 → 3.90 | 4.76 → 3.81 | 4.90 → 3.93 |
-| Mediana jasności | 0.57 → 0.69 | 0.62 → 0.82 | 0.55 → 0.69 |
+| Halo przy oknie ΔL* (< 4) | −0.7 → −0.9 | −0.9 → −0.4 | −0.8 → −0.5 |
+| Pionowość, mediana [°] (≤ 0.5) | 0.09 → 0.10 | 0.09 → 0.09 | 0.08 → 0.12 |
+| Detal widoku okna / GT (≥ 0.6) | 1.06 → 1.04 | 0.94 → 1.13 | 1.22 → 1.22 |
+| Neutralność jasnych powierzchni ΔE (auto) | 4.43 → 3.13 | 4.30 → 3.08 | 4.45 → 3.20 |
+| Mediana jasności | 0.57 → 0.67 | 0.62 → 0.81 | 0.55 → 0.67 |
 
 Kalibracja poprawia cele ze SPEC: neutralność i jasność ścian. Funkcja celu (`neutral`):
 8.78 → 4.77 (przebieg 2) → 2.99 (przebieg 3). Przebiegi: [reports/calibration/](reports/calibration/).
@@ -204,22 +204,22 @@ i tabele metryk per seria. „Przed” to klatka referencyjna prosto z aparatu, 
 
 | Zbiór | Wersja | Mediana jasności | Przepalenia*, % | Zaczernienia, % | Neutralność ΔE (auto) | Pionowość [°] | Ściany L* (GT) | Widok L** |
 |---|---|---|---|---|---|---|---|---|
-| syntetyczne (6) | przed | 0.31 | 10.66 | 0.01 | 8.74 | 2.06 | — | — |
-| syntetyczne (6) | neutral | 0.69 | 0.41 | 0.00 | 3.90 | 0.10 | 75.6 | 72.0 |
-| syntetyczne (6) | airy | 0.82 | 0.42 | 0.00 | 3.81 | 0.10 | 87.1 | 76.4 |
-| syntetyczne (6) | premium | 0.69 | 0.46 | 0.01 | 3.93 | 0.10 | 76.0 | 66.5 |
+| syntetyczne (6) | przed | 0.28 | 9.47 | 0.02 | 8.24 | 2.09 | — | — |
+| syntetyczne (6) | neutral | 0.67 | 0.35 | 0.00 | 3.13 | 0.10 | 75.6 | 72.0 |
+| syntetyczne (6) | airy | 0.81 | 0.32 | 0.00 | 3.08 | 0.09 | 87.1 | 76.5 |
+| syntetyczne (6) | premium | 0.67 | 0.35 | 0.01 | 3.20 | 0.12 | 76.0 | 67.2 |
 | HDR+ (6) | przed | 0.33 | 6.66 | 0.00 | 9.41 | 2.44 | — | — |
-| HDR+ (6) | neutral | 0.71 | 0.56 | 0.00 | 6.03 | 1.61 | — | 77.4 |
-| HDR+ (6) | airy | 0.85 | 0.46 | 0.00 | 5.17 | 1.68 | — | 81.8 |
-| HDR+ (6) | premium | 0.71 | 0.63 | 0.01 | 6.06 | 1.67 | — | 74.0 |
+| HDR+ (6) | neutral | 0.71 | 0.54 | 0.00 | 6.01 | 1.63 | — | 77.4 |
+| HDR+ (6) | airy | 0.84 | 0.53 | 0.00 | 5.19 | 1.59 | — | 81.7 |
+| HDR+ (6) | premium | 0.71 | 0.60 | 0.01 | 6.08 | 1.68 | — | 74.0 |
 | OpenCV (2) | przed | 0.30 | 8.78 | 0.00 | 12.64 | 3.51 | — | — |
-| OpenCV (2) | neutral | 0.50 | 1.98 | 0.05 | 7.40 | 2.94 | — | 61.0 |
-| OpenCV (2) | airy | 0.58 | 2.36 | 0.05 | 6.83 | 1.70 | — | 64.6 |
-| OpenCV (2) | premium | 0.50 | 2.17 | 0.08 | 7.47 | 4.30 | — | 58.5 |
+| OpenCV (2) | neutral | 0.50 | 1.74 | 0.06 | 7.69 | 3.07 | — | 61.1 |
+| OpenCV (2) | airy | 0.58 | 1.94 | 0.05 | 6.97 | 2.84 | — | 64.6 |
+| OpenCV (2) | premium | 0.51 | 1.83 | 0.08 | 7.65 | 1.76 | — | 58.5 |
 | portfolio (3) | przed | 0.68 | 0.07 | 0.03 | 4.51 | 0.25 | — | — |
-| portfolio (3) | neutral | 0.69 | 0.43 | 0.36 | 2.49 | 0.18 | — | — |
-| portfolio (3) | airy | 0.70 | 0.44 | 0.07 | 2.29 | 0.19 | — | — |
-| portfolio (3) | premium | 0.70 | 0.50 | 0.51 | 2.62 | 0.17 | — | — |
+| portfolio (3) | neutral | 0.69 | 0.11 | 0.24 | 3.19 | 0.15 | — | — |
+| portfolio (3) | airy | 0.68 | 0.07 | 0.10 | 3.01 | 0.18 | — | — |
+| portfolio (3) | premium | 0.70 | 0.15 | 0.33 | 3.37 | 0.15 | — | — |
 
 \* Piksele ≥ 254/255 poza obszarami przepalonymi we wszystkich klatkach (łącznie z lampami i oknami).
 W wierszu „przed” liczone są wszystkie, bo pojedyncza klatka nic nie wie o pozostałych.
@@ -242,10 +242,10 @@ syntetycznych 2400×1600:
 | Grupowanie | 6/6 serii dokładnie z EXIF i 6/6 bez EXIF (same piksele). Uszkodzony plik trafia do `unreadable` |
 | Wyrównanie | średni błąd siatki: statyw 0.29–0.45 px, z ręki 0.22–0.27 px przy przesunięciach 4–10 px |
 | Merge: 3 klatki z N | mediana błędu log2 radiancji: wszystkie klatki 0.008–0.010, 3 skrajne 0.014–0.018, 3 środkowe 0.012–0.013 |
-| Okna | odzyskiwalne przepalenia 0%, L* widoku 70.7–72.1, detal 0.99–1.12× GT, halo −3.3…0.7 L*. Okna przepalone już w najciemniejszej klatce (13% i 43% powierzchni okna) zostają białe |
-| Geometria | k1 0.058 / 0.040 / 0.068 przy prawdzie 0.06 / 0.04 / 0.08; błąd korekty pochylenia 0.06–0.61°, przechyłu 0.00–0.09°; mediana odchylenia pionów po korekcie 0.06–0.17° |
+| Okna | odzyskiwalne przepalenia 0%, L* widoku 70.7–72.1, detal 0.99–1.13× GT, halo −3.3…0.7 L*. Okna przepalone już w najciemniejszej klatce (13% i 43% powierzchni okna) zostają białe |
+| Geometria | k1 0.061 / 0.040 / 0.069 przy prawdzie 0.06 / 0.04 / 0.08; błąd korekty pochylenia 0.08–0.59°, przechyłu 0.01–0.07°; mediana odchylenia pionów po korekcie 0.04–0.14° |
 | Aberracja chromatyczna | prawda: skala R +0.12%, B −0.12%. Resztka w rogu kadru: dane liniowe 0.33–0.65 px, JPEG 4:2:0 0.76–1.08 px (subsampling rozmywa przesunięcie kolorów już w pliku), pełny pipeline na seriach syntetycznych 0.42–1.11 px |
-| Odszumianie | 6 zaszumionych pojedynczych RAW z HDR+: σ szumu niższe w 6/6, o 31–71% |
+| Odszumianie | 6 zaszumionych pojedynczych RAW z HDR+: σ szumu niższe w 6/6, o 36–71% |
 | Niebo | IoU 0.94 (syntetyczny exterior); wykryte na 12/14 exteriorach HDR+ i na 2/104 wnętrzach portfolio (niebo za szybą, §9) |
 
 ### 6.4 Moduły opcjonalne
@@ -260,81 +260,89 @@ syntetycznych 2400×1600:
 ### 6.5 Test „nie psuć” (tryb jednej klatki, gotowe zdjęcia z portfolio)
 
 104 z 104 zdjęć bez błędu. Wynik względem wejścia:
-- SSIM: mediana **0.970**, p10 0.930, minimum 0.743;
-  poniżej 0.85: 4/104 zdjęć (najniższe: k106.CNSQFHIF (0.74), 02.DlAjPzxZ (0.80), k017.CcND4ej8 (0.80));
-- ΔE2000: mediana **4.28**, średnia 4.68, p90 6.24;
-- przepalenia poza nieodzyskiwalnymi średnio 0.30%, zaczernienia średnio 0.07% (maksimum 0.60%);
-- pionowość: mediana 0.18°.
+- SSIM: mediana **0.977**, p10 0.962, minimum 0.880;
+  poniżej 0.85: 0/104 zdjęć (najniższe: 07.CKUlc6zN (0.88), 09.6CkXdaHz (0.93), 11.CHtKxZT1 (0.94));
+- ΔE2000: mediana **3.02**, średnia 3.19, p90 4.19;
+- przepalenia poza nieodzyskiwalnymi średnio 0.10%, zaczernienia średnio 0.06% (maksimum 0.34%);
+- pionowość: mediana 0.19°.
 
-Cel SPEC: SSIM ≥ 0.85 i średnie ΔE ≤ 6. Najniższe SSIM mają głównie zdjęcia, którym pipeline prostuje piony:
-zamierzona zmiana geometrii obniża SSIM. Plik: [reports/portfolio_do_no_harm.json](reports/portfolio_do_no_harm.json).
+Cel SPEC: SSIM ≥ 0.85 i średnie ΔE ≤ 6. SSIM obniżają też zmiany zamierzone (prostowanie pionów, rozjaśnienie
+ciemnych ujęć), więc niski wynik nie zawsze oznacza szkodę; przyczyny dla tego zbioru opisują D-49 i D-53. Plik:
+[reports/portfolio_do_no_harm.json](reports/portfolio_do_no_harm.json).
 
 ### 6.6 Wydajność i pamięć
 
-Maszyna: 4 rdzenie CPU, bez GPU (OpenCL niedostępny), 15 GB RAM. Jedna seria na jednym workerze.
+Maszyna: 4 rdzenie CPU, bez GPU (OpenCL niedostępny), 16 GB RAM. Jedna seria na jednym workerze.
 
 | Seria | Czas | Szczyt RAM | Najdłuższe etapy |
 |---|---|---|---|
-| 3x24Mpx JPEG (6000×4000) | 79 s | 2.26 GB | tone mapping 26 s, wyrównanie 21 s, merge 12 s, geometria 6 s |
-| 3x60Mpx JPEG (9504×6336) | 147 s | 2.73 GB | tone mapping 45 s, merge 34 s, geometria 23 s, wyrównanie 22 s |
-| 3x60Mpx TIFF 16-bit (9504×6336) | 149 s | 3.31 GB | tone mapping 43 s, merge 34 s, wyrównanie 22 s, geometria 20 s |
+| 3x24Mpx JPEG (6000×4000) | 83 s | 2.25 GB | wyrównanie 27 s, tone mapping 23 s, merge 12 s, geometria 7 s |
+| 3x60Mpx JPEG (9504×6336) | 140 s | 2.78 GB | tone mapping 39 s, merge 33 s, wyrównanie 28 s, geometria 17 s |
+| 3x60Mpx TIFF 16-bit (9504×6336) | 168 s | 3.24 GB | tone mapping 43 s, merge 34 s, wyrównanie 28 s, geometria 19 s |
 
-Batch: 104 zdjęcia portfolio w trybie jednej klatki, 2 workery, 395 s.
+Batch: 104 zdjęcia portfolio w trybie jednej klatki, 2 workery, 327 s.
 Szczegóły: [reports/perf.json](reports/perf.json).
 
 ### 6.7 Kryteria akceptacji ze SPEC: podsumowanie
 
-Ta tabela też powstaje z raportów. 35 kryteriów: niespełnione 8, spełnione częściowo 2, bez pomiaru 0.
-„Tak (test)” oznacza, że kryterium sprawdza test automatyczny, bez osobnej liczby w raporcie. Przyczyny braków
-opisuje §9.
+Ta tabela też powstaje z raportów. 35 kryteriów: niespełnione 3, spełnione częściowo 4, bez pomiaru 0. Kryteria jasności ścian i te z
+dopiskiem „każda scena” są sprawdzane na każdej scenie z GT osobno (wynik to zakres scen), nie na średniej.
+„Tak (test)” oznacza, że kryterium sprawdza test automatyczny, a cały zestaw testów przechodzi (§6.8).
+Przyczyny braków opisuje §9.
 
 | Kryterium | Cel (SPEC) | Wynik | Spełnione |
 |---|---|---|---|
 | Odporność batcha | błędny plik nie zatrzymuje batcha | uszkodzony plik, niepełna seria, brak EXIF, awaria workera (`tests/test_robustness.py`) | tak (test) |
 | Grupowanie | 100% z EXIF i bez | 6/6 i 6/6 | tak |
 | Ekspozycje względne (z EXIF) | ±0.1 EV od GT | maks. błąd 0.00 EV | tak |
-| Ekspozycje względne (bez EXIF) | ±0.1 EV od GT | maks. błąd 2.00 EV | **nie** |
+| Ekspozycje względne (bez EXIF) | ±0.1 EV od GT | maks. błąd 0.02 EV | tak |
 | Wyrównanie (serie GT) | ≤ 0.6 px statyw, ≤ 0.8 px z ręki | 0.29–0.45 px i 0.22–0.27 px (przesunięcia do 10 px) | tak |
-| Wyrównanie: z ręki z perspektywą | ≤ 0.8 px przy przesunięciach do 20 px | średnio 1.24 px, najgorsza klatka 1.43 px (przesunięcia 18–19 px) | **nie** |
+| Wyrównanie: z ręki z perspektywą | ≤ 0.8 px przy przesunięciach do 20 px | średnio 0.56 px, najgorsza klatka 1.01 px (przesunięcia 18–19 px) | **nie** |
 | Duchy | < 2% maski ducha odbiega o > 0.5 EV | 0.45% (bez deghostingu 14.6%) | tak |
-| Przepalenia poza światłami | < 0.5% | 0.02–0.03% | tak |
-| Zaczernienia | < 0.5% | 0.00–0.01% | tak |
+| Przepalenia poza światłami | < 0.5% (każda scena) | 0.01–0.04% | tak |
+| Zaczernienia | < 0.5% (każda scena) | 0.00–0.03% | tak |
 | Halo okno/ściana | < 4 L* | maks. 3.3 L* | tak |
-| Jasność ścian `neutral` | L* 78–88 | 75.6 | **nie** |
-| Jasność ścian `airy` | L* 84–92 | 87.1 | tak |
-| Jasność ścian `premium` | L* 74–86 | 76.0 | tak |
+| Jasność ścian `neutral` | L* 78–88 | 69.5–79.1 (w paśmie 2/3 scen) | częściowo |
+| Jasność ścian `airy` | L* 84–92 | 83.3–89.0 (w paśmie 2/3 scen) | częściowo |
+| Jasność ścian `premium` | L* 74–86 | 69.4–79.6 (w paśmie 2/3 scen) | częściowo |
 | Okna: odzyskiwalne przepalenia | < 5% | 0.0% | tak |
-| Okna: L* widoku | 55–80 (premium 45–70) | neutral 72.0, airy 76.4, premium 66.5 | tak |
-| Okna: detal | ≥ 0.6× GT | 1.04–1.22× | tak |
+| Okna: L* widoku | 55–80 (premium 45–70) | neutral 70.7–72.8, airy 75.4–77.9, premium 65.4–69.0 | tak |
+| Okna: detal | ≥ 0.6× GT | 0.99–1.31× | tak |
 | Okna: IoU maski | ≥ 0.8 | min. 0.99 (szyby) | tak |
-| Neutralność ścian | ΔE ≤ 3.0 | neutral 3.06, airy 3.03, premium 3.14 | **nie** |
-| Neutralność w strefie żarówek | ΔE ≤ 5.0 | 4.88–9.01 | **nie** |
-| Ściana akcentowa | ΔH < 10° | 78° (kolor o małym nasyceniu) | **nie** |
-| Piony | mediana ≤ 0.5° | 0.06–0.17° | tak |
-| Dystorsja | \|k1 − k1_GT\| ≤ 0.02 | maks. 0.012 | tak |
+| Neutralność ścian | ΔE ≤ 3.0 (każda scena) | neutral 1.30–1.87, airy 1.47–1.85, premium 1.32–1.94 | tak |
+| Neutralność w strefie żarówek | ΔE ≤ 5.0 | 1.96–3.21 (3/3 scen) | tak |
+| Ściana akcentowa | ΔH < 10° | 5.5° (kolor o małym nasyceniu) | tak |
+| Piony | mediana ≤ 0.5° | 0.02–0.21° | tak |
+| Dystorsja | \|k1 − k1_GT\| ≤ 0.02 | maks. 0.011 | tak |
 | Winieta | resztka w rogu ≤ 8% | płaskie sceny ≤ 8% (test); wnętrza syntetyczne: korekta odrzucana przez strażniki (D-44) | częściowo |
 | Aberracja chromatyczna | ≤ 0.3 px na brzegu | liniowe 0.33–0.65 px, pipeline 0.42–1.11 px | **nie** |
-| Szum | σ niższe niż w klatce | 6/6 RAW, o 31–71% | tak |
-| Ostrość krawędzi | ≥ 0.9× wejścia | min. 0.97× | tak |
-| Jedna klatka: przepalenia | spadają | 9.39 → 5.93% (spadek na 11/11) | tak |
-| Jedna klatka: zaczernienia | spadają | 0.016 → 0.025% (spadek na 4/11; wszędzie < 0.5%) | **nie** |
-| „Nie psuć” (portfolio) | SSIM ≥ 0.85, średnie ΔE ≤ 6 | SSIM mediana 0.970, 4/104 zdjęć poniżej 0.85; ΔE średnie 4.68 | częściowo |
+| Szum | σ niższe niż w klatce | 6/6 RAW, o 36–71% | tak |
+| Ostrość krawędzi* | ≥ 0.9× wejścia | min. 0.97× (energia gradientu 0.78–2.26×) | tak |
+| Jedna klatka: przepalenia | spadają | 9.39 → 5.81% (spadek na 11/11) | tak |
+| Jedna klatka: zaczernienia | spadają | 0.016 → 0.018% (spadek na 5/11; maks. po 0.09%) | **nie** |
+| „Nie psuć” (portfolio) | SSIM ≥ 0.85, średnie ΔE ≤ 6 | SSIM mediana 0.977, 0/104 zdjęć poniżej 0.85; ΔE średnie 3.19 | tak |
 | Maska nieba | IoU ≥ 0.85 | 0.94 | tak |
 | Twilight | niebo w stylu, okna świecą, fasada ciemniejsza | `test_twilight_*` | tak (test) |
 | Usuwanie obiektów | poza maską bez zmian (poza otoczką 8 px) | `test_object_removal_*` | tak (test) |
 | Eksport | sRGB ICC, wymiary, EXIF | `test_exports_sizes_profile_exif`, `test_jpeg_has_srgb_icc_and_exif` | tak (test) |
-| Czas 3×24 Mpx | ≤ 90 s (4 rdzenie) | 79 s | tak |
-| Pamięć 3×60 Mpx | ≤ 6 GB na workera | 3.31 GB | tak |
+| Czas 3×24 Mpx | ≤ 90 s (4 rdzenie) | 83 s | tak |
+| Pamięć 3×60 Mpx | ≤ 6 GB na workera | 3.24 GB | tak |
+
+\* SPEC mierzy ostrość energią gradientu na krawędziach. Ta miara rośnie i maleje z kontrastem, który
+tone mapping celowo zmienia, więc o wyniku decyduje miara niezależna od kontrastu (stromość krawędzi względem
+jej wysokości, czyli odwrotność szerokości krawędzi). Rozmycie o 1 px obniża ją do ok. 0.8–0.9×. Energię
+gradientu na tych samych krawędziach podajemy w nawiasie.
 
 ### 6.8 Testy automatyczne
 
-`./estatehdr.sh test`: **? testów** w `tests/`. Pokrycie:
+`./estatehdr.sh test`: **141 testów** w `tests/`. Ostatni pełny przebieg (`tools/refresh_reports.sh`): 141 passed in 114.55s (0:01:54). Pokrycie:
 - wejście, EXIF, profile ICC, mapy cieniowania DNG, uszkodzone pliki;
-- grupowanie;
-- ekspozycje i krzywa odpowiedzi, wyrównanie względem GT, merge i duchy;
-- okna, WB, tone mapping (kolejność jasności, czerń scen o małym kontraście), odszumianie, CA, winieta,
-  dystorsja, piony, tryb nocny;
-- tryb jednej klatki (przepalenia, szum), moduły (usuwanie lokalne, niebo, twilight, trawa);
+- grupowanie; ekspozycje i krzywa odpowiedzi z EXIF i bez (TIFF bez tagów);
+- wyrównanie względem GT i wybór modelu ruchu, merge i duchy;
+- okna, WB (strefa żarówek, ściana akcentowa), tone mapping (kolejność jasności, czerń scen o małym
+  kontraście), odszumianie (faktura a szum), CA, winieta, dystorsja, piony, tryb nocny;
+- tryb jednej klatki (przepalenia, szum, biel i czerń gotowych zdjęć), moduły (usuwanie lokalne, niebo,
+  twilight, trawa);
 - batch: izolacja błędów i awarii workera, logi, kody wyjścia;
 - eksport (ICC v2, EXIF, rozmiary), CLI, web UI, ścieżka GPU (UMat) zgodna z CPU.
 <!-- METRICS:END -->
@@ -413,8 +421,9 @@ Uczciwie, z pomiarami. Liczby są w §6 (tabela kryteriów: §6.7), a pełne dan
      wnętrza pełne drewna przed zsinieniem;
    - na prawdziwych zdjęciach HDR+ neutralność jasnych powierzchni ma ΔE ok. 6, wyraźnie gorzej niż na scenach
      syntetycznych (§6.2). Część to prawdziwe kolorowe powierzchnie, które ta miara też liczy;
-   - na starych zdjęciach o nieznanej krzywej odpowiedzi (OpenCV Memorial Church) zostaje różowa dominanta na
-     drewnie.
+   - stare zdjęcia o nieznanej krzywej odpowiedzi (OpenCV Memorial Church, skany filmu) wychodzą wyprane i
+     różowawe: krzywa filmu jest spoza modelu, a lokalny WB bierze ciepłe drewno całego wnętrza za kolor światła
+     (§6.2, `reports/comparisons/opencv__memorial_0.jpg`).
 4. **Tryb jednej klatki (pseudo-HDR)** nie ma informacji spoza zakresu jednego zdjęcia. Przepalone okna zostają
    białe, a szum cieni ograniczamy, więc cienie są podnoszone ostrożniej. Gotowe, wywołane zdjęcia są świadomie
    „oszczędzane” (D-47–D-49, D-53):
@@ -430,8 +439,9 @@ Uczciwie, z pomiarami. Liczby są w §6 (tabela kryteriów: §6.7), a pełne dan
    na CPU, ale przyspieszenia na prawdziwym GPU nie zmierzyłem (brak GPU w środowisku).
 6. **Kalibracja bez par.** Nie było par „wejście → wynik AutoHDR”, więc presety są dostrojone do celów ze SPEC
    (opis wyglądu AutoHDR) na scenach syntetycznych z GT i sprawdzone na danych odłożonych (HDR+, OpenCV, portfolio).
-   Nie są dopasowane 1:1 do AutoHDR. Jasność ścian w `neutral` jest celowo poniżej pasma SPEC (L* 78–88). Jaśniejszy
-   klucz wyglądał na prawdziwych zdjęciach na wyprany (D-32). `tools/calibrate.py --pairs` jest gotowe na pary.
+   Nie są dopasowane 1:1 do AutoHDR. Jasność ścian mieści się w paśmie SPEC w 2 z 3 scen każdego presetu. W
+   ciemnej sypialni jest o 1–9 L* poniżej dolnej granicy, bo klucz tonalny jest celowo ograniczony: jaśniejszy
+   wyglądał na prawdziwych zdjęciach na wyprany (D-32). `tools/calibrate.py --pairs` jest gotowe na pary.
 7. **LPIPS** nie jest liczony (brak `torch` i wag o jasnej licencji). Raport podaje SSIM, MS-SSIM, gradient-SSIM
    i ΔE2000.
 8. **Wydajność** (4 rdzenie CPU, bez GPU) jest w §6.6. Wolniej niż usługa w chmurze, ale lokalnie i równolegle dla
@@ -449,7 +459,7 @@ Uczciwie, z pomiarami. Liczby są w §6 (tabela kryteriów: §6.7), a pełne dan
     SPEC ≤ 0.3 px nie jest spełniony (§6.3).
 11. **Miara pionowości** w raportach liczy odchylenie wszystkich długich, prawie pionowych linii. Na zdjęciach bez
     architektonicznych pionów (portret, zbliżenie lunety, kopuła z rybiego oka, schody) mediana wynosi kilka stopni
-    i nie oznacza krzywych ścian. Na wnętrzach z GT wynosi 0.06–0.17°.
+    i nie oznacza krzywych ścian. Na wnętrzach z GT wynosi ok. 0.1–0.2° (§6.7).
 12. **Wyrównanie przy perspektywie:** model ruchu wybierany per klatka (D-52) obniża błąd przy obrocie aparatu z
     ręki, ale klatka prześwietlona w ok. 80% ma za mało dopasowań, by rozstrzygnąć model. Zostaje afiniczna i ma błąd
     ok. 1 px przy celu SPEC ≤ 0.8 px (§6.7). Typowy bracketing ze statywu albo z ręki bez dużego obrotu tego nie

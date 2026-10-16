@@ -243,7 +243,7 @@ def section_portfolio():
             f"{m['crushed_%']['mean']:.2f}% (maksimum {m['crushed_%']['max']:.2f}%);",
             f"- pionowość: mediana {m['vert_med_deg']['median']:.2f}°.", "",
             "Cel SPEC: SSIM ≥ 0.85 i średnie ΔE ≤ 6. SSIM obniżają też zmiany zamierzone (prostowanie pionów, rozjaśnienie",
-            "ciemnych ujęć), więc niski wynik nie zawsze oznacza szkodę; przyczyny dla tego zbioru opisuje D-49. Plik:",
+            "ciemnych ujęć), więc niski wynik nie zawsze oznacza szkodę; przyczyny dla tego zbioru opisują D-49 i D-53. Plik:",
             "[reports/portfolio_do_no_harm.json](reports/portfolio_do_no_harm.json)."]
 
 
@@ -418,9 +418,10 @@ def section_acceptance():
     n_unm = sum(ok == "nie zmierzone" for _, ok in rows)
     return ["### 6.7 Kryteria akceptacji ze SPEC: podsumowanie", "",
             f"Ta tabela też powstaje z raportów. {len(rows)} {pl(len(rows), 'kryterium', 'kryteria', 'kryteriów')}: "
-            f"niespełnione {n_no}, spełnione częściowo {n_part}, bez pomiaru {n_unm}. Kryteria ze sceną w nazwie są",
-            "sprawdzane na każdej scenie z GT osobno (wynik to zakres scen), nie na średniej. „Tak (test)” oznacza, że",
-            "kryterium sprawdza test automatyczny, a cały zestaw testów przechodzi (§6.8). Przyczyny braków opisuje §9.", "",
+            f"niespełnione {n_no}, spełnione częściowo {n_part}, bez pomiaru {n_unm}. Kryteria jasności ścian i te z",
+            "dopiskiem „każda scena” są sprawdzane na każdej scenie z GT osobno (wynik to zakres scen), nie na średniej.",
+            "„Tak (test)” oznacza, że kryterium sprawdza test automatyczny, a cały zestaw testów przechodzi (§6.8).",
+            "Przyczyny braków opisuje §9.", "",
             "| Kryterium | Cel (SPEC) | Wynik | Spełnione |", "|---|---|---|---|"] + [r for r, _ in rows] + [
             "", "\\* SPEC mierzy ostrość energią gradientu na krawędziach. Ta miara rośnie i maleje z kontrastem, który",
             "tone mapping celowo zmienia, więc o wyniku decyduje miara niezależna od kontrastu (stromość krawędzi względem",

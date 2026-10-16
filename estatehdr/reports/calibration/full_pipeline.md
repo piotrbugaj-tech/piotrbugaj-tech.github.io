@@ -6,272 +6,272 @@ Wejście: `data/synthetic/input`. Konfiguracja przed: `reports/calibration/confi
 
 | metryka | przed | po | zmiana |
 |---|---|---|---|
-| przepalenia poza nieodzyskiwalnymi [%] | 0.390 | 0.412 | gorzej |
-| zaczernienia [%] | 0.002 | 0.003 | gorzej |
-| mediana jasności | 0.570 | 0.687 |  |
-| pionowość, mediana [°] | 0.070 | 0.097 | gorzej |
-| neutralność jasnych powierzchni ΔE (auto) | 4.907 | 3.896 | lepiej |
-| neutralność ścian ΔE (GT) | 5.530 | 3.064 | lepiej |
-| jasność ścian L* (GT; cel SPEC: neutral 78-88, airy 84-92, premium 74-86) | 62.672 | 75.635 |  |
-| jasność widoku okna L* (cel 55-80) | 75.031 | 71.990 |  |
+| przepalenia poza nieodzyskiwalnymi [%] | 0.354 | 0.349 | lepiej |
+| zaczernienia [%] | 0.002 | 0.003 | = |
+| mediana jasności | 0.570 | 0.669 |  |
+| pionowość, mediana [°] | 0.092 | 0.095 | gorzej |
+| neutralność jasnych powierzchni ΔE (auto) | 4.433 | 3.130 | lepiej |
+| neutralność ścian ΔE (GT) | 4.956 | 1.623 | lepiej |
+| jasność ścian L* (GT; cel SPEC: neutral 78-88, airy 84-92, premium 74-86) | 62.670 | 75.616 |  |
+| jasność widoku okna L* (cel 55-80) | 74.828 | 72.002 |  |
 | przepalenia okna odzyskiwalne [%] | 0.000 | 0.000 | = |
 | detal okna / GT | 1.064 | 1.036 |  |
-| halo przy oknie ΔL* (cel < 4) | -0.687 | -0.898 |  |
-| przepalenia poza światłami (GT) [%] | 0.027 | 0.029 | gorzej |
-| SSIM do idealnej edycji | 0.917 | 0.889 | gorzej |
-| MS-SSIM do idealnej edycji | 0.928 | 0.904 | gorzej |
-| gradient-SSIM (krawędzie) do idealnej edycji | 0.905 | 0.879 | gorzej |
-| ΔE2000 do idealnej edycji | 10.257 | 13.870 | gorzej |
+| halo przy oknie ΔL* (cel < 4) | -0.650 | -0.901 |  |
+| przepalenia poza światłami (GT) [%] | 0.026 | 0.025 | lepiej |
+| SSIM do idealnej edycji | 0.921 | 0.890 | gorzej |
+| MS-SSIM do idealnej edycji | 0.932 | 0.904 | gorzej |
+| gradient-SSIM (krawędzie) do idealnej edycji | 0.911 | 0.880 | gorzej |
+| ΔE2000 do idealnej edycji | 9.769 | 13.152 | gorzej |
 
 ### Preset `neutral`: serie
 
 | seria | metryka | przed | po |
 |---|---|---|---|
-| IMG_0000 | clipped_excl_% | 0.075 | 0.060 |
-| IMG_0000 | crushed_% | 0.001 | 0.004 |
+| IMG_0000 | clipped_excl_% | 0.078 | 0.071 |
+| IMG_0000 | crushed_% | 0.002 | 0.003 |
 | IMG_0000 | median_luma | 0.582 | 0.718 |
-| IMG_0000 | vert_med_deg | 0.084 | 0.104 |
-| IMG_0000 | wall_dE_auto | 4.682 | 3.456 |
-| IMG_0000 | wall_dE_gt | 6.059 | 3.144 |
-| IMG_0000 | wall_L_gt | 67.081 | 79.099 |
-| IMG_0000 | win_L | 75.998 | 72.050 |
+| IMG_0000 | vert_med_deg | 0.103 | 0.137 |
+| IMG_0000 | wall_dE_auto | 4.394 | 2.828 |
+| IMG_0000 | wall_dE_gt | 5.156 | 1.700 |
+| IMG_0000 | wall_L_gt | 67.227 | 79.147 |
+| IMG_0000 | win_L | 76.024 | 71.984 |
 | IMG_0000 | win_clip_recov_% | 0.000 | 0.000 |
-| IMG_0000 | win_detail_ratio | 1.042 | 0.986 |
-| IMG_0000 | halo_dL | 0.771 | 0.713 |
-| IMG_0000 | clipped_nonlight_% | 0.014 | 0.015 |
-| IMG_0000 | ssim | 0.923 | 0.891 |
-| IMG_0000 | ms_ssim | 0.938 | 0.919 |
-| IMG_0000 | grad_ssim | 0.912 | 0.904 |
-| IMG_0000 | dE_ref | 9.792 | 14.192 |
+| IMG_0000 | win_detail_ratio | 1.040 | 0.987 |
+| IMG_0000 | halo_dL | 0.736 | 0.651 |
+| IMG_0000 | clipped_nonlight_% | 0.019 | 0.021 |
+| IMG_0000 | ssim | 0.926 | 0.891 |
+| IMG_0000 | ms_ssim | 0.942 | 0.917 |
+| IMG_0000 | grad_ssim | 0.916 | 0.903 |
+| IMG_0000 | dE_ref | 9.346 | 14.006 |
 | IMG_0005 | clipped_excl_% | 0.000 | 0.000 |
-| IMG_0005 | crushed_% | 0.009 | 0.009 |
+| IMG_0005 | crushed_% | 0.010 | 0.010 |
 | IMG_0005 | median_luma | 0.606 | 0.713 |
-| IMG_0005 | vert_med_deg | 0.055 | 0.056 |
-| IMG_0005 | wall_dE_auto | 5.412 | 3.578 |
-| IMG_0005 | wall_dE_gt | 4.109 | 3.191 |
-| IMG_0005 | wall_L_gt | 54.803 | 69.417 |
-| IMG_0005 | win_L | 74.375 | 72.082 |
+| IMG_0005 | vert_med_deg | 0.044 | 0.042 |
+| IMG_0005 | wall_dE_auto | 5.510 | 2.387 |
+| IMG_0005 | wall_dE_gt | 3.620 | 1.302 |
+| IMG_0005 | wall_L_gt | 54.809 | 69.479 |
+| IMG_0005 | win_L | 74.350 | 72.094 |
 | IMG_0005 | win_clip_recov_% | 0.000 | 0.000 |
-| IMG_0005 | win_detail_ratio | 1.092 | 1.122 |
-| IMG_0005 | halo_dL | 0.138 | -0.137 |
-| IMG_0005 | clipped_nonlight_% | 0.060 | 0.062 |
-| IMG_0005 | ssim | 0.900 | 0.907 |
-| IMG_0005 | ms_ssim | 0.923 | 0.909 |
-| IMG_0005 | grad_ssim | 0.909 | 0.878 |
-| IMG_0005 | dE_ref | 9.661 | 10.402 |
-| IMG_0008 | clipped_excl_% | 0.020 | 0.007 |
-| IMG_0008 | crushed_% | 0.000 | 0.002 |
-| IMG_0008 | median_luma | 0.583 | 0.716 |
-| IMG_0008 | vert_med_deg | 0.155 | 0.175 |
-| IMG_0008 | wall_dE_auto | 4.184 | 3.788 |
-| IMG_0008 | wall_dE_gt | 6.422 | 2.856 |
-| IMG_0008 | wall_L_gt | 66.132 | 78.388 |
-| IMG_0008 | win_L | 74.581 | 70.692 |
+| IMG_0005 | win_detail_ratio | 1.093 | 1.127 |
+| IMG_0005 | halo_dL | 0.059 | -0.038 |
+| IMG_0005 | clipped_nonlight_% | 0.051 | 0.045 |
+| IMG_0005 | ssim | 0.901 | 0.908 |
+| IMG_0005 | ms_ssim | 0.923 | 0.908 |
+| IMG_0005 | grad_ssim | 0.911 | 0.880 |
+| IMG_0005 | dE_ref | 8.911 | 8.775 |
+| IMG_0008 | clipped_excl_% | 0.021 | 0.005 |
+| IMG_0008 | crushed_% | 0.001 | 0.003 |
+| IMG_0008 | median_luma | 0.585 | 0.717 |
+| IMG_0008 | vert_med_deg | 0.159 | 0.114 |
+| IMG_0008 | wall_dE_auto | 3.810 | 2.659 |
+| IMG_0008 | wall_dE_gt | 6.092 | 1.867 |
+| IMG_0008 | wall_L_gt | 65.975 | 78.221 |
+| IMG_0008 | win_L | 74.585 | 70.682 |
 | IMG_0008 | win_clip_recov_% | 0.000 | 0.000 |
-| IMG_0008 | win_detail_ratio | 1.057 | 0.999 |
-| IMG_0008 | halo_dL | -2.970 | -3.270 |
-| IMG_0008 | clipped_nonlight_% | 0.009 | 0.010 |
-| IMG_0008 | ssim | 0.928 | 0.869 |
-| IMG_0008 | ms_ssim | 0.924 | 0.883 |
-| IMG_0008 | grad_ssim | 0.893 | 0.856 |
-| IMG_0008 | dE_ref | 11.320 | 17.018 |
+| IMG_0008 | win_detail_ratio | 1.059 | 0.996 |
+| IMG_0008 | halo_dL | -2.746 | -3.315 |
+| IMG_0008 | clipped_nonlight_% | 0.009 | 0.008 |
+| IMG_0008 | ssim | 0.936 | 0.872 |
+| IMG_0008 | ms_ssim | 0.931 | 0.887 |
+| IMG_0008 | grad_ssim | 0.907 | 0.858 |
+| IMG_0008 | dE_ref | 11.051 | 16.675 |
 | IMG_0015 | clipped_excl_% | 0.000 | 0.000 |
 | IMG_0015 | crushed_% | 0.000 | 0.000 |
-| IMG_0015 | median_luma | 0.561 | 0.707 |
-| IMG_0015 | vert_med_deg | 0.021 | 0.027 |
-| IMG_0015 | wall_dE_auto | 3.763 | 0.966 |
-| IMG_0018 | clipped_excl_% | 2.119 | 2.300 |
-| IMG_0018 | crushed_% | 0.001 | 0.001 |
-| IMG_0018 | median_luma | 0.516 | 0.562 |
-| IMG_0018 | vert_med_deg | 0.047 | 0.147 |
-| IMG_0018 | wall_dE_auto | 7.002 | 7.778 |
-| IMG_0018 | win_L | 76.037 | 72.885 |
-| NOEXIF_0000 | clipped_excl_% | 0.129 | 0.106 |
-| NOEXIF_0000 | crushed_% | 0.000 | 0.002 |
-| NOEXIF_0000 | median_luma | 0.573 | 0.709 |
-| NOEXIF_0000 | vert_med_deg | 0.058 | 0.075 |
-| NOEXIF_0000 | wall_dE_auto | 4.400 | 3.807 |
-| NOEXIF_0000 | win_L | 74.164 | 72.239 |
+| IMG_0015 | median_luma | 0.561 | 0.706 |
+| IMG_0015 | vert_med_deg | 0.023 | 0.025 |
+| IMG_0015 | wall_dE_auto | 2.044 | 0.794 |
+| IMG_0018 | clipped_excl_% | 1.850 | 1.850 |
+| IMG_0018 | crushed_% | 0.002 | 0.002 |
+| IMG_0018 | median_luma | 0.517 | 0.455 |
+| IMG_0018 | vert_med_deg | 0.181 | 0.167 |
+| IMG_0018 | wall_dE_auto | 7.021 | 7.551 |
+| IMG_0018 | win_L | 74.176 | 72.442 |
+| NOEXIF_0000 | clipped_excl_% | 0.173 | 0.171 |
+| NOEXIF_0000 | crushed_% | 0.000 | 0.001 |
+| NOEXIF_0000 | median_luma | 0.569 | 0.707 |
+| NOEXIF_0000 | vert_med_deg | 0.044 | 0.086 |
+| NOEXIF_0000 | wall_dE_auto | 3.817 | 2.562 |
+| NOEXIF_0000 | win_L | 75.006 | 72.810 |
 
 ## Preset `airy`: średnie (serie z GT dla metryk GT)
 
 | metryka | przed | po | zmiana |
 |---|---|---|---|
-| przepalenia poza nieodzyskiwalnymi [%] | 0.389 | 0.421 | gorzej |
+| przepalenia poza nieodzyskiwalnymi [%] | 0.349 | 0.325 | lepiej |
 | zaczernienia [%] | 0.000 | 0.001 | = |
-| mediana jasności | 0.625 | 0.823 |  |
-| pionowość, mediana [°] | 0.082 | 0.098 | gorzej |
-| neutralność jasnych powierzchni ΔE (auto) | 4.758 | 3.813 | lepiej |
-| neutralność ścian ΔE (GT) | 5.521 | 3.028 | lepiej |
-| jasność ścian L* (GT; cel SPEC: neutral 78-88, airy 84-92, premium 74-86) | 67.695 | 87.107 |  |
-| jasność widoku okna L* (cel 55-80) | 79.594 | 76.420 |  |
+| mediana jasności | 0.625 | 0.807 |  |
+| pionowość, mediana [°] | 0.091 | 0.091 | = |
+| neutralność jasnych powierzchni ΔE (auto) | 4.297 | 3.084 | lepiej |
+| neutralność ścian ΔE (GT) | 4.915 | 1.678 | lepiej |
+| jasność ścian L* (GT; cel SPEC: neutral 78-88, airy 84-92, premium 74-86) | 67.795 | 87.053 |  |
+| jasność widoku okna L* (cel 55-80) | 79.285 | 76.502 |  |
 | przepalenia okna odzyskiwalne [%] | 0.000 | 0.000 | = |
-| detal okna / GT | 0.939 | 1.118 |  |
-| halo przy oknie ΔL* (cel < 4) | -0.880 | -0.472 |  |
-| przepalenia poza światłami (GT) [%] | 0.020 | 0.020 | = |
-| SSIM do idealnej edycji | 0.925 | 0.849 | gorzej |
-| MS-SSIM do idealnej edycji | 0.928 | 0.864 | gorzej |
-| gradient-SSIM (krawędzie) do idealnej edycji | 0.897 | 0.851 | gorzej |
-| ΔE2000 do idealnej edycji | 11.554 | 19.001 | gorzej |
+| detal okna / GT | 0.938 | 1.128 |  |
+| halo przy oknie ΔL* (cel < 4) | -0.853 | -0.435 |  |
+| przepalenia poza światłami (GT) [%] | 0.020 | 0.023 | gorzej |
+| SSIM do idealnej edycji | 0.923 | 0.837 | gorzej |
+| MS-SSIM do idealnej edycji | 0.927 | 0.843 | gorzej |
+| gradient-SSIM (krawędzie) do idealnej edycji | 0.896 | 0.841 | gorzej |
+| ΔE2000 do idealnej edycji | 11.101 | 19.037 | gorzej |
 
 ### Preset `airy`: serie
 
 | seria | metryka | przed | po |
 |---|---|---|---|
-| IMG_0000 | clipped_excl_% | 0.067 | 0.049 |
-| IMG_0000 | crushed_% | 0.000 | 0.001 |
+| IMG_0000 | clipped_excl_% | 0.066 | 0.065 |
+| IMG_0000 | crushed_% | 0.000 | 0.000 |
 | IMG_0000 | median_luma | 0.636 | 0.851 |
-| IMG_0000 | vert_med_deg | 0.097 | 0.082 |
-| IMG_0000 | wall_dE_auto | 4.500 | 3.459 |
-| IMG_0000 | wall_dE_gt | 5.944 | 3.011 |
-| IMG_0000 | wall_L_gt | 71.706 | 89.166 |
-| IMG_0000 | win_L | 80.545 | 76.800 |
+| IMG_0000 | vert_med_deg | 0.096 | 0.072 |
+| IMG_0000 | wall_dE_auto | 4.196 | 2.755 |
+| IMG_0000 | wall_dE_gt | 5.050 | 1.708 |
+| IMG_0000 | wall_L_gt | 71.794 | 88.972 |
+| IMG_0000 | win_L | 80.571 | 76.673 |
 | IMG_0000 | win_clip_recov_% | 0.000 | 0.000 |
-| IMG_0000 | win_detail_ratio | 0.930 | 1.062 |
-| IMG_0000 | halo_dL | 0.633 | 1.165 |
-| IMG_0000 | clipped_nonlight_% | 0.013 | 0.010 |
-| IMG_0000 | ssim | 0.933 | 0.846 |
-| IMG_0000 | ms_ssim | 0.938 | 0.869 |
-| IMG_0000 | grad_ssim | 0.907 | 0.862 |
-| IMG_0000 | dE_ref | 11.789 | 19.262 |
+| IMG_0000 | win_detail_ratio | 0.928 | 1.093 |
+| IMG_0000 | halo_dL | 0.659 | 1.126 |
+| IMG_0000 | clipped_nonlight_% | 0.012 | 0.023 |
+| IMG_0000 | ssim | 0.935 | 0.815 |
+| IMG_0000 | ms_ssim | 0.938 | 0.814 |
+| IMG_0000 | grad_ssim | 0.909 | 0.837 |
+| IMG_0000 | dE_ref | 11.482 | 20.343 |
 | IMG_0005 | clipped_excl_% | 0.000 | 0.000 |
 | IMG_0005 | crushed_% | 0.002 | 0.003 |
 | IMG_0005 | median_luma | 0.659 | 0.849 |
-| IMG_0005 | vert_med_deg | 0.044 | 0.045 |
-| IMG_0005 | wall_dE_auto | 5.167 | 3.632 |
-| IMG_0005 | wall_dE_gt | 4.139 | 3.138 |
-| IMG_0005 | wall_L_gt | 60.746 | 83.331 |
-| IMG_0005 | win_L | 79.086 | 76.780 |
+| IMG_0005 | vert_med_deg | 0.038 | 0.048 |
+| IMG_0005 | wall_dE_auto | 5.263 | 2.119 |
+| IMG_0005 | wall_dE_gt | 3.603 | 1.473 |
+| IMG_0005 | wall_L_gt | 60.739 | 83.309 |
+| IMG_0005 | win_L | 79.109 | 76.733 |
 | IMG_0005 | win_clip_recov_% | 0.000 | 0.000 |
-| IMG_0005 | win_detail_ratio | 0.933 | 1.129 |
-| IMG_0005 | halo_dL | -0.317 | 0.437 |
-| IMG_0005 | clipped_nonlight_% | 0.040 | 0.031 |
-| IMG_0005 | ssim | 0.925 | 0.901 |
-| IMG_0005 | ms_ssim | 0.922 | 0.879 |
-| IMG_0005 | grad_ssim | 0.896 | 0.849 |
-| IMG_0005 | dE_ref | 8.988 | 13.895 |
-| IMG_0008 | clipped_excl_% | 0.010 | 0.018 |
+| IMG_0005 | win_detail_ratio | 0.933 | 1.128 |
+| IMG_0005 | halo_dL | -0.234 | 0.504 |
+| IMG_0005 | clipped_nonlight_% | 0.038 | 0.029 |
+| IMG_0005 | ssim | 0.925 | 0.900 |
+| IMG_0005 | ms_ssim | 0.922 | 0.880 |
+| IMG_0005 | grad_ssim | 0.897 | 0.848 |
+| IMG_0005 | dE_ref | 8.090 | 13.053 |
+| IMG_0008 | clipped_excl_% | 0.014 | 0.014 |
 | IMG_0008 | crushed_% | 0.000 | 0.000 |
-| IMG_0008 | median_luma | 0.637 | 0.849 |
-| IMG_0008 | vert_med_deg | 0.194 | 0.114 |
-| IMG_0008 | wall_dE_auto | 4.150 | 3.615 |
-| IMG_0008 | wall_dE_gt | 6.479 | 2.936 |
-| IMG_0008 | wall_L_gt | 70.632 | 88.824 |
-| IMG_0008 | win_L | 79.332 | 75.752 |
+| IMG_0008 | median_luma | 0.639 | 0.848 |
+| IMG_0008 | vert_med_deg | 0.152 | 0.136 |
+| IMG_0008 | wall_dE_auto | 3.769 | 2.515 |
+| IMG_0008 | wall_dE_gt | 6.092 | 1.853 |
+| IMG_0008 | wall_L_gt | 70.851 | 88.878 |
+| IMG_0008 | win_L | 79.318 | 75.754 |
 | IMG_0008 | win_clip_recov_% | 0.000 | 0.000 |
-| IMG_0008 | win_detail_ratio | 0.954 | 1.163 |
-| IMG_0008 | halo_dL | -2.956 | -3.018 |
-| IMG_0008 | clipped_nonlight_% | 0.008 | 0.018 |
-| IMG_0008 | ssim | 0.916 | 0.800 |
-| IMG_0008 | ms_ssim | 0.924 | 0.844 |
-| IMG_0008 | grad_ssim | 0.889 | 0.843 |
-| IMG_0008 | dE_ref | 13.886 | 23.846 |
+| IMG_0008 | win_detail_ratio | 0.953 | 1.164 |
+| IMG_0008 | halo_dL | -2.983 | -2.936 |
+| IMG_0008 | clipped_nonlight_% | 0.008 | 0.016 |
+| IMG_0008 | ssim | 0.908 | 0.796 |
+| IMG_0008 | ms_ssim | 0.920 | 0.836 |
+| IMG_0008 | grad_ssim | 0.880 | 0.838 |
+| IMG_0008 | dE_ref | 13.732 | 23.715 |
 | IMG_0015 | clipped_excl_% | 0.000 | 0.000 |
 | IMG_0015 | crushed_% | 0.000 | 0.000 |
 | IMG_0015 | median_luma | 0.616 | 0.844 |
-| IMG_0015 | vert_med_deg | 0.025 | 0.067 |
-| IMG_0015 | wall_dE_auto | 3.594 | 0.952 |
-| IMG_0018 | clipped_excl_% | 2.145 | 2.326 |
+| IMG_0015 | vert_med_deg | 0.025 | 0.025 |
+| IMG_0015 | wall_dE_auto | 1.909 | 0.651 |
+| IMG_0018 | clipped_excl_% | 1.835 | 1.837 |
 | IMG_0018 | crushed_% | 0.000 | 0.000 |
-| IMG_0018 | median_luma | 0.574 | 0.697 |
-| IMG_0018 | vert_med_deg | 0.057 | 0.229 |
-| IMG_0018 | wall_dE_auto | 6.734 | 7.537 |
-| IMG_0018 | win_L | 80.196 | 76.032 |
-| NOEXIF_0000 | clipped_excl_% | 0.112 | 0.134 |
+| IMG_0018 | median_luma | 0.574 | 0.603 |
+| IMG_0018 | vert_med_deg | 0.186 | 0.211 |
+| IMG_0018 | wall_dE_auto | 6.947 | 7.813 |
+| IMG_0018 | win_L | 77.906 | 75.406 |
+| NOEXIF_0000 | clipped_excl_% | 0.179 | 0.033 |
 | NOEXIF_0000 | crushed_% | 0.000 | 0.000 |
-| NOEXIF_0000 | median_luma | 0.627 | 0.847 |
-| NOEXIF_0000 | vert_med_deg | 0.074 | 0.051 |
-| NOEXIF_0000 | wall_dE_auto | 4.403 | 3.682 |
-| NOEXIF_0000 | win_L | 78.810 | 76.735 |
+| NOEXIF_0000 | median_luma | 0.624 | 0.847 |
+| NOEXIF_0000 | vert_med_deg | 0.048 | 0.056 |
+| NOEXIF_0000 | wall_dE_auto | 3.698 | 2.649 |
+| NOEXIF_0000 | win_L | 79.521 | 77.946 |
 
 ## Preset `premium`: średnie (serie z GT dla metryk GT)
 
 | metryka | przed | po | zmiana |
 |---|---|---|---|
-| przepalenia poza nieodzyskiwalnymi [%] | 0.399 | 0.458 | gorzej |
-| zaczernienia [%] | 0.014 | 0.014 | = |
-| mediana jasności | 0.552 | 0.693 |  |
-| pionowość, mediana [°] | 0.073 | 0.101 | gorzej |
-| neutralność jasnych powierzchni ΔE (auto) | 4.896 | 3.930 | lepiej |
-| neutralność ścian ΔE (GT) | 5.577 | 3.143 | lepiej |
-| jasność ścian L* (GT; cel SPEC: neutral 78-88, airy 84-92, premium 74-86) | 61.002 | 76.009 |  |
-| jasność widoku okna L* (cel 55-80) | 71.546 | 66.529 |  |
+| przepalenia poza nieodzyskiwalnymi [%] | 0.362 | 0.354 | lepiej |
+| zaczernienia [%] | 0.013 | 0.014 | = |
+| mediana jasności | 0.552 | 0.675 |  |
+| pionowość, mediana [°] | 0.085 | 0.119 | gorzej |
+| neutralność jasnych powierzchni ΔE (auto) | 4.454 | 3.202 | lepiej |
+| neutralność ścian ΔE (GT) | 5.022 | 1.682 | lepiej |
+| jasność ścian L* (GT; cel SPEC: neutral 78-88, airy 84-92, premium 74-86) | 60.955 | 76.008 |  |
+| jasność widoku okna L* (cel 55-80) | 71.241 | 67.158 |  |
 | przepalenia okna odzyskiwalne [%] | 0.000 | 0.000 | = |
-| detal okna / GT | 1.221 | 1.222 |  |
-| halo przy oknie ΔL* (cel < 4) | -0.784 | -0.509 |  |
-| przepalenia poza światłami (GT) [%] | 0.043 | 0.034 | lepiej |
-| SSIM do idealnej edycji | 0.902 | 0.884 | gorzej |
-| MS-SSIM do idealnej edycji | 0.926 | 0.903 | gorzej |
-| gradient-SSIM (krawędzie) do idealnej edycji | 0.897 | 0.896 | = |
-| ΔE2000 do idealnej edycji | 10.077 | 13.606 | gorzej |
+| detal okna / GT | 1.220 | 1.219 |  |
+| halo przy oknie ΔL* (cel < 4) | -0.780 | -0.531 |  |
+| przepalenia poza światłami (GT) [%] | 0.036 | 0.022 | lepiej |
+| SSIM do idealnej edycji | 0.907 | 0.883 | gorzej |
+| MS-SSIM do idealnej edycji | 0.928 | 0.902 | gorzej |
+| gradient-SSIM (krawędzie) do idealnej edycji | 0.903 | 0.895 | gorzej |
+| ΔE2000 do idealnej edycji | 9.617 | 12.906 | gorzej |
 
 ### Preset `premium`: serie
 
 | seria | metryka | przed | po |
 |---|---|---|---|
-| IMG_0000 | clipped_excl_% | 0.092 | 0.076 |
-| IMG_0000 | crushed_% | 0.016 | 0.018 |
-| IMG_0000 | median_luma | 0.564 | 0.725 |
-| IMG_0000 | vert_med_deg | 0.103 | 0.081 |
-| IMG_0000 | wall_dE_auto | 4.828 | 3.474 |
-| IMG_0000 | wall_dE_gt | 6.137 | 3.256 |
-| IMG_0000 | wall_L_gt | 65.947 | 79.614 |
-| IMG_0000 | win_L | 72.209 | 66.836 |
+| IMG_0000 | clipped_excl_% | 0.089 | 0.076 |
+| IMG_0000 | crushed_% | 0.016 | 0.019 |
+| IMG_0000 | median_luma | 0.565 | 0.725 |
+| IMG_0000 | vert_med_deg | 0.095 | 0.158 |
+| IMG_0000 | wall_dE_auto | 4.531 | 2.871 |
+| IMG_0000 | wall_dE_gt | 5.252 | 1.786 |
+| IMG_0000 | wall_L_gt | 65.829 | 79.615 |
+| IMG_0000 | win_L | 72.202 | 66.840 |
 | IMG_0000 | win_clip_recov_% | 0.000 | 0.000 |
-| IMG_0000 | win_detail_ratio | 1.213 | 1.156 |
-| IMG_0000 | halo_dL | 0.683 | 1.175 |
-| IMG_0000 | clipped_nonlight_% | 0.018 | 0.014 |
-| IMG_0000 | ssim | 0.900 | 0.878 |
-| IMG_0000 | ms_ssim | 0.935 | 0.916 |
-| IMG_0000 | grad_ssim | 0.896 | 0.914 |
-| IMG_0000 | dE_ref | 9.183 | 13.975 |
+| IMG_0000 | win_detail_ratio | 1.209 | 1.153 |
+| IMG_0000 | halo_dL | 0.663 | 1.075 |
+| IMG_0000 | clipped_nonlight_% | 0.018 | 0.015 |
+| IMG_0000 | ssim | 0.908 | 0.878 |
+| IMG_0000 | ms_ssim | 0.939 | 0.916 |
+| IMG_0000 | grad_ssim | 0.907 | 0.915 |
+| IMG_0000 | dE_ref | 8.785 | 13.784 |
 | IMG_0005 | clipped_excl_% | 0.000 | 0.000 |
-| IMG_0005 | crushed_% | 0.035 | 0.037 |
-| IMG_0005 | median_luma | 0.587 | 0.717 |
-| IMG_0005 | vert_med_deg | 0.040 | 0.050 |
-| IMG_0005 | wall_dE_auto | 5.339 | 3.394 |
-| IMG_0005 | wall_dE_gt | 4.139 | 3.225 |
-| IMG_0005 | wall_L_gt | 52.465 | 69.372 |
-| IMG_0005 | win_L | 71.315 | 67.127 |
+| IMG_0005 | crushed_% | 0.033 | 0.034 |
+| IMG_0005 | median_luma | 0.587 | 0.718 |
+| IMG_0005 | vert_med_deg | 0.053 | 0.049 |
+| IMG_0005 | wall_dE_auto | 5.427 | 2.356 |
+| IMG_0005 | wall_dE_gt | 3.683 | 1.317 |
+| IMG_0005 | wall_L_gt | 52.435 | 69.448 |
+| IMG_0005 | win_L | 71.373 | 67.102 |
 | IMG_0005 | win_clip_recov_% | 0.000 | 0.000 |
-| IMG_0005 | win_detail_ratio | 1.231 | 1.312 |
-| IMG_0005 | halo_dL | 0.029 | 0.421 |
-| IMG_0005 | clipped_nonlight_% | 0.099 | 0.074 |
-| IMG_0005 | ssim | 0.874 | 0.898 |
-| IMG_0005 | ms_ssim | 0.913 | 0.905 |
-| IMG_0005 | grad_ssim | 0.891 | 0.896 |
-| IMG_0005 | dE_ref | 10.393 | 10.290 |
-| IMG_0008 | clipped_excl_% | 0.020 | 0.016 |
-| IMG_0008 | crushed_% | 0.013 | 0.019 |
-| IMG_0008 | median_luma | 0.565 | 0.725 |
-| IMG_0008 | vert_med_deg | 0.163 | 0.107 |
-| IMG_0008 | wall_dE_auto | 3.953 | 3.902 |
-| IMG_0008 | wall_dE_gt | 6.455 | 2.949 |
-| IMG_0008 | wall_L_gt | 64.592 | 79.040 |
-| IMG_0008 | win_L | 70.436 | 65.389 |
+| IMG_0005 | win_detail_ratio | 1.235 | 1.308 |
+| IMG_0005 | halo_dL | 0.030 | 0.482 |
+| IMG_0005 | clipped_nonlight_% | 0.081 | 0.039 |
+| IMG_0005 | ssim | 0.878 | 0.896 |
+| IMG_0005 | ms_ssim | 0.915 | 0.904 |
+| IMG_0005 | grad_ssim | 0.897 | 0.892 |
+| IMG_0005 | dE_ref | 9.707 | 8.690 |
+| IMG_0008 | clipped_excl_% | 0.025 | 0.013 |
+| IMG_0008 | crushed_% | 0.015 | 0.019 |
+| IMG_0008 | median_luma | 0.566 | 0.725 |
+| IMG_0008 | vert_med_deg | 0.139 | 0.204 |
+| IMG_0008 | wall_dE_auto | 3.630 | 2.769 |
+| IMG_0008 | wall_dE_gt | 6.132 | 1.944 |
+| IMG_0008 | wall_L_gt | 64.601 | 78.961 |
+| IMG_0008 | win_L | 70.438 | 65.379 |
 | IMG_0008 | win_clip_recov_% | 0.000 | 0.000 |
-| IMG_0008 | win_detail_ratio | 1.219 | 1.197 |
-| IMG_0008 | halo_dL | -3.064 | -3.123 |
-| IMG_0008 | clipped_nonlight_% | 0.011 | 0.014 |
-| IMG_0008 | ssim | 0.933 | 0.876 |
-| IMG_0008 | ms_ssim | 0.932 | 0.888 |
+| IMG_0008 | win_detail_ratio | 1.217 | 1.197 |
+| IMG_0008 | halo_dL | -3.031 | -3.151 |
+| IMG_0008 | clipped_nonlight_% | 0.011 | 0.013 |
+| IMG_0008 | ssim | 0.934 | 0.876 |
+| IMG_0008 | ms_ssim | 0.928 | 0.886 |
 | IMG_0008 | grad_ssim | 0.904 | 0.879 |
-| IMG_0008 | dE_ref | 10.656 | 16.553 |
-| IMG_0015 | clipped_excl_% | 0.000 | 0.181 |
+| IMG_0008 | dE_ref | 10.360 | 16.243 |
+| IMG_0015 | clipped_excl_% | 0.000 | 0.000 |
 | IMG_0015 | crushed_% | 0.000 | 0.000 |
-| IMG_0015 | median_luma | 0.543 | 0.713 |
-| IMG_0015 | vert_med_deg | 0.020 | 0.101 |
-| IMG_0015 | wall_dE_auto | 3.848 | 1.110 |
-| IMG_0018 | clipped_excl_% | 2.152 | 2.314 |
-| IMG_0018 | crushed_% | 0.013 | 0.004 |
-| IMG_0018 | median_luma | 0.496 | 0.564 |
-| IMG_0018 | vert_med_deg | 0.043 | 0.212 |
-| IMG_0018 | wall_dE_auto | 7.079 | 7.907 |
-| IMG_0018 | win_L | 73.528 | 66.898 |
-| NOEXIF_0000 | clipped_excl_% | 0.130 | 0.160 |
-| NOEXIF_0000 | crushed_% | 0.007 | 0.007 |
-| NOEXIF_0000 | median_luma | 0.555 | 0.716 |
-| NOEXIF_0000 | vert_med_deg | 0.068 | 0.053 |
-| NOEXIF_0000 | wall_dE_auto | 4.331 | 3.792 |
-| NOEXIF_0000 | win_L | 70.240 | 66.394 |
+| IMG_0015 | median_luma | 0.543 | 0.714 |
+| IMG_0015 | vert_med_deg | 0.020 | 0.016 |
+| IMG_0015 | wall_dE_auto | 2.069 | 0.808 |
+| IMG_0018 | clipped_excl_% | 1.853 | 1.852 |
+| IMG_0018 | crushed_% | 0.006 | 0.005 |
+| IMG_0018 | median_luma | 0.497 | 0.454 |
+| IMG_0018 | vert_med_deg | 0.143 | 0.203 |
+| IMG_0018 | wall_dE_auto | 7.268 | 7.855 |
+| IMG_0018 | win_L | 70.709 | 69.022 |
+| NOEXIF_0000 | clipped_excl_% | 0.203 | 0.186 |
+| NOEXIF_0000 | crushed_% | 0.009 | 0.007 |
+| NOEXIF_0000 | median_luma | 0.551 | 0.714 |
+| NOEXIF_0000 | vert_med_deg | 0.057 | 0.083 |
+| NOEXIF_0000 | wall_dE_auto | 3.799 | 2.552 |
+| NOEXIF_0000 | win_L | 71.483 | 67.446 |
 
