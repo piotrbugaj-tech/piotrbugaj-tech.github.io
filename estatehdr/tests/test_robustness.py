@@ -368,3 +368,51 @@ def test_writer_software_tag_read_back(synth, tmp_path):
     p = str(tmp_path / "o.jpg")
     writer.write_jpeg(p, np.zeros((8, 8, 3), np.uint8), 90, writer.build_exif(ref, 8, 8, "x"))
     assert read_metadata(p).software.startswith("EstateHDR")
+
+
+# follow-up checks of the fixes ------------------------------------------------------------------
+
+def test_profile_named_srgb_but_linear_is_converted():
+    from estatehdr.io import icc
+    lin = _icc_v2("sRGB linear-ish (mislabelled)", [icc._srgb()["matrix"][:, k] for k in range(3)], gamma=1.0)
+    assert icc.inspect(lin)[0] is True
+    bad = bytearray(_icc_v2("broken", ADOBE_D50))
+    i = bad.find(b"curv")
+    bad[i + 8:i + 12] = struct.pack(">I", 1 << 28)  # absurd entry count, tag far too short
+    with pytest.raises(ValueError):
+        icc._trc(bytes(bad[i:i + 16]))
+
+
+def test_unreadable_raw_keeps_its_jpeg(synth, tmp_path):
+    d = _folder(tmp_path, synth, ["IMG_1.jpg"])
+    with open(os.path.join(d, "IMG_1.CR2"), "wb") as fh:
+        fh.write(b"not a raw file" * 100)
+    skipped = []
+    groups, failures = scan_folder(d, load_config()["grouping"], skipped=skipped)
+    assert [os.path.basename(f.path) for g in groups for f in g.frames] == ["IMG_1.jpg"]
+    assert [os.path.basename(f["file"]) for f in failures] == ["IMG_1.CR2"] and not skipped
+
+
+def test_tiff_outputs_are_recognised_as_ours(tmp_path):
+    p = str(tmp_path / "out.tif")
+    writer.write_tiff16(p, np.full((16, 16, 3), 0.5, np.float32))
+    assert (read_metadata(p).software or "").startswith("EstateHDR")
+
+
+def test_preset_calibration_file_wins_even_at_base_default(tmp_path):
+    base = load_config(None, "neutral")["tonemap"]["target_key"]
+    p = tmp_path / "cal.yaml"
+    p.write_text(yaml.safe_dump({"presets": {"airy": {"overrides": {"tonemap": {"target_key": base}}}}}))
+    assert load_config(str(p), "airy")["tonemap"]["target_key"] == base
+    assert load_config(str(p), "airy")["presets"]["airy"]["label"]  # label kept
+
+
+def test_web_names_match_batch_names(synth, tmp_path):
+    """Names the web UI accepts are exactly the names run_batch keeps (masks / results keys)."""
+    from estatehdr.grouping import Group, unique_names
+    from estatehdr.web.app import _unique_names
+    raw = [{"name": n} for n in ["Salon", "salon", "...", " kuchnia ", "a/b"]]
+    web = [g["name"] for g in _unique_names(raw)]
+    assert len({n.casefold() for n in web}) == len(web)
+    again = [g.name for g in unique_names([Group(n, []) for n in web])]
+    assert again == web

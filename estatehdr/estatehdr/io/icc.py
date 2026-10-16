@@ -45,6 +45,8 @@ def _trc(tag: bytes):
     kind = tag[:4]
     if kind == b"curv":
         n = struct.unpack(">I", tag[8:12])[0]
+        if n > 65536 or len(tag) < 12 + 2 * n:
+            raise ValueError(f"malformed curv tag ({n} entries, {len(tag)} bytes)")
         if n == 0:
             return lambda x: x
         if n == 1:
@@ -55,7 +57,9 @@ def _trc(tag: bytes):
         return lambda x: np.interp(x, xs, table)
     if kind == b"para":
         ftype = struct.unpack(">H", tag[8:10])[0]
-        npar = {0: 1, 1: 3, 2: 4, 3: 5, 4: 7}[ftype]
+        npar = {0: 1, 1: 3, 2: 4, 3: 5, 4: 7}.get(ftype)
+        if npar is None or len(tag) < 12 + 4 * npar:
+            raise ValueError(f"malformed para tag (type {ftype}, {len(tag)} bytes)")
         p = [v / 65536.0 for v in struct.unpack(f">{npar}i", tag[12:12 + 4 * npar])] + [0.0] * 6
         g, a, b, c, d, e, f = p[:7]
 
@@ -90,24 +94,25 @@ def _matrix_trc(icc: bytes):
     return np.stack(cols, 1), curves
 
 
+_SRGB_PROBE = np.array([0.05, 0.2, 0.5, 0.8], np.float64)
+_SRGB_LIN = np.where(_SRGB_PROBE <= 0.04045, _SRGB_PROBE / 12.92, ((_SRGB_PROBE + 0.055) / 1.055) ** 2.4)
+
+
 def inspect(icc: bytes) -> tuple[bool, str]:
-    """(needs conversion, profile description).  sRGB = the description says so (and not
-    'linear'), or the colorants and the tone curve match sRGB; non-RGB profiles are left alone."""
+    """(needs conversion, profile description).  Matrix/TRC profiles are judged by their
+    colorants and tone curves (a 'linear sRGB' or mislabelled profile is converted); only other
+    profiles fall back to the description.  Non-RGB profiles are left alone."""
     p = ImageCms.ImageCmsProfile(io.BytesIO(icc)).profile
     desc = (p.profile_description or "").strip() or "unnamed ICC profile"
     if (p.xcolor_space or "").strip() != "RGB":
-        return False, desc
-    dl = desc.lower()
-    if "srgb" in dl and "linear" not in dl:
         return False, desc
     mt = _matrix_trc(icc)
     if mt is not None:
         m, curves = mt
         same_primaries = np.allclose(m, _srgb()["matrix"], atol=0.004)
-        same_curve = all(abs(float(c(np.float64(0.5))) - 0.2140) < 0.01 for c in curves)
-        if same_primaries and same_curve:
-            return False, desc
-    return True, desc
+        same_curve = all(np.allclose(c(_SRGB_PROBE), _SRGB_LIN, atol=0.01) for c in curves)
+        return not (same_primaries and same_curve), desc
+    return "srgb" not in desc.lower(), desc
 
 
 def to_srgb(img: np.ndarray, icc: bytes, linear: bool = False) -> np.ndarray:

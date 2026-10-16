@@ -210,7 +210,15 @@ def ensure_synthetic_batch(out_dir: str) -> str:
     """Processed synthetic batch with quality.json in ``out_dir`` (run + evaluated when missing)."""
     if not os.path.isdir(os.path.join(SYN, "input")):
         sys.exit(f"no synthetic dataset in {SYN} - run: python tools/make_synthetic.py")
-    if not os.path.exists(os.path.join(out_dir, "report.json")):
+    rp = os.path.join(out_dir, "report.json")
+    complete = False
+    if os.path.exists(rp):
+        with open(rp, encoding="utf-8") as fh:
+            rep = json.load(fh)
+        complete = rep.get("complete", True) and not rep.get("pending")
+    if not complete:  # missing or interrupted batch (report.json is written after every series)
+        if os.path.exists(os.path.join(out_dir, "quality.json")):
+            os.remove(os.path.join(out_dir, "quality.json"))
         from estatehdr.batch import run_batch
         print(f"running the synthetic batch into {out_dir} ...")
         run_batch(os.path.join(SYN, "input"), out_dir, load_config(None, "neutral"))

@@ -57,7 +57,7 @@ windows:
   # obszar "poza zakresem wnętrza": luminancja > over_ev powyżej poziomu ścian wnętrza
   over_ev: 2.5
   min_area_frac: 0.0015
-  exterior_target: 0.62    # docelowa jasność widoku za oknem (display, 0-1)
+  exterior_target: 0.595   # docelowa jasność widoku za oknem (display, 0-1)
   strength: 1.0            # 0 = brak pulla, 1 = pełny
   feather_px: 2.0          # miękkość przejścia na ramach (przy analizie)
   lamp_max_area_frac: 0.004
@@ -67,16 +67,16 @@ windows:
 
 white_balance:
   enabled: true
-  global_strength: 0.9     # 0..1 udział korekty globalnej
-  target_cct: 6000         # docelowa biel (K); ~6000 = lekko ciepła neutralna
+  global_strength: 0.5     # 0..1 udział korekty globalnej (kalibracja, D-32)
+  target_cct: 7400         # cel korekty globalnej (K); przy global_strength 0.5 biel ląduje w połowie drogi
   max_global_shift: 0.45
-  mixed_light_strength: 0.85
-  max_local_shift: 1.6     # max lokalna zmiana chromatyczności (log); żarówka 2700 K vs dzień wymaga ~1.2
+  mixed_light_strength: 1.0
+  max_local_shift: 1.375   # max lokalna zmiana chromatyczności (log); żarówka 2700 K vs dzień wymaga ~1.2
   grid: 64
   field_smooth: 0.015
   local_lo_percentile: 10
   max_locus_dist: 0.35
-  tint_strength: 0.5
+  tint_strength: 1.0
 
 geometry:
   enabled: true
@@ -102,13 +102,13 @@ tonemap:
   black_percentile: 0.5    # percentyl wnętrza mapowany na black_target
   white_percentile: 99.0   # percentyl wnętrza mapowany na target_white (okna/lampy wyłączone)
   black_target: 0.03       # wartości sRGB (0-1) na wyjściu
-  target_key: 0.56
+  target_key: 0.70         # jasność średnich tonów (sRGB); kalibracja do jasnych ścian (SPEC: L* 78-88)
   target_white: 0.96
   shoulder_ev: 2.5         # miękkie ramię powyżej bieli wnętrza
   highlight_knee: 0.88     # start łagodnego wyciszania saturacji w światłach
   toe_ev: 2.0
-  compress_shadows: 0.7    # lokalna kompresja bazy (1 = brak, mniej = mocniej podniesione cienie)
-  compress_highlights: 0.6
+  compress_shadows: 0.64   # lokalna kompresja bazy (1 = brak, mniej = mocniej podniesione cienie)
+  compress_highlights: 0.64
   base_radius_frac: 0.025
   base_radius_frac2: 0.08
   base_eps: 0.08
@@ -130,7 +130,7 @@ single_image:
   # pojedynczy, już wywołany plik (JPEG): fotograf ustalił ekspozycję i balans bieli -
   # klucz tonalny bierzemy z obrazu (w granicach), a WB działa słabiej
   key_from_input: true
-  key_range: [-0.05, 0.20] # dopuszczalne odchylenie klucza od tonemap.target_key
+  key_range: [-0.15, 0.10] # dopuszczalne odchylenie klucza od tonemap.target_key (gotowe JPEG-i: bez rozjaśniania)
   wb_strength: 0.4         # mnożnik siły WB (globalnego i lokalnego)
   compress_shadows_min: 0.8
 
@@ -190,29 +190,29 @@ presets:
     label: "Jasny (airy) - więcej światła i lekkości"
     overrides:
       tonemap:
-        target_key: 0.62
+        target_key: 0.76
         target_white: 0.97
         black_target: 0.05
-        compress_shadows: 0.6
-        compress_highlights: 0.55
+        compress_shadows: 0.54
+        compress_highlights: 0.59
         contrast: -0.02
         vibrance: 0.05
         saturation: 0.98
       windows:
-        exterior_target: 0.68
+        exterior_target: 0.655
   premium:
     label: "Premium - więcej kontrastu i koloru, głębszy widok za oknami"
     overrides:
       tonemap:
-        target_key: 0.54
+        target_key: 0.68
         target_white: 0.96
         black_target: 0.02
-        compress_shadows: 0.72
-        compress_highlights: 0.55
+        compress_shadows: 0.66
+        compress_highlights: 0.59
         detail: 1.2
         contrast: 0.12
         vibrance: 0.18
         saturation: 1.05
       windows:
-        exterior_target: 0.52
+        exterior_target: 0.495
         strength: 1.0

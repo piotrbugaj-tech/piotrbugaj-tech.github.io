@@ -10,6 +10,7 @@ straightened differently).
 from __future__ import annotations
 
 import json
+import logging
 import os
 
 import cv2
@@ -17,6 +18,8 @@ import numpy as np
 
 from . import metrics as M
 from ..imgutil import resize_max
+
+log = logging.getLogger(__name__)
 
 # synthetic GT labels (see estatehdr/synthetic.py LABELS)
 WALL_LABELS = (1, 2)
@@ -133,6 +136,9 @@ def evaluate_output_dir(out_dir: str, gt_map: dict | None = None, pairs_dir: str
     pairs_dir: folder with reference results named like the series (e.g. AutoHDR exports)."""
     with open(os.path.join(out_dir, "report.json"), encoding="utf-8") as fh:
         report = json.load(fh)
+    if report.get("complete") is False or report.get("pending"):
+        log.warning("%s: the batch did not finish (pending: %s) - evaluating the finished series only",
+                    out_dir, ", ".join(report.get("pending") or []))
     results = {}
     for s in report["series"]:
         if s.get("status") != "ok" or size not in s.get("outputs", {}):

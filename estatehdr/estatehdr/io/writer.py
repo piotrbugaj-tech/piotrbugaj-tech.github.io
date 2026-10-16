@@ -127,7 +127,7 @@ def write_jpeg(path: str, img8: np.ndarray, quality: int, exif: bytes | None, pr
 def write_tiff16(path: str, img: np.ndarray):
     import tifffile
     arr = np.clip(np.round(img * 65535.0), 0, 65535).astype(np.uint16)
-    tifffile.imwrite(path, arr, photometric="rgb", compression="zlib",
+    tifffile.imwrite(path, arr, photometric="rgb", compression="zlib", software=f"EstateHDR {__version__}",
                      extratags=[(34675, "B", len(srgb_icc()), srgb_icc(), True)])
 
 

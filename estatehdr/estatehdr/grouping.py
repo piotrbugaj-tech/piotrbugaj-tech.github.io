@@ -118,15 +118,17 @@ def thumbnail(meta: FrameMeta, size: int = 48) -> np.ndarray | None:
                 except Exception:
                     rgb = r.postprocess(half_size=True, output_bps=8)
                     img = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
-        elif meta.kind == "jpeg":
-            img = cv2.imread(meta.path, cv2.IMREAD_REDUCED_GRAYSCALE_8)
         else:
-            img = cv2.imread(meta.path, cv2.IMREAD_GRAYSCALE | cv2.IMREAD_ANYDEPTH)
+            # decode from memory: cv2.imread cannot open non-ASCII paths on Windows
+            buf = np.fromfile(meta.path, np.uint8)
+            flags = cv2.IMREAD_REDUCED_GRAYSCALE_8 if meta.kind == "jpeg" else cv2.IMREAD_GRAYSCALE | cv2.IMREAD_ANYDEPTH
+            img = cv2.imdecode(buf, flags) if buf.size else None
+            del buf
             if img is None and meta.kind == "tiff":  # layouts OpenCV cannot read (decode uses tifffile)
                 import tifffile
                 img = np.asarray(tifffile.imread(meta.path, key=0), np.float32)
                 img = img.mean(-1) if img.ndim == 3 else img
-            if img is not None and img.dtype != np.uint8:
+            if img is not None and img.dtype != np.uint8 and meta.kind != "jpeg":
                 img = (np.clip(img.astype(np.float32), 0, None) / max(1.0, float(img.max())) * 255).astype(np.uint8)
     except Exception as exc:
         log.debug("thumbnail failed for %s: %s", meta.path, exc)
@@ -272,13 +274,9 @@ def scan_folder(folder: str, cfg: dict | None = None, recursive: bool = True, ex
     left out on purpose (RAW+JPEG siblings, EstateHDR's own outputs)."""
     cfg = cfg or {}
     skipped = skipped if skipped is not None else []
-    paths, sib = collapse_raw_siblings(list_images(folder, recursive, exclude))
-    for e in sib:
-        log.info("skipping %s: %s (%s)", e["file"], e["reason"], e["used"])
-    skipped.extend(sib)
     need_thumbs = cfg.get("mode", "auto") != "single"
-    metas, failures, thumbs = [], [], {}
-    for p in paths:
+    readable_metas, failures, thumbs = [], [], {}
+    for p in list_images(folder, recursive, exclude):
         try:
             if os.path.getsize(p) == 0:
                 raise ValueError("empty file")
@@ -301,7 +299,14 @@ def scan_folder(folder: str, cfg: dict | None = None, recursive: bool = True, ex
             failures.append({"file": p, "error": err})
             log.warning("skipping %s: %s", p, err)
             continue
-        metas.append(m)
+        readable_metas.append(m)
+    # RAW+JPEG pairs collapse only among readable files: an unreadable RAW keeps its JPEG
+    kept, sib = collapse_raw_siblings([m.path for m in readable_metas])
+    for e in sib:
+        log.info("skipping %s: %s (%s)", e["file"], e["reason"], e["used"])
+    skipped.extend(sib)
+    kept = set(kept)
+    metas = [m for m in readable_metas if m.path in kept]
     return group_frames(metas, cfg, thumbs), failures
 
 

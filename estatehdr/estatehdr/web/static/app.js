@@ -204,17 +204,26 @@ const fmtMB = (b) => (b / 1048576).toFixed(1) + ' MB';
 // ------------------------------------------------------------------------------------------
 // grouping
 // ------------------------------------------------------------------------------------------
+const SKIP_REASONS = { 'RAW sibling used': 'użyto pliku RAW o tej samej nazwie', 'EstateHDR output': 'to wynik EstateHDR' };
+
 async function regroup() {
   if (!job) return;
-  const res = await api('POST', `/api/jobs/${job.id}/group`,
-    { single: $('#opt-single').checked, bracket_size: parseInt($('#opt-bracket').value || '0', 10) });
+  let res;
+  try {
+    res = await api('POST', `/api/jobs/${job.id}/group`,
+      { single: $('#opt-single').checked, bracket_size: parseInt($('#opt-bracket').value || '0', 10) });
+  } catch (e) { alert('Nie można teraz zmienić grupowania: ' + e.message); return; }
   groups = res.groups;
   job.state = 'grouped';
+  job.masks = res.masks || {};
   const un = $('#unreadable');
-  if (res.unreadable && res.unreadable.length) {
-    un.textContent = 'Nie udało się odczytać: ' + res.unreadable.map((u) => `${u.file} (${u.error})`).join('; ') + ' - te pliki zostaną pominięte.';
-    show('#unreadable');
-  } else show('#unreadable', false);
+  const notes = [];
+  if (res.unreadable && res.unreadable.length)
+    notes.push('Nie udało się odczytać: ' + res.unreadable.map((u) => `${u.file} (${u.error})`).join('; ') + ' - te pliki zostaną pominięte.');
+  if (res.skipped && res.skipped.length)
+    notes.push('Pominięte celowo: ' + res.skipped.map((u) => `${u.file} (${SKIP_REASONS[u.reason] || u.reason})`).join('; ') + '.');
+  un.textContent = notes.join(' ');
+  show('#unreadable', notes.length > 0);
   renderGroups();
   show('#step-groups'); show('#step-settings');
 }
@@ -223,8 +232,15 @@ let saveTimer = null;
 function saveGroups() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
-    const res = await api('PUT', `/api/jobs/${job.id}/groups`, { groups: groups.map((g) => ({ name: g.name, files: g.files })) });
-    groups = res.groups.map((g, i) => ({ ...g, ev: groups.find((x) => x.name === g.name)?.ev || [] }));
+    try {
+      const res = await api('PUT', `/api/jobs/${job.id}/groups`, { groups: groups.map((g) => ({ name: g.name, files: g.files })) });
+      groups = res.groups.map((g) => ({ ...g, ev: groups.find((x) => x.files.join() === g.files.join())?.ev || [] }));
+      job.masks = res.masks || {};
+    } catch (e) {
+      alert('Nie zapisano zmian w seriach: ' + e.message);
+      job = await api('GET', `/api/jobs/${job.id}`);  // back to the server state
+      groups = job.groups || [];
+    }
     renderGroups();
   }, 250);
 }
@@ -242,6 +258,7 @@ function refFrame(g) {
 function renderGroups() {
   const box = $('#groups');
   box.innerHTML = '';
+  const locked = !!job && ['queued', 'running'].includes(job.state);  // the server refuses edits now
   const nFiles = groups.reduce((a, g) => a + g.files.length, 0);
   $('#groups-summary').textContent = `${groups.length} serii, ${nFiles} zdjęć`;
   groups.forEach((g, gi) => {
@@ -277,6 +294,7 @@ function renderGroups() {
         el('div', {}, f.replace(/^.*\//, '') + ev), sel));
     });
     const card = el('div', { class: 'group' }, head, frames);
+    if (locked) card.querySelectorAll('input, button, select').forEach((c) => { c.disabled = true; });
     if (g.warnings && g.warnings.length) card.append(el('div', { class: 'gwarn' }, 'Uwaga: ' + g.warnings.map(translateWarn).join('; ')));
     box.append(card);
   });
@@ -366,15 +384,19 @@ async function openMask(g) {
       d.data[i] = d.data[i + 1] = d.data[i + 2] = on ? 255 : 0; d.data[i + 3] = 255;
     }
     ox.putImageData(d, 0, 0);
-    if (n === 0) {
-      await api('DELETE', `/api/jobs/${job.id}/masks/${encodeURIComponent(maskSeries)}`);
-      if (job.masks) delete job.masks[maskSeries];
-    } else {
-      const blob = await new Promise((r) => out.toBlob(r, 'image/png'));
-      const fd = new FormData(); fd.append('file', blob, 'mask.png');
-      await api('POST', `/api/jobs/${job.id}/masks/${encodeURIComponent(maskSeries)}`, fd);
-      job.masks = job.masks || {}; job.masks[maskSeries] = true;
-      $('#opt-remove').checked = true;
+    try {
+      if (n === 0) {
+        await api('DELETE', `/api/jobs/${job.id}/masks/${encodeURIComponent(maskSeries)}`);
+        if (job.masks) delete job.masks[maskSeries];
+      } else {
+        const blob = await new Promise((r) => out.toBlob(r, 'image/png'));
+        const fd = new FormData(); fd.append('file', blob, 'mask.png');
+        await api('POST', `/api/jobs/${job.id}/masks/${encodeURIComponent(maskSeries)}`, fd);
+        job.masks = job.masks || {}; job.masks[maskSeries] = true;
+        $('#opt-remove').checked = true;
+      }
+    } catch (e) {
+      alert('Nie zapisano maski: ' + e.message);
     }
     show('#modal', false);
     renderGroups();
@@ -410,8 +432,10 @@ function startPolling() {
   clearInterval(poll);
   const tick = async () => {
     try {
+      const was = job && ['queued', 'running'].includes(job.state);
       job = await api('GET', `/api/jobs/${job.id}`);
       renderResults();
+      if (was !== ['queued', 'running'].includes(job.state) && groups.length) renderGroups();
       if (!['queued', 'running'].includes(job.state)) clearInterval(poll);
     } catch (e) { /* server busy: try again */ }
   };

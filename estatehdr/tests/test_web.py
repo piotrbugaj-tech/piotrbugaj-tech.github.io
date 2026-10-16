@@ -95,3 +95,23 @@ def test_web_masks_names_and_guards(synth, tmp_path):
     c2 = TestClient(create_app(str(work)))
     ids = [j["id"] for j in c2.get("/api/jobs").json()]
     assert jid in ids and "broken" not in ids
+
+
+def test_web_merging_masked_series_unions_masks(synth, tmp_path):
+    c = TestClient(create_app(str(tmp_path / "work")))
+    jid = c.post("/api/jobs").json()["id"]
+    src = os.path.join(synth["input"], "IMG_0011.jpg")
+    c.post(f"/api/jobs/{jid}/files", files=[("files", ("a.jpg", open(src, "rb"), "image/jpeg")),
+                                            ("files", ("b.jpg", open(src, "rb"), "image/jpeg"))],
+           data={"paths": ["x/a.jpg", "y/b.jpg"]})
+    g = c.put(f"/api/jobs/{jid}/groups", json={"groups": [{"name": "A", "files": ["x/a.jpg"]},
+                                                          {"name": "B", "files": ["y/b.jpg"]}]}).json()["groups"]
+    for name, x in (("A", 100), ("B", 300)):
+        m = np.zeros((320, 480), np.uint8)
+        cv2.circle(m, (x, 100), 10, 255, -1)
+        ok, buf = cv2.imencode(".png", m)
+        c.post(f"/api/jobs/{jid}/masks/{name}", files={"file": ("m.png", buf.tobytes(), "image/png")})
+    r = c.put(f"/api/jobs/{jid}/groups", json={"groups": [{"name": "AB", "files": ["x/a.jpg", "y/b.jpg"]}]}).json()
+    assert list(r["masks"]) == ["AB"]
+    m = cv2.imdecode(np.frombuffer(c.get(f"/api/jobs/{jid}/masks/AB").content, np.uint8), cv2.IMREAD_GRAYSCALE)
+    assert m[100, 100] > 127 and m[100, 300] > 127

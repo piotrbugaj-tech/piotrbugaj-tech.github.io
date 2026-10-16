@@ -65,6 +65,7 @@ class Job:
         self.created = time.time()
         self.groups: list[dict] = []
         self.unreadable: list[dict] = []
+        self.skipped: list[dict] = []   # left out on purpose (JPEG next to its RAW, EstateHDR outputs)
         self.groups_edited = False
         self.settings: dict = {}
         self.progress: dict = {}     # series -> {frac, stage, status}
@@ -79,7 +80,7 @@ class Job:
 
     # -- persistence -----------------------------------------------------------------------
     def to_dict(self) -> dict:
-        return {k: getattr(self, k) for k in ("id", "state", "created", "groups", "unreadable", "groups_edited",
+        return {k: getattr(self, k) for k in ("id", "state", "created", "groups", "unreadable", "skipped", "groups_edited",
                                               "settings", "progress", "results", "report", "error", "masks",
                                               "group_opts", "run_id")}
 
@@ -221,8 +222,8 @@ class JobManager:
         if job.groups:  # always process exactly the grouping the user saw (and maybe corrected)
             groups_file = os.path.join(job.dir, "groups.json")
             with open(groups_file, "w", encoding="utf-8") as fh:
-                json.dump({"version": 1, "groups": [{"name": g["name"], "files": [os.path.join(job.input_dir, f)
-                                                                                  for f in g["files"]]}
+                json.dump({"version": 1, "groups": [{"name": g["name"], "warnings": g.get("warnings", []),
+                                                     "files": [os.path.join(job.input_dir, f) for f in g["files"]]}
                                                     for g in job.groups if g["files"]]}, fh)
         masks = {name: {"remove": p} for name, p in job.masks.items() if os.path.exists(p)}
         last = [0.0]
@@ -238,7 +239,8 @@ class JobManager:
         os.makedirs(job.output_dir, exist_ok=True)
         rep = run_batch(job.input_dir, job.output_dir, cfg, groups_file, progress_cb=cb, masks=masks)
         with job.lock:
-            job.report = {k: rep.get(k) for k in ("ok", "failed", "seconds", "workers", "peak_rss_gb", "unreadable")}
+            job.report = {k: rep.get(k) for k in ("ok", "failed", "seconds", "workers", "peak_rss_gb", "unreadable",
+                                                  "skipped")}
             for r in rep.get("series", []):
                 job.results[r["name"]] = _summary(job, r)
                 job.progress.setdefault(r["name"], {}).update(frac=1.0, stage="gotowe", status=r.get("status"))
@@ -270,14 +272,23 @@ def _overrides(st: dict) -> list[str]:
     return o
 
 
+def _series_name(raw: str) -> str:
+    from ..grouping import safe_name
+    return safe_name(SAFE.sub("_", str(raw))[:80])
+
+
 def _unique_names(groups: list[dict]) -> list[dict]:
+    """Same rules as grouping.unique_names (safe characters, case-insensitive), so the batch keeps
+    exactly these names and masks / results stay keyed by what the user sees."""
     names: set = set()
     for g in groups:
-        base, k = g["name"], 2
-        while g["name"] in names:
-            g["name"] = f"{base}_{k}"
+        base = _series_name(g["name"])
+        name, k = base, 2
+        while name.casefold() in names:
+            name = f"{base}_{k}"
             k += 1
-        names.add(g["name"])
+        names.add(name.casefold())
+        g["name"] = name
     return groups
 
 
@@ -285,14 +296,26 @@ def _rekey_masks(job: Job, old_groups: list[dict], new_groups: list[dict]):
     """Masks are keyed by series name: follow each masked series to the new group holding most
     of its files (rename, merge, split, regroup); drop masks whose files left every series."""
     old_files = {g["name"]: set(g["files"]) for g in old_groups}
-    masks = {}
+    target: dict = {}  # new series -> mask files that follow it
     for name, path in job.masks.items():
         files = old_files.get(name, set())
         best = max(new_groups, key=lambda g: len(files & set(g["files"])), default=None)
-        if best is not None and files & set(best["files"]) and best["name"] not in masks:
-            masks[best["name"]] = path
-        elif path and os.path.exists(path) and path not in masks.values():
+        if best is not None and files & set(best["files"]) and path and os.path.exists(path):
+            target.setdefault(best["name"], []).append(path)
+        elif path and os.path.exists(path):
             os.remove(path)
+    masks = {}
+    for name, paths in target.items():
+        if len(paths) > 1:  # merged series: union of the painted masks (frames of one series share a size)
+            ms = [cv2.imread(p, cv2.IMREAD_GRAYSCALE) for p in paths]
+            ms = [m for m in ms if m is not None]
+            if ms:
+                h, w = ms[0].shape
+                m = np.max([cv2.resize(x, (w, h), interpolation=cv2.INTER_NEAREST) for x in ms], axis=0)
+                cv2.imwrite(paths[0], m)
+            for p in paths[1:]:
+                os.remove(p)
+        masks[name] = paths[0]
     job.masks = masks
 
 
@@ -417,8 +440,9 @@ def create_app(workdir: str | None = None) -> FastAPI:
         if body.get("single"):
             overrides += ["grouping.mode=single"]
         cfg = load_config(None, None, overrides)
-        groups, failures = scan_folder(j.input_dir, cfg.get("grouping", {}))
-        new = _unique_names([{"name": SAFE.sub("_", g.name)[:80],
+        skipped: list = []
+        groups, failures = scan_folder(j.input_dir, cfg.get("grouping", {}), skipped=skipped)
+        new = _unique_names([{"name": g.name,
                               "files": [os.path.relpath(f.path, j.input_dir) for f in g.frames],
                               "warnings": g.warnings,
                               "ev": [None if f.exposure_value is None else round(f.exposure_value, 2)
@@ -426,11 +450,12 @@ def create_app(workdir: str | None = None) -> FastAPI:
         _rekey_masks(j, j.groups, new)
         j.groups = new
         j.unreadable = [{"file": os.path.relpath(f["file"], j.input_dir), "error": f["error"]} for f in failures]
+        j.skipped = [{"file": os.path.relpath(f["file"], j.input_dir), "reason": f["reason"]} for f in skipped]
         j.group_opts = {"single": bool(body.get("single")), "bracket_size": int(body.get("bracket_size") or 0)}
         j.groups_edited = False
         j.state = "grouped"
         j.save()
-        return {"groups": j.groups, "unreadable": j.unreadable}
+        return {"groups": j.groups, "unreadable": j.unreadable, "skipped": j.skipped, "masks": j.masks}
 
     @app.put("/api/jobs/{jid}/groups")
     def set_groups(jid: str, body: dict = Body(...)):
@@ -442,13 +467,13 @@ def create_app(workdir: str | None = None) -> FastAPI:
             fl = [f for f in g.get("files", []) if f in files and f not in used]
             used.update(fl)
             if fl:
-                name = SAFE.sub("_", str(g.get("name") or os.path.splitext(os.path.basename(fl[0]))[0]))[:80]
+                name = str(g.get("name") or os.path.splitext(os.path.basename(fl[0]))[0])
                 out.append({"name": name, "files": fl, "warnings": [], "ev": []})
         _unique_names(out)
         _rekey_masks(j, j.groups, out)
         j.groups, j.groups_edited = out, True
         j.save()
-        return {"groups": j.groups}
+        return {"groups": j.groups, "masks": j.masks}
 
     @app.get("/api/jobs/{jid}/thumb")
     def thumb(jid: str, f: str = Query(...), s: int = Query(320, ge=64, le=2400)):

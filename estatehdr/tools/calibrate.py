@@ -147,7 +147,22 @@ def main():
     ap.add_argument("--base-config", default=None,
                     help="YAML with the starting (\"before\") values; default: config.yaml as it is")
     ap.add_argument("--out", default="reports/calibration")
+    ap.add_argument("--params", default=None,
+                    help="comma-separated subset of the tuned keys (default: all), e.g. tonemap.target_key,windows.exterior_target")
+    ap.add_argument("--bound", action="append", default=[], metavar="KEY=LO:HI",
+                    help="override the search interval of a key, e.g. tonemap.target_key=0.5:0.85")
     a = ap.parse_args()
+    global PARAMS
+    bounds = {}
+    for b in a.bound:
+        k, _, rng = b.partition("=")
+        lo, _, hi = rng.partition(":")
+        bounds[k.strip()] = (float(lo), float(hi))
+    keep = [k.strip() for k in a.params.split(",") if k.strip()] if a.params else None
+    unknown = (set(keep or []) | set(bounds)) - {p[0] for p in PARAMS}
+    if unknown:
+        ap.error(f"unknown parameter(s): {', '.join(sorted(unknown))}")
+    PARAMS = [(k, *bounds.get(k, (lo, hi)), st) for k, lo, hi, st in PARAMS if keep is None or k in keep]
     logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     log.setLevel(logging.INFO)
     if not a.synthetic_gt and not a.pairs:
@@ -241,6 +256,11 @@ def main():
             put(changed, key, v1)
     with open(os.path.join(a.out, "calibrated.yaml"), "w", encoding="utf-8") as fh:
         fh.write(f"# tools/calibrate.py ({'pairs' if pairs else 'synthetic GT + targets'}), preset {a.preset}\n")
+        default = load_config(None, None)["preset"]
+        if a.preset != default:
+            # a preset's own values go to its section: the user file's 'presets' are merged before
+            # the preset is applied, so they win even where they equal a base default (D-33)
+            changed = {"presets": {a.preset: {"overrides": changed}}}
         yaml.safe_dump(changed, fh, allow_unicode=True, sort_keys=False)
     with open(os.path.join(a.out, "calibration.json"), "w", encoding="utf-8") as fh:
         json.dump({"preset": a.preset, "mode": "pairs" if pairs else "synthetic", "seconds": round(time.time() - t0, 1),
