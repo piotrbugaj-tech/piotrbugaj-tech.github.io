@@ -1,0 +1,1051 @@
+{
+ "checklist": [
+  {
+   "question": "Q1 Pipeline stages and order",
+   "status": "partial",
+   "answer": "AutoHDR documents these stages: (1) ingest from the web uploader, Dropbox, Spiro, HD PhotoHub, Tonomo, or Aryeo via Dropbox, with integrations waiting for 20 minutes with no new files; (2) RAW-to-JPEG development with RawTherapee and Lensfun, correcting distortion and vignetting for RAW files only; (3) vision-based bracket grouping, then optional deduplication; (4) selection of 3 frames per set; (5) alignment; (6) HDR merge and edit by a style model (Classic or Lisa, with separate indoor, outdoor and twilight models); (7) perspective correction with a slight crop, on by default; (8) sky replacement, on by default; (9) automatic add-ons baked in during processing (TV blackout or custom image, fire, grass, declutter, sign removal) when enabled; (10) delivery; (11) on-demand tools in the gallery (Virtual Twilight, AI Re-Edit, AutoFill, Repaint, Basic Adjustments, free regenerate). The order of stages 3 to 5 is implied by the FAQ. The order of merge, perspective, sky and add-ons is inferred, not documented.",
+   "observations": [
+    "The blog lists its services as automatic HDR and flambient editing, sky replacement, perspective correction, clutter removal, window pulls and white balance (https://www.autohdr.com/blog/window-pulls-and-white-balance-small-fixes-that-make-a-listing-look-luxury).",
+    "RAW files are converted to JPEG with RawTherapee and Lensfun profiles, which corrects distortion and vignetting. JPEG uploads get no lens correction (https://faq.autohdr.com/lens-corrections-raw-vs-jpeg).",
+    "Similar brackets 'are identified through vision-based grouping and merged before the HDR blending process'. Deduplication is a separate step that can be switched off (https://faq.autohdr.com/fewer-final-photos-than-raw-uploaded).",
+    "'The pipeline is built around 3-bracket processing'. When 5 frames are uploaded, the AI picks 3 (https://faq.autohdr.com/why-only-3-of-5-exposures-used).",
+    "Auto Fire and Auto TV Screen Replacement are applied during processing and baked into the output (https://faq.autohdr.com/settings-and-habits-bad-results).",
+    "Single exposures skip bracket blending but still get corrections, sky replacement and any enabled add-ons (https://faq.autohdr.com/can-i-upload-single-exposure-photos).",
+    "Virtual Twilight is generated, regenerated and re-edited from the listing gallery after delivery. It costs 5 credits to generate plus 1 to download (https://faq.autohdr.com/virtual-twilight-looks-darkened-daytime; https://faq.autohdr.com/why-virtual-twilight-costs-5-plus-1).",
+    "The homepage describes a 4-step flow: upload, AI edits, edits reach the delivery page in 15 minutes, later edits sync automatically (https://new.autohdr.com/).",
+    "A founder talk (participant transcript) says 'we train these models from scratch. We have these complex pipelines' (https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md)."
+   ],
+   "inferences": [
+    "INFERENCE: The front end is probably classical code (RAW decode, Lensfun, visual clustering). The merge and edit stage is probably a learned model working on 8-bit, display-referred JPEG frames, because the model is 'trained on JPEG inputs'.",
+    "INFERENCE: Twilight, AI Re-Edit, fire and staging are probably separate generative models, distinct from the bracket-merge model. Twilight runs after delivery and gives a different result on each regenerate.",
+    "INFERENCE: In the December 2025 hackathon, AutoHDR framed editing as one unedited photo in, one human edit out. That means either bracket fusion happens before a single-image edit model, or 'unedited' meant an already-fused composite. Which is true is not resolved.",
+    "INFERENCE: Perspective correction and sky replacement are most plausibly applied to the fused image, after the merge, since they work on single exposures too."
+   ],
+   "unknowns": [
+    "Evidence caveat: no AutoHDR page was read directly in this investigation. Vendor facts come from search-engine extracts of the cited URLs, and quantitative dataset facts come from GitHub repositories of hackathon participants.",
+    "The exact order of perspective correction, sky replacement, white balance and add-ons relative to the merge.",
+    "Whether a separate denoise or sharpen stage exists.",
+    "Whether an interior/exterior classifier routes bracketed sets to the Indoor or Outdoor model.",
+    "Whether grouping runs in the browser before upload. One participant note claims it; this is unverified."
+   ],
+   "sources": [
+    "https://www.autohdr.com/blog/window-pulls-and-white-balance-small-fixes-that-make-a-listing-look-luxury",
+    "https://faq.autohdr.com/lens-corrections-raw-vs-jpeg",
+    "https://faq.autohdr.com/fewer-final-photos-than-raw-uploaded",
+    "https://faq.autohdr.com/why-only-3-of-5-exposures-used",
+    "https://faq.autohdr.com/settings-and-habits-bad-results",
+    "https://faq.autohdr.com/can-i-upload-single-exposure-photos",
+    "https://faq.autohdr.com/virtual-twilight-looks-darkened-daytime",
+    "https://faq.autohdr.com/why-virtual-twilight-costs-5-plus-1",
+    "https://new.autohdr.com/",
+    "https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md",
+    "https://github.com/zerolatent/pixel-sorcery"
+   ]
+  },
+  {
+   "question": "Q2 Accepted inputs (bracket count, EV, formats, single shots, flash)",
+   "status": "answered",
+   "answer": "AutoHDR accepts 1 to 10 brackets per angle and puts no cap on brackets per listing; a listing can mix 1, 3, 5, 7 and 9 frames per angle. It recommends 3 brackets at \u00b12 EV, and 5 for very bright markets. It calls 1 EV spacing too narrow. Accepted formats: JPEG (recommended, because the model was trained on JPEG); RAW as CR2, CR3, ARW, NEF, RAF, DNG, RW2, ORF, PEF and SRW; HEIC, PNG, BMP, GIF and WEBP. Single exposures and drone aerials are accepted. Flash is not required. Flash and ambient frames are accepted but risk being grouped apart. The Spiro integration takes JPG only, at most 50 MB per file. In real customer data, 3-frame sets are about 48% and 5-frame sets about 33%; frames go up to about 61 MP; and only about 31% of groups carry EXIF.",
+   "observations": [
+    "The FAQ says it accepts 'one, two, three, or as many as ten' brackets, recommends 3 because of diminishing returns after that, and asks for at least 2 stops between frames (https://faq.autohdr.com/how-many-brackets-does-autohdr-support).",
+    "There is no cap per listing: '1, 3, 5, 7, or 9 brackets per angle and any mix of aerials, interiors, and exteriors' in one upload (https://faq.autohdr.com/how-many-brackets-per-listing).",
+    "3 brackets at \u00b12 EV are enough for most shoots. The FAQ suggests trying 5 in Florida, California or desert markets if window views don't come through (https://faq.autohdr.com/3-or-5-brackets).",
+    "'If your brackets are only 1 EV apart... the blend can look flat or washed out' (https://faq.autohdr.com/colors-not-realistic-accurate).",
+    "Formats: JPEG; CR2, CR3, ARW, NEF, RAF, DNG, RW2, ORF, PEF, SRW; HEIC; PNG, BMP, GIF, WEBP. For newer camera RAWs that fail, convert to JPEG (https://faq.autohdr.com/what-file-formats-does-autohdr-support).",
+    "JPEG is the top recommendation because the model was trained on JPEG inputs, so RAW gives 'zero quality difference' (https://faq.autohdr.com/shoot-jpeg-or-raw-for-better-photos).",
+    "A tripod is optional; handheld works if frames are shot in quick succession (https://knowledge.autohdr.com/sops/recommended-photography-settings).",
+    "Shoot the middle exposure first and use auto white balance (https://faq.autohdr.com/auto-white-balance-recommended).",
+    "Single exposures are accepted. Already-shot twilight photos use the Twilight model at 5 credits. Aerials are separated automatically (https://faq.autohdr.com/can-i-upload-single-exposure-photos; https://faq.autohdr.com/can-i-upload-drone-aerial-photos).",
+    "Flash is not required, and bracketed results often look close to flambient. Flash and ambient frames can end up grouped separately (https://faq.autohdr.com/can-i-get-refund-for-bracketed-hdr-results).",
+    "Spiro integration: JPG only, at most 50 MB per file (https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide).",
+    "Third-party audit of the 'medium' grouping package: 2,126 JPEGs in 538 groups. Group sizes: 1 frame 8.6%, 2 frames 1.9%, 3 frames 48.1%, 4 frames 2.2%, 5 frames 33.1%, and 19 groups of 8 to 25 frames (https://github.com/cloudspiral/autohdr-angle-grouper/blob/main/datasets/official-medium-v1.json).",
+    "Customer JPEGs in the training packages range from 2794\u00d71865 to 9504\u00d76336, about 4 MB each on average (https://github.com/cloudspiral/autohdr-angle-grouper/blob/main/autohdr_codex_plan/RESULTS.md).",
+    "EXIF is on every frame in 31% of groups and on none in 69%. Bracket sequences start with the metered frame, and 7-frame sets exist (https://github.com/MatthewDaw/auto_hdr_submission/blob/main/docs/ideation/2026-06-22-simplify-bracket-grouping.md; https://github.com/MatthewDaw/auto_hdr_submission/blob/main/data/large/unfixable.json)."
+   ],
+   "inferences": [
+    "INFERENCE: Frames beyond 3 only widen the choice for frame selection. They do not add dynamic range to the fusion itself.",
+    "INFERENCE: The missing EXIF in the training packages may come from customer exports or from AutoHDR stripping metadata when building the dataset. It does not show what production keeps."
+   ],
+   "unknowns": [
+    "Maximum files per shoot and maximum file size for direct web uploads.",
+    "ISO, aperture and shutter recommendations.",
+    "Whether flash frames are detected from the EXIF Flash tag.",
+    "Whether HEIC, PNG and RAW uploads come back in their original format or as JPEG."
+   ],
+   "sources": [
+    "https://faq.autohdr.com/how-many-brackets-does-autohdr-support",
+    "https://faq.autohdr.com/how-many-brackets-per-listing",
+    "https://faq.autohdr.com/3-or-5-brackets",
+    "https://faq.autohdr.com/colors-not-realistic-accurate",
+    "https://faq.autohdr.com/what-file-formats-does-autohdr-support",
+    "https://faq.autohdr.com/shoot-jpeg-or-raw-for-better-photos",
+    "https://knowledge.autohdr.com/sops/recommended-photography-settings",
+    "https://faq.autohdr.com/auto-white-balance-recommended",
+    "https://faq.autohdr.com/can-i-upload-single-exposure-photos",
+    "https://faq.autohdr.com/can-i-get-refund-for-bracketed-hdr-results",
+    "https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide",
+    "https://github.com/cloudspiral/autohdr-angle-grouper/blob/main/datasets/official-medium-v1.json",
+    "https://github.com/MatthewDaw/auto_hdr_submission/blob/main/docs/ideation/2026-06-22-simplify-bracket-grouping.md"
+   ]
+  },
+  {
+   "question": "Q3 Bracket grouping logic",
+   "status": "answered",
+   "answer": "Grouping is purely visual: frames are matched by how similar the angles look, and timestamps are not used. Users do not pre-sort, and each detected set becomes one output. Known failures run both ways. Over-merging joins re-shoots of the same angle (for example door open and closed) and similar drone angles. Under-merging splits flash frames from ambient frames. A separate Deduplication toggle drops near-duplicate angles. AutoHDR's public Grouping Challenge defines a group by camera angle alone, so day and dusk shots of the same angle count as one group. It scores exact group matches, gives no metadata, and runs CPU-only. That points to a lightweight, metadata-free visual grouper that AutoHDR wants to improve.",
+   "observations": [
+    "'vision-based grouping algorithm matches brackets by how similar the angles look \u2014 timestamps don't affect it' (https://faq.autohdr.com/does-autohdr-auto-merge-hdr-brackets).",
+    "Similar drone angles get merged. The fixes are to upload them separately or shoot from clearly distinct positions (https://faq.autohdr.com/drone-shots-treated-as-brackets).",
+    "Shooting the same angle twice can merge duplicates into one bracket set (https://knowledge.autohdr.com/sops/recommended-photography-settings).",
+    "Ambient and flash frames can be grouped apart. There is no self-service regroup; users send the shoot link to support (https://faq.autohdr.com/can-i-get-refund-for-bracketed-hdr-results).",
+    "Deduplication removes similar angles and can be turned off (https://faq.autohdr.com/fewer-final-photos-than-raw-uploaded).",
+    "Challenge: group by camera angle; groups are singletons or 3, 5 or more frames; exact match, no partial credit; test images resized to 1024 px with UUID names and no metadata; full set about 276K images (about 1.1 TB); prize about $50,000 (https://github.com/AutoHDRHackathon/autohdr-challenge-starter).",
+    "Scoring examples put 'exterior_front_day, exterior_front_dusk' in one group, and 2-frame dark+bright groups are valid (https://github.com/AutoHDRHackathon/autohdr-challenge-starter/blob/main/SCORING.md).",
+    "Compute: CPU-only linux/amd64 Docker, no internet. cpu-large is 8 vCPU and 16 GB; cpu-xlarge is 16 vCPU and 32 GB. The time limit is 30 or 45 min in the guide and 60 min in the README. A one-image-per-group baseline scores about 25% (https://github.com/AutoHDRHackathon/autohdr-challenge-starter/blob/main/SUBMISSION_GUIDE.md).",
+    "Reference groups sometimes merge repeated sets of one angle (3\u00d73, 4\u00d75, up to 25 frames). One participant found 27 anomalous groups, including label noise and mixed scenes (https://github.com/MatthewDaw/auto_hdr_submission/blob/main/data/large/unfixable.json).",
+    "A participant reports that a training-free pixel grouper (CLAHE+Sobel edges plus PCA of wavelet bands, a knee cut, and 256 px edge-correlation refinement) gets 1302 of 1302 clean groups right on the large set. This is self-reported (https://github.com/MatthewDaw/auto_hdr_submission).",
+    "One participant note says the real deliverable is a 'client-side browser grouper'. The source of this is unverified (https://github.com/MatthewDaw/auto_hdr_submission/blob/main/docs/ideation/2026-06-22-simplify-bracket-grouping.md)."
+   ],
+   "inferences": [
+    "INFERENCE: The grouper probably clusters frames on exposure-invariant structural features (edges, gradients or embeddings) with a similarity threshold, and applies no constraint on time, EV or sequence. Flash changes the shading enough to fall under the threshold, while a re-shot angle passes it.",
+    "INFERENCE: The challenge rules (no metadata, CPU only, a browser-portable hint) suggest AutoHDR wants a grouper cheap enough to run on the client or in front of the GPU pipeline.",
+    "INFERENCE: The reference labels probably come from production grouping plus customer or support corrections, which would explain the label noise and the merged re-shoots."
+   ],
+   "unknowns": [
+    "Whether EXIF (exposure time, capture time) is used as a secondary signal when it is present.",
+    "The similarity threshold and the feature type used.",
+    "The challenge winners, and whether a winning method went into production.",
+    "How the reference groups were labelled."
+   ],
+   "sources": [
+    "https://faq.autohdr.com/does-autohdr-auto-merge-hdr-brackets",
+    "https://faq.autohdr.com/drone-shots-treated-as-brackets",
+    "https://faq.autohdr.com/can-i-get-refund-for-bracketed-hdr-results",
+    "https://faq.autohdr.com/fewer-final-photos-than-raw-uploaded",
+    "https://github.com/AutoHDRHackathon/autohdr-challenge-starter",
+    "https://github.com/AutoHDRHackathon/autohdr-challenge-starter/blob/main/SCORING.md",
+    "https://github.com/AutoHDRHackathon/autohdr-challenge-starter/blob/main/SUBMISSION_GUIDE.md",
+    "https://github.com/MatthewDaw/auto_hdr_submission"
+   ]
+  },
+  {
+   "question": "Q4 Alignment/deghosting",
+   "status": "partial",
+   "answer": "AutoHDR says its AI aligns handheld brackets and that a tripod is optional. It does not claim to remove motion blur within a single frame. When the camera moved substantially between frames, ghosting and transparency artifacts appear across the shoot. The documented fix is an AI Re-Edit prompt ('remove ghosting and transparency artifacts') or using a tripod next time. Neither the alignment method nor any moving-object (deghost) handling is documented.",
+   "observations": [
+    "'The AI aligns handheld brackets cleanly' (https://faq.autohdr.com/brackets-for-handheld-real-estate).",
+    "'the AI aligns frames but cannot sharpen motion blur in the source' (https://faq.autohdr.com/camera-shake-bracket-matching).",
+    "When every photo has ghosting or transparency, the cause is substantial camera movement. The fix is AI Re-Edit with 'remove ghosting and transparency artifacts, clean up the blended areas' (https://faq.autohdr.com/all-photos-have-ghosting-transparent).",
+    "'A tripod helps with alignment but is not required' (https://knowledge.autohdr.com/sops/recommended-photography-settings).",
+    "Literature: OpenCV AlignMTB (Ward 2003) is translation-only (max_bits=6, about 63 px). The licence-clean deghosting networks are limited: AHDRNet and SCTNet have no licence, and SAFNet is academic-only (https://raw.githubusercontent.com/opencv/opencv/4.x/modules/photo/include/opencv2/photo.hpp; https://github.com/ltkong218/SAFNet)."
+   ],
+   "inferences": [
+    "INFERENCE: The 'transparency' failure, where blended areas show double content, suggests alignment is global (translation, affine or homography) and fusion is per-pixel weighting without robust motion rejection. A dense-flow deghosting model would fail differently.",
+    "INFERENCE: Ghosts are repaired after the fact by generative re-editing, not prevented in the merge."
+   ],
+   "unknowns": [
+    "The alignment method and the largest shift it tolerates.",
+    "How moving people, pets, trees, curtains or TV screens are handled.",
+    "Whether parallax from handheld rotation around a non-nodal point is compensated."
+   ],
+   "sources": [
+    "https://faq.autohdr.com/brackets-for-handheld-real-estate",
+    "https://faq.autohdr.com/camera-shake-bracket-matching",
+    "https://faq.autohdr.com/all-photos-have-ghosting-transparent",
+    "https://knowledge.autohdr.com/sops/recommended-photography-settings",
+    "https://raw.githubusercontent.com/opencv/opencv/4.x/modules/photo/include/opencv2/photo.hpp"
+   ]
+  },
+  {
+   "question": "Q5 Merge/tone-mapping look (brightness, contrast, halos)",
+   "status": "partial",
+   "answer": "The look comes from named style models. 'Classic' is described as the industry gold-standard style. 'Lisa' is more dramatic, with extra pop and much deeper window pulls. A 'Midnight Model' is also named. AutoHDR says bracketed results often look close to the flambient style, and that 1 EV brackets look flat or washed out. Users can shift the look with global sliders (brightness, contrast, vibrance, white balance); one example configuration sets Contrast to +8. The training target is professional human real-estate edits. No independent measurements of brightness, contrast, saturation or halos exist in the evidence. Users report that output looks good at screen size but soft at 100%.",
+   "observations": [
+    "'Classic: The gold standard industry style used by most companies... Lisa: more dramatic option, with extra pop and deeper window pulls' (https://faq.autohdr.com/lisa-vs-classic-style-difference).",
+    "The new site names an 'AutoHDR Midnight Model' (https://new.autohdr.com/).",
+    "'bracketed HDR shots often look close to the flambient style' (https://faq.autohdr.com/can-i-get-refund-for-bracketed-hdr-results).",
+    "1 EV spacing gives a flat or washed-out blend (https://faq.autohdr.com/colors-not-realistic-accurate).",
+    "Global style settings cover brightness, contrast, vibrance and white balance 'and more' (https://knowledge.autohdr.com/sops/style-preferences).",
+    "Spiro's reference setup uses Indoor Model Classic and Contrast +8, with other adjustments at 0 (https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide).",
+    "In the December 2025 hackathon, targets were human edits by professional real-estate editors, judged on colour accuracy, contrast, realism, consistency and visual appeal (https://github.com/zerolatent/pixel-sorcery).",
+    "The model is trained on over a million professionally edited images (https://www.autohdr.com/).",
+    "Users report the result 'looked great at first, but once I zoomed in, a lot of the fine detail and texture was gone' (https://www.fredmiranda.com/forum/topic/1932849/0).",
+    "A vendor blog claims viewers in blind tests often cannot tell AI from human edits. No study details are given (https://www.autohdr.com/blog/proof-in-the-pixels-why-blind-tests-show-ai-real-estate-photo-editing-matches-human-work)."
+   ],
+   "inferences": [
+    "INFERENCE: The target look is outsourced professional real-estate editing (flambient-like interiors with exterior views visible), not a classic tone-mapped 'HDR' look. Classic and Lisa probably correspond to different training targets or different conditioning.",
+    "INFERENCE: Since AutoHDR weights inference cost at 30% and the model is JPEG-trained, the merge probably uses compact local operators (bilateral grid or 3D-LUT family). These usually produce fewer halos than Laplacian-pyramid tone mapping, but this is not measured.",
+    "INFERENCE: The +8 contrast in the example configuration hints that the default Classic output is flatter than some studios want."
+   ],
+   "unknowns": [
+    "Quantitative brightness, contrast and saturation of outputs; no before/after pairs were measured.",
+    "Whether halos appear around windows or other bright regions.",
+    "The measurable difference between Classic, Lisa and Midnight.",
+    "The slider ranges and their units."
+   ],
+   "sources": [
+    "https://faq.autohdr.com/lisa-vs-classic-style-difference",
+    "https://new.autohdr.com/",
+    "https://faq.autohdr.com/can-i-get-refund-for-bracketed-hdr-results",
+    "https://faq.autohdr.com/colors-not-realistic-accurate",
+    "https://knowledge.autohdr.com/sops/style-preferences",
+    "https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide",
+    "https://github.com/zerolatent/pixel-sorcery",
+    "https://www.autohdr.com/",
+    "https://www.fredmiranda.com/forum/topic/1932849/0"
+   ]
+  },
+  {
+   "question": "Q6 Window pull behaviour",
+   "status": "partial",
+   "answer": "Window pulls are built from real bracket data. The darkest bracket supplies the window view, and AutoHDR says it 'can create a window view only as good as the window view in your darkest bracket'. If the darkest frame is blown out, the windows stay blown out. Its fixes are to shoot darker or switch to 5 brackets in bright markets. The Lisa style gives 'much deeper window pulls' than Classic. No adjustable window-pull strength setting was found.",
+   "observations": [
+    "'AutoHDR can create a window view only as good as the window view in your darkest bracket ... make sure the lowest exposure is dark enough that the outside is visible' (https://faq.autohdr.com/prevent-window-bleed-into-exposures).",
+    "'Dark bracket \u2014 captures the view outside the window' (https://faq.autohdr.com/brackets-for-handheld-real-estate).",
+    "Use 5 brackets 'If your window views aren't coming through the way you want' (https://faq.autohdr.com/3-or-5-brackets).",
+    "Lisa adds 'extra pop with much deeper window pulls' (https://faq.autohdr.com/lisa-vs-classic-style-difference).",
+    "The blog presents window pulls as a key finishing fix. No window-pull strength setting was found in the documented settings (https://www.autohdr.com/blog/window-pulls-and-white-balance-small-fixes-that-make-a-listing-look-luxury)."
+   ],
+   "inferences": [
+    "INFERENCE: The window region is filled from the darkest selected frame through a local blend, either a learned per-pixel weight or a segmentation or highlight mask. It is not generated, because a clipped darkest frame leads to a clipped window.",
+    "INFERENCE: Lisa's 'deeper' pull probably weights the dark frame more, or lowers exposure in the window region, giving a darker and more saturated exterior view.",
+    "INFERENCE: Because only 3 frames are fused, frame selection decides which dark frame supplies the window."
+   ],
+   "unknowns": [
+    "Whether the window mask is semantic or based on luminance.",
+    "How edges at mullions and curtains are handled, and whether halos appear.",
+    "Whether a view is ever hallucinated when every frame is clipped.",
+    "Whether the window contribution can be adjusted per photo, beyond AI Re-Edit."
+   ],
+   "sources": [
+    "https://faq.autohdr.com/prevent-window-bleed-into-exposures",
+    "https://faq.autohdr.com/brackets-for-handheld-real-estate",
+    "https://faq.autohdr.com/3-or-5-brackets",
+    "https://faq.autohdr.com/lisa-vs-classic-style-difference",
+    "https://www.autohdr.com/blog/window-pulls-and-white-balance-small-fixes-that-make-a-listing-look-luxury"
+   ]
+  },
+  {
+   "question": "Q7 White balance / mixed light",
+   "status": "partial",
+   "answer": "The middle bracket is the colour reference. AutoHDR recommends auto white balance and shooting the middle exposure first, because many cameras lock white balance to the first frame. It says the AI corrects white balance and colour casts whether the camera was on auto or a custom setting, and it markets consistent white balance across a gallery. Users get a global white-balance slider and a Repaint tool that sets a surface to a hex colour. Nothing specific is documented about mixed light (tungsten plus daylight).",
+   "observations": [
+    "'Leading with the middle (most neutrally exposed) shot typically gives the AI the most accurate color reference for the whole set'. Avoid Cloudy, Shade and Tungsten presets (https://faq.autohdr.com/auto-white-balance-recommended).",
+    "'the AI corrects white balance and color cast whether you shoot auto or a custom setting' (https://knowledge.autohdr.com/sops/recommended-photography-settings).",
+    "'White balance fixes this by keeping tones true to life across the entire gallery' (https://www.autohdr.com/blog/window-pulls-and-white-balance-small-fixes-that-make-a-listing-look-luxury).",
+    "There is a global white-balance slider (https://knowledge.autohdr.com/sops/style-preferences).",
+    "The Repaint tool targets a surface with a hex colour (https://faq.autohdr.com/colors-not-realistic-accurate).",
+    "Flash is not required, and bracketed results look close to flambient (https://faq.autohdr.com/can-i-get-refund-for-bracketed-hdr-results)."
+   ],
+   "inferences": [
+    "INFERENCE: White balance is mainly a global correction estimated from the mid frame, probably by a learned predictor of temperature and tint or a 3\u00d73 chromatic adaptation matrix. Homedeck's real-estate repos Deep-Edit and Deep-Chroma follow that pattern (https://github.com/homedeck).",
+    "INFERENCE: The 'flambient-like' claim means the learned model has to neutralise local tungsten casts to some degree, but there is no evidence it does reliably."
+   ],
+   "unknowns": [
+    "How mixed lighting is handled and whether white balance is corrected per region.",
+    "How consistency across a gallery is achieved, for example per-shoot normalisation.",
+    "The range and units of the white-balance slider."
+   ],
+   "sources": [
+    "https://faq.autohdr.com/auto-white-balance-recommended",
+    "https://knowledge.autohdr.com/sops/recommended-photography-settings",
+    "https://www.autohdr.com/blog/window-pulls-and-white-balance-small-fixes-that-make-a-listing-look-luxury",
+    "https://knowledge.autohdr.com/sops/style-preferences",
+    "https://faq.autohdr.com/colors-not-realistic-accurate",
+    "https://github.com/homedeck"
+   ]
+  },
+  {
+   "question": "Q8 Verticals/perspective/lens distortion/vignetting/CA",
+   "status": "partial",
+   "answer": "Lens distortion and vignetting are corrected only for RAW uploads, during the RawTherapee and Lensfun RAW-to-JPEG step, which also uses embedded DNG correction data. Per the FAQ, JPEG uploads get no lens correction; a knowledge-base snippet contradicts this. Lenses missing from the profile database are added by hand, according to the founder. A profile-free learned corrector is being crowdsourced through a Kaggle challenge with about 23K pairs. Perspective correction is on by default, straightens verticals and crops slightly. AutoHDR advises turning it off for tall buildings and extreme angles. Spiro's example settings show 'Distortion 0' and 'Scale 1x'. Chromatic aberration is not mentioned anywhere.",
+   "observations": [
+    "Distortion and vignetting are corrected during the RAW-to-JPEG step with RawTherapee and Lensfun; JPEG files get no lens correction (https://faq.autohdr.com/lens-corrections-raw-vs-jpeg).",
+    "For lenses not in the database, convert the RAWs in Lightroom or Capture One with corrections on (https://faq.autohdr.com/how-to-add-lens-correction).",
+    "A knowledge-base snippet says 'Lens profile corrections are applied automatically to every upload and cannot be disabled' (low confidence) (https://knowledge.autohdr.com/sops/recommended-photography-settings).",
+    "The founder says new cameras or lenses produce a 'fish eye look' until a profile is added by hand (https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md).",
+    "Lens challenge: about 23,119 pairs of {id}_original.jpg and {id}_generated.jpg, plus 1,000 test images. The score is 40% Canny edge F1, 22% Hough line straightness, 18% gradient orientation, 15% SSIM and 5% pixel MAE (https://github.com/SaitejaGudidevini/AutoHDR/blob/main/CLAUDE.md; https://bounty.autohdr.com/).",
+    "Perspective Correction is on by default, straightens verticals and applies a slight crop. AutoHDR says to turn it off for wide-angle shots of buildings (https://faq.autohdr.com/settings-and-habits-bad-results).",
+    "'Leave buffer space at the top and bottom of the frame' (https://knowledge.autohdr.com/sops/recommended-photography-settings).",
+    "Spiro's reference configuration: Perspective Correction ON, Scale 1x, Distortion 0 (https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide).",
+    "The founder says perspective correction was a priority (informal podcast transcript) (https://www.iheart.com/podcast/338-the-spiro-podcast-managing-99271430/episode/ai-photo-editing-matt-gia-of-autohdr-272679073)."
+   ],
+   "inferences": [
+    "INFERENCE: The corrected targets in the lens challenge were probably produced by the production profile path (RawTherapee and Lensfun).",
+    "INFERENCE: Perspective correction is probably based on line detection and vanishing points (ShiftN or Upright style) or on learned gravity estimation, followed by a crop to the largest valid rectangle. A 'Distortion' setting implies a user-adjustable lens-distortion amount.",
+    "INFERENCE: Vignetting is not corrected for JPEG inputs unless the camera or exporter already did it."
+   ],
+   "unknowns": [
+    "Whether chromatic aberration is corrected.",
+    "Whether verticals are corrected fully or partially (an 80 to 90% correction is common practice), and whether horizontals are corrected too.",
+    "The crop percentage, and whether outputs are resized back to the input dimensions.",
+    "The range of the Distortion and Scale settings."
+   ],
+   "sources": [
+    "https://faq.autohdr.com/lens-corrections-raw-vs-jpeg",
+    "https://faq.autohdr.com/how-to-add-lens-correction",
+    "https://knowledge.autohdr.com/sops/recommended-photography-settings",
+    "https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md",
+    "https://github.com/SaitejaGudidevini/AutoHDR/blob/main/CLAUDE.md",
+    "https://bounty.autohdr.com/",
+    "https://faq.autohdr.com/settings-and-habits-bad-results",
+    "https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide"
+   ]
+  },
+  {
+   "question": "Q9 Denoise/sharpen",
+   "status": "unresolved",
+   "answer": "AutoHDR makes no statement about noise reduction or sharpening. The only signal is a third-party forum thread: two users say output looks soft or mushy at 100% with fine texture lost, while a third found tripod-shot interiors acceptable. The December 2025 hackathon brief accepted outputs around 1 MP and gave inference cost 30% of the score. That fits processing at reduced resolution, but it is not evidence of what production does.",
+   "observations": [
+    "'the AI result looked great at first, but once I zoomed in, a lot of the fine detail and texture was gone' (https://www.fredmiranda.com/forum/topic/1932849/0).",
+    "Gallery previews are compressed, so the preview and the download differ (https://faq.autohdr.com/why-do-downloaded-photos-look-different-from-preview).",
+    "Hackathon: '~1024px / ~1 megapixel outputs are totally fine'; 30% of the score is inference cost (https://github.com/zerolatent/pixel-sorcery).",
+    "Motion blur within a single frame is not removed (https://faq.autohdr.com/camera-shake-bracket-matching)."
+   ],
+   "inferences": [
+    "INFERENCE (low): The softness could come from inference at reduced resolution followed by guided upsampling, from averaging slightly misaligned handheld frames, or from explicit denoising. These cannot be told apart without testing.",
+    "INFERENCE: A cost-driven design makes processing at reduced resolution more likely than a full-resolution generative model for the base edit."
+   ],
+   "unknowns": [
+    "Whether explicit denoising or sharpening exists, and how strong it is.",
+    "The resolution the base model runs at.",
+    "Whether detail loss depends on ISO, handheld shooting or style model."
+   ],
+   "sources": [
+    "https://www.fredmiranda.com/forum/topic/1932849/0",
+    "https://faq.autohdr.com/why-do-downloaded-photos-look-different-from-preview",
+    "https://github.com/zerolatent/pixel-sorcery"
+   ]
+  },
+  {
+   "question": "Q10 Sky replacement",
+   "status": "partial",
+   "answer": "Sky replacement is on by default for exteriors and aerials. It can be switched off per upload or in Style Settings, but not from the Spiro photographer portal. Marketing offers 3 styles or keeping the original sky. It needs at least one bracket with visible sky detail; otherwise the sky can bleed into the roof, and support fixes those cases by hand. It also misfires when clouds cover mountains. Whether skies come from a library or are generated is undocumented.",
+   "observations": [
+    "Sky replacement: 'Select three styles or maintain the original' (https://new.autohdr.com/).",
+    "'Sky Replacement is on for aerials by default ... toggle Sky Replacement off for that upload, or adjust the setting ... under Style Settings' (https://faq.autohdr.com/can-i-upload-drone-aerial-photos).",
+    "A tutorial turns Perspective Correction and Sky Replacement off at upload for photos that were already edited (https://www.glitter.io/guides/how-to-upload-photos-to-auto-hdr-and-convert-to-virtual-twilight-step-by-step-guide).",
+    "Single exposures still get sky replacement (https://faq.autohdr.com/can-i-upload-single-exposure-photos).",
+    "'Keep at least one bracket with visible sky detail'; affected images go to delivery@autohdr.com for a fix (https://faq.autohdr.com/sky-blending-into-roof).",
+    "A Spiro user reports a failure with clouds over mountains and asks for a portal toggle; status 'In Review' (https://spiromedia.featurebase.app/p/disable-autohdr-skyreplacement-from-photographer-portal).",
+    "The founder says 'we'll put a nice sky in' and mentions removing an unwanted element from the sky (https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md)."
+   ],
+   "inferences": [
+    "INFERENCE: A sky mask (semantic or brightness-based) is computed on the fused or bracket data, and a sky is composited in. Roof bleed when the sky is clipped in every frame points to a mask that leans on visible sky texture or brightness.",
+    "INFERENCE: Three named styles fit a small fixed library or a style-conditioned generator. Comparing repeated outputs would tell them apart.",
+    "INFERENCE: Manual fixes by support suggest a human-in-the-loop escalation path."
+   ],
+   "unknowns": [
+    "The sky library contents, and whether users can pick a specific sky.",
+    "Whether the foreground is relit or recoloured to match the new sky.",
+    "Whether the sky is composited or generated."
+   ],
+   "sources": [
+    "https://new.autohdr.com/",
+    "https://faq.autohdr.com/can-i-upload-drone-aerial-photos",
+    "https://www.glitter.io/guides/how-to-upload-photos-to-auto-hdr-and-convert-to-virtual-twilight-step-by-step-guide",
+    "https://faq.autohdr.com/sky-blending-into-roof",
+    "https://spiromedia.featurebase.app/p/disable-autohdr-skyreplacement-from-photographer-portal",
+    "https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md"
+   ]
+  },
+  {
+   "question": "Q11 Virtual twilight",
+   "status": "partial",
+   "answer": "Virtual Twilight converts a processed daytime exterior to dusk in one of 3 styles: midnight blue, twilight pink or golden hour. The account has a Default Twilight Model setting, Pink in Spiro's example. It costs 5 credits to generate plus 1 to download. It runs from the listing gallery and can be regenerated for free with the loop icon. Its documented failure is strong daylight shadows on the facade, which make the result look like a darkened daytime photo; the fix is to regenerate, then use AI Re-Edit. Photos already shot at twilight use a separate 'Twilight' model at 5 credits.",
+   "observations": [
+    "'Real twilight skies in three styles: midnight blue, twilight pink and golden hour' (https://new.autohdr.com/).",
+    "Default Twilight Model = Pink in the reference configuration (https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide).",
+    "'5 credits for the AI to generate the conversion, then 1 credit to download ... 6 credits total' (https://faq.autohdr.com/why-virtual-twilight-costs-5-plus-1).",
+    "'the twilight model transforms the sky but can't always remove the underlying shadow pattern'; 'the loop icon regenerates the twilight for free'; follow with an AI Re-Edit prompt (https://faq.autohdr.com/virtual-twilight-looks-darkened-daytime).",
+    "Choose the Twilight model from a dropdown when naming the shoot, at 5 credits per photo, with no brackets needed (https://faq.autohdr.com/can-i-upload-single-exposure-photos).",
+    "Photos already edited elsewhere can be converted after turning off perspective correction and sky replacement (https://www.glitter.io/guides/how-to-upload-photos-to-auto-hdr-and-convert-to-virtual-twilight-step-by-step-guide).",
+    "The iOS app mentions 'editing models trained for real estate interiors, exteriors, and twilights' (https://apps.apple.com/es/app/autohdr-ai-real-estate-camera/id6758221284?l=en-GB)."
+   ],
+   "inferences": [
+    "INFERENCE: The model is a generative, style-conditioned image-to-image model (diffusion-like) that works on a single image. Free regeneration giving different results implies stochastic sampling. Leftover daylight shadows show the model only partly relights the scene, and real dusk exposures are not composited.",
+    "INFERENCE: Its cost of 5 credits, against 1 for a standard edit, points to much more compute than the base HDR model."
+   ],
+   "unknowns": [
+    "Whether window glow and interior or exterior lights are added.",
+    "The output resolution, and whether fine detail is regenerated or hallucinated.",
+    "Turnaround per twilight."
+   ],
+   "sources": [
+    "https://new.autohdr.com/",
+    "https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide",
+    "https://faq.autohdr.com/why-virtual-twilight-costs-5-plus-1",
+    "https://faq.autohdr.com/virtual-twilight-looks-darkened-daytime",
+    "https://faq.autohdr.com/can-i-upload-single-exposure-photos",
+    "https://www.glitter.io/guides/how-to-upload-photos-to-auto-hdr-and-convert-to-virtual-twilight-step-by-step-guide"
+   ]
+  },
+  {
+   "question": "Q12 Object removal/declutter",
+   "status": "partial",
+   "answer": "AutoHDR advertises automatic removal of photographers, cameras, shadows, realtor signs, clutter, wires and junk. Declutter is opt-in at +1 credit per photo. Sign Removal is a separate toggle. Manual tools include AutoRemove, AutoFill (mask plus prompt, free) and AI Re-Edit prompts, used for glare among other things. A FAQ page about removed lamps and fixtures suggests declutter sometimes removes things it should keep. A biased competitor source claims deeper removals still need a second tool.",
+   "observations": [
+    "Homepage: 'Automatically remove photographers, cameras, shadows, realtor signs, clutter'; the new site adds 'removes wires, junk & distractions automatically' (https://www.autohdr.com/; https://new.autohdr.com/).",
+    "'Declutter is opt-in (1 credit per photo when on)' (https://faq.autohdr.com/settings-and-habits-bad-results).",
+    "Spiro's reference configuration has Declutter Off and Sign Removal Off (https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide).",
+    "The knowledge base names the tools AI ReEdit, AutoRemove, AutoFill and Declutter (https://knowledge.autohdr.com/sops).",
+    "AutoFill (mask plus prompt, free) is described on the FAQ page autohdr-removed-lamps-fixtures (https://faq.autohdr.com/autohdr-removed-lamps-fixtures).",
+    "Glare fix: 'Remove the glare from the cabinet without altering any other features of the image' (https://faq.autohdr.com/contact-about-glare-or-editing-issue).",
+    "Imagen (a competitor) says deeper item removal still needs a second tool (https://imagen-ai.com/valuable-tips/imagen-vs-autohdr/)."
+   ],
+   "inferences": [
+    "INFERENCE: The tools work by object detection or segmentation followed by generative inpainting, with prompt-conditioned editing for AI Re-Edit.",
+    "INFERENCE: The FAQ slug 'autohdr-removed-lamps-fixtures' points to an over-removal failure, where declutter takes out light fixtures."
+   ],
+   "unknowns": [
+    "Which object classes are removed automatically.",
+    "The credit cost of AutoRemove.",
+    "Whether inpainting changes pixels outside the mask.",
+    "How shadows of photographers and cameras are detected."
+   ],
+   "sources": [
+    "https://www.autohdr.com/",
+    "https://new.autohdr.com/",
+    "https://faq.autohdr.com/settings-and-habits-bad-results",
+    "https://knowledge.autohdr.com/sops",
+    "https://faq.autohdr.com/autohdr-removed-lamps-fixtures",
+    "https://faq.autohdr.com/contact-about-glare-or-editing-issue",
+    "https://imagen-ai.com/valuable-tips/imagen-vs-autohdr/"
+   ]
+  },
+  {
+   "question": "Q13 Other add-ons (grass, TV, fire, staging)",
+   "status": "partial",
+   "answer": "The documented add-ons are: grass greening or replacement (a toggle; a FAQ exists about toning down AI grass); AI-generated fire in fireplaces (a toggle, appearance not adjustable, no custom fire images); TV screen replacement with Blackout or a custom image applied to every detected TV (some sources add preset images); virtual staging of empty rooms (listed by AutoHDR, though competitors say it is absent); AI Re-Edit from a text prompt or reference photo (for example 'Open the pool'); Repaint; Basic Adjustments; room tagging and walkthrough reordering. Auto TV and fire are baked in during processing. The pricing page lists auto TV blackout and fire add-ins under Enterprise, but the FAQ says the Standard plan is enough for a custom TV image. A photo-to-video model is on the roadmap.",
+   "observations": [
+    "Grass replacement 'turns patchy lawns lush and green'; fire 'in any indoor or outdoor fireplace'; TV screens 'with preset or custom images' (https://new.autohdr.com/).",
+    "Fire is AI-generated, can be switched on or off in Style Settings, and its appearance cannot be changed. A custom TV image appears on every TV detected. 'Standard is enough' (https://faq.autohdr.com/custom-images-tvs-and-fire).",
+    "Auto Fire and Auto TV are baked in, so removing them means re-uploading (https://faq.autohdr.com/settings-and-habits-bad-results).",
+    "Spiro's reference configuration: TV Screen Replacement Blackout, Fire in Fireplace Off, 'Glass' (probably Grass) Replacement Off (https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide).",
+    "The Enterprise plan adds auto TV blackout, auto fire add-ins and walkthrough re-ordering (https://www.autohdr.com/pricing).",
+    "The knowledge base lists Virtual Staging and Grass Greening as tools (https://knowledge.autohdr.com/sops). Stager AI and Imagen say AutoHDR lacks staging, or that staging needs a second tool (https://stagerai.com/alternatives/auto-hdr; https://imagen-ai.com/valuable-tips/imagen-vs-autohdr/).",
+    "AI Re-Edit is free for the first 3 images per shoot and 1 credit each after that, and it accepts a reference photo (https://faq.autohdr.com/ai-re-edit-cost; https://faq.autohdr.com/adjust-problematic-photos-after-edit).",
+    "Room-type tagging and walkthrough reordering exist (https://faq.autohdr.com/change-file-naming-and-walkthrough-reorder).",
+    "The roadmap includes a photo-to-video model and a style marketplace (https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md)."
+   ],
+   "inferences": [
+    "INFERENCE: TV replacement is likely screen detection followed by a perspective-warped composite, which would be deterministic. Fire is likely generative inpainting in a detected firebox. Grass is likely segmentation followed by recolouring or synthesis.",
+    "INFERENCE: The disagreement over which tier includes TV and fire may mean the plans changed over time, or that auto TV and fire differ from a custom TV image."
+   ],
+   "unknowns": [
+    "Credit costs for staging, grass, AutoRemove and AutoFill beyond what is stated.",
+    "Staging styles and room types.",
+    "Whether a preset TV image library exists.",
+    "Whether grass is recoloured or regenerated."
+   ],
+   "sources": [
+    "https://new.autohdr.com/",
+    "https://faq.autohdr.com/custom-images-tvs-and-fire",
+    "https://faq.autohdr.com/settings-and-habits-bad-results",
+    "https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide",
+    "https://www.autohdr.com/pricing",
+    "https://knowledge.autohdr.com/sops",
+    "https://stagerai.com/alternatives/auto-hdr",
+    "https://faq.autohdr.com/ai-re-edit-cost"
+   ]
+  },
+  {
+   "question": "Q14 Output formats, sizes, color profile, EXIF",
+   "status": "partial",
+   "answer": "AutoHDR says outputs come back in the same dimensions and format as uploaded, with no MLS or multi-size download; the FAQ suggests Squoosh for resizing. A 'Scale' setting exists (1x in Spiro's example; other values unknown). Gallery previews are compressed and watermarked until a credit is spent. Filenames can be the default, or a business or shoot name plus numbers, optionally in room-type order (web UI uploads only, as of April 2026). Dropbox output goes to /AutoHDR/<address>/04-FINALS-Photos. Files are kept for 7 days. Colour space, ICC profile, JPEG quality, bit depth and EXIF retention are all undocumented.",
+   "observations": [
+    "'AutoHDR returns photos in the same dimensions and format they were uploaded in, with no built-in option to download at multiple sizes' (https://faq.autohdr.com/resize-multiple-sizes).",
+    "Scale 1x appears in Spiro's reference configuration (https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide).",
+    "'The gallery preview is a compressed version for faster loading' (https://faq.autohdr.com/why-do-downloaded-photos-look-different-from-preview).",
+    "Previews are watermarked until a credit is applied; files are stored for 7 days and then deleted (https://knowledge.autohdr.com/sops/uploading-photos).",
+    "Naming options and walkthrough order apply to web UI uploads only, as of April 2026 (https://faq.autohdr.com/change-file-naming-and-walkthrough-reorder).",
+    "Dropbox output folder: 04-FINALS-Photos (https://faq.autohdr.com/where-do-final-photos-go-dropbox).",
+    "Perspective correction applies a slight crop (https://faq.autohdr.com/settings-and-habits-bad-results)."
+   ],
+   "inferences": [
+    "INFERENCE: RAW uploads most likely come back as JPEG, since RAW goes through a RAW-to-JPEG step. 'Same format' probably means images, not RAW files.",
+    "INFERENCE: Perspective cropping means outputs are either slightly smaller than the input or resized back to it. That needs measuring.",
+    "INFERENCE: The output is probably 8-bit sRGB JPEG, which is the MLS norm, but this is unverified."
+   ],
+   "unknowns": [
+    "EXIF, GPS and capture-time retention.",
+    "Whether an ICC profile is embedded (sRGB or Display P3).",
+    "JPEG quality and chroma subsampling.",
+    "Bit depth.",
+    "Values of Scale other than 1x (possible upscaling).",
+    "The output format for HEIC, PNG and WEBP inputs."
+   ],
+   "sources": [
+    "https://faq.autohdr.com/resize-multiple-sizes",
+    "https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide",
+    "https://faq.autohdr.com/why-do-downloaded-photos-look-different-from-preview",
+    "https://knowledge.autohdr.com/sops/uploading-photos",
+    "https://faq.autohdr.com/change-file-naming-and-walkthrough-reorder",
+    "https://faq.autohdr.com/where-do-final-photos-go-dropbox"
+   ]
+  },
+  {
+   "question": "Q15 User settings/presets/styles",
+   "status": "partial",
+   "answer": "Settings come in two layers. (1) Account-level Style Settings, with tabs for Style Settings, Custom Profiles, Interior, Exterior and Defaults. They hold the default style model (Classic or Lisa; Indoor Model, Outdoor Model such as 'Whispy', Default Twilight Model), global sliders for brightness, contrast, vibrance and white balance, calibration from a reference image, and feature toggles: Perspective Correction, Sky Replacement, Declutter, Deduplication, Auto Fire, TV Screen Replacement (Blackout or Custom), Grass, Sign Removal, Filenames, Scale and Distortion. (2) Per-upload overrides: a style or model dropdown, a Perspective Correction toggle and a Sky Replacement toggle. After processing, users get per-photo tools: Basic Adjustments (brightness, shadows, highlights, contrast, per-colour HSL), AI Re-Edit, Repaint, AutoFill and regenerate. The slider ranges are unknown.",
+   "observations": [
+    "Classic and Lisa; the default is set under Style Settings (https://faq.autohdr.com/lisa-vs-classic-style-difference).",
+    "Spiro's reference configuration: Indoor Model Classic, Outdoor Model Whispy, Default Twilight Model Pink, TV Blackout, Perspective Correction On, Scale 1x, Contrast +8, Fire Off, Declutter Off, Grass Off, Sign Removal Off, Filenames Default, Distortion 0 (https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide).",
+    "Global Style Settings cover brightness, contrast, vibrance and white balance, and there is a section titled 'Using a Reference Image to Calibrate Your Style' (https://knowledge.autohdr.com/sops/style-preferences).",
+    "Tabs: Style Settings, Custom Profiles, Interior, Exterior, Defaults (https://knowledge.autohdr.com/sops).",
+    "Toggles and defaults: Perspective Correction on by default; Sky Replacement on by default; Declutter opt-in; Deduplication; Auto Fire and Auto TV (https://faq.autohdr.com/settings-and-habits-bad-results).",
+    "The upload flow leaves Auto HDR on 'Classic' and has Perspective Correction and Sky Replacement toggles (https://www.glitter.io/guides/how-to-upload-photos-to-auto-hdr-and-convert-to-virtual-twilight-step-by-step-guide).",
+    "HD PhotoHub users choose an AI model at upload (https://support.hdphotohub.com/hc/en-us/articles/41129601577364-Integrating-with-AutoHDR).",
+    "Basic Adjustments gives 'Lightroom-style control' (https://faq.autohdr.com/adjust-problematic-photos-after-edit).",
+    "The roadmap lets photographers fine-tune models to their own style from their edits and sell the styles (https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md)."
+   ],
+   "inferences": [
+    "INFERENCE: The global sliders are probably parametric adjustments applied after the model output, not inputs to the network.",
+    "INFERENCE: Reference-image calibration may set slider values automatically or condition the model. It is probably an early form of the planned per-user fine-tuning.",
+    "INFERENCE: 'Whispy' and 'Midnight' are probably exterior and night or twilight model variants. Each is mentioned only once."
+   ],
+   "unknowns": [
+    "Slider ranges and defaults.",
+    "What the Custom Profiles tab contains.",
+    "What the Whispy, Midnight and 'V3' models are.",
+    "How reference-image calibration works.",
+    "The names of the homepage's 'three styles'."
+   ],
+   "sources": [
+    "https://faq.autohdr.com/lisa-vs-classic-style-difference",
+    "https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide",
+    "https://knowledge.autohdr.com/sops/style-preferences",
+    "https://knowledge.autohdr.com/sops",
+    "https://faq.autohdr.com/settings-and-habits-bad-results",
+    "https://www.glitter.io/guides/how-to-upload-photos-to-auto-hdr-and-convert-to-virtual-twilight-step-by-step-guide",
+    "https://support.hdphotohub.com/hc/en-us/articles/41129601577364-Integrating-with-AutoHDR",
+    "https://faq.autohdr.com/adjust-problematic-photos-after-edit"
+   ]
+  },
+  {
+   "question": "Q16 Turnaround/performance/batch",
+   "status": "answered",
+   "answer": "The FAQ gives an average of about 15 minutes for a shoot of about 40 output photos, depending on file size. Integrations (Dropbox, Spiro and others) add a fixed 20-minute wait after the last file arrives. A website upload not back after 15+ minutes has probably failed, and staff monitor and re-run failed shoots around the clock. Other claims: under 5 minutes (vendor blog), 20 to 30 minutes per batch (third parties), and '30 minutes instead of a day' (founder). The founder claims 93,000 photos a day. AutoHDR advises one listing per upload, and aerials often finish before interiors.",
+   "observations": [
+    "'Average processing time for a shoot of around 40 edited output photos is about 15 minutes'; 'AutoHDR waits 20 minutes after your last file upload' (https://faq.autohdr.com/photo-shoot-processing-time).",
+    "Late Dropbox files go into the next 20-minute window and are added to the same listing (https://faq.autohdr.com/shoot-triggered-before-all-photos-uploaded).",
+    "The blog claims turnaround under five minutes (https://www.autohdr.com/blog/proof-in-the-pixels-why-blind-tests-show-ai-real-estate-photo-editing-matches-human-work).",
+    "Third parties report 20 to 30 minutes per batch (https://www.photofounder.com/blog/autohdr-vs-imagen-ai) and queue times of 20 to 30 minutes (https://www.stork.ai/en/autohdr).",
+    "Founder: '93,000 photos per day'; human editors take about 1 day at $0.85 a photo, against AutoHDR's '30 minutes' at about half the cost (https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md).",
+    "Aerials often finish before interiors (https://faq.autohdr.com/can-i-upload-drone-aerial-photos).",
+    "One listing per upload is advised; combining listings can cause failures (https://knowledge.autohdr.com/sops/uploading-photos)."
+   ],
+   "inferences": [
+    "INFERENCE: 93,000 photos a day averages about 1.1 photos per second across the fleet, so the latency users see is mostly queueing and batching per shoot, not per-image compute.",
+    "INFERENCE: Aerials finishing first suggests singles skip the grouping and fusion path, or run on a separate queue."
+   ],
+   "unknowns": [
+    "Maximum shoot size or concurrency.",
+    "The hardware (GPU or cloud provider).",
+    "Per-image inference time.",
+    "Turnaround for twilight and staging."
+   ],
+   "sources": [
+    "https://faq.autohdr.com/photo-shoot-processing-time",
+    "https://faq.autohdr.com/shoot-triggered-before-all-photos-uploaded",
+    "https://www.autohdr.com/blog/proof-in-the-pixels-why-blind-tests-show-ai-real-estate-photo-editing-matches-human-work",
+    "https://www.photofounder.com/blog/autohdr-vs-imagen-ai",
+    "https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md",
+    "https://knowledge.autohdr.com/sops/uploading-photos"
+   ]
+  },
+  {
+   "question": "Q17 Known failure modes and quality complaints",
+   "status": "partial",
+   "answer": "The vendor FAQs document these failures: grouping errors in both directions (re-shot angles and drone shots merged; flash and ambient split); fewer finals than uploads, from deduplication and merging; ghosting or transparency from camera movement; motion blur that stays; blown windows when the darkest frame is too bright; sky bleeding into the roof, and sky replacement on cloudy mountains; twilight that looks like darkened daytime; perspective crops cutting off edges and bad results on tall buildings; no lens correction for JPEGs or unprofiled lenses (a 'fisheye look'); RAW files from new cameras failing; flat results from 1 EV spacing; colour casts from fixed white-balance presets; glare; over-strong grass; possible removal of lamps and fixtures; baked-in TV and fire; Dropbox folder-name errors and early triggers. Independent complaints: softness at 100%. Independent review volume is tiny (Trustpilot 3.5/5 from 3 reviews). AutoHDR expects 'generally not more than three errors per shoot', and support fixes some cases by hand.",
+   "observations": [
+    "Over-merge (drones, same angle) and under-merge (flash/ambient) (https://faq.autohdr.com/drone-shots-treated-as-brackets; https://faq.autohdr.com/can-i-get-refund-for-bracketed-hdr-results).",
+    "Fewer finals because of deduplication, merging, or files missing from integrations (https://faq.autohdr.com/fewer-final-photos-than-raw-uploaded).",
+    "Ghosting and transparency (https://faq.autohdr.com/all-photos-have-ghosting-transparent); motion blur stays (https://faq.autohdr.com/camera-shake-bracket-matching).",
+    "Window quality is capped by the darkest frame (https://faq.autohdr.com/prevent-window-bleed-into-exposures).",
+    "Sky bleeds into the roof (https://faq.autohdr.com/sky-blending-into-roof); mountain and cloud failures (https://spiromedia.featurebase.app/p/disable-autohdr-skyreplacement-from-photographer-portal).",
+    "Twilight looks like darkened daytime (https://faq.autohdr.com/virtual-twilight-looks-darkened-daytime).",
+    "Perspective crop cuts edge details; turn it off for tall buildings (https://knowledge.autohdr.com/sops/recommended-photography-settings; https://faq.autohdr.com/settings-and-habits-bad-results).",
+    "Fisheye look on unprofiled lenses until a profile is added by hand (https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md); JPEGs get no lens correction (https://faq.autohdr.com/lens-corrections-raw-vs-jpeg).",
+    "RAW files from new cameras can fail; convert them to JPEG (https://faq.autohdr.com/what-file-formats-does-autohdr-support).",
+    "Flat or washed-out results at 1 EV (https://faq.autohdr.com/colors-not-realistic-accurate); casts from fixed white-balance presets (https://faq.autohdr.com/auto-white-balance-recommended).",
+    "Glare needs AI Re-Edit or support (https://faq.autohdr.com/contact-about-glare-or-editing-issue).",
+    "'generally not more than three errors per shoot' (https://faq.autohdr.com/ai-re-edit-cost).",
+    "Softness at 100% (https://www.fredmiranda.com/forum/topic/1932849/0).",
+    "Trustpilot shows 3.5/5 from 3 reviews; Capterra and G2 have 0 reviews (https://fr-be.trustpilot.com/review/autohdr.com).",
+    "Dropbox folder names are case- and punctuation-sensitive, and a shoot can trigger before all files arrive (https://faq.autohdr.com/set-up-dropbox-with-autohdr; https://faq.autohdr.com/shoot-triggered-before-all-photos-uploaded).",
+    "Failed shoots are re-run by staff who monitor around the clock (https://faq.autohdr.com/photo-shoot-processing-time)."
+   ],
+   "inferences": [
+    "INFERENCE: Most documented failures come from grouping and from limited exposure coverage. The core HDR stage reuses real bracket data rather than inventing missing window or sky content.",
+    "INFERENCE: The free re-edit quota of 3 per shoot appears sized to an expected error rate of about 3 in 40 photos (about 7.5%).",
+    "INFERENCE: The FAQ slug 'autohdr-removed-lamps-fixtures' implies declutter or removal sometimes erases fixtures.",
+    "INFERENCE: Manual fixes through support (sky and roof, grouping) mean a human-in-the-loop escalation path exists."
+   ],
+   "unknowns": [
+    "Halo frequency, oversaturation and colour-accuracy statistics.",
+    "Behaviour under mixed light, with people or pets, and with mirrors.",
+    "Reddit and Facebook community complaints, which were not searched.",
+    "Independent quantitative comparisons; the WGAN comparison post was not read."
+   ],
+   "sources": [
+    "https://faq.autohdr.com/drone-shots-treated-as-brackets",
+    "https://faq.autohdr.com/fewer-final-photos-than-raw-uploaded",
+    "https://faq.autohdr.com/all-photos-have-ghosting-transparent",
+    "https://faq.autohdr.com/sky-blending-into-roof",
+    "https://faq.autohdr.com/virtual-twilight-looks-darkened-daytime",
+    "https://faq.autohdr.com/ai-re-edit-cost",
+    "https://www.fredmiranda.com/forum/topic/1932849/0",
+    "https://fr-be.trustpilot.com/review/autohdr.com",
+    "https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md"
+   ]
+  },
+  {
+   "question": "Q18 Technical claims about AI/training",
+   "status": "partial",
+   "answer": "Vendor claims: trained on over a million professionally edited images, with over $1M invested in training data; the AI was trained specifically on JPEG inputs; models are trained from scratch inside 'complex pipelines'; there are separate models for interiors, exteriors and twilights. The December 2025 hackathon shows that AutoHDR treats editing as supervised translation from an unedited photo to a professional human edit (577 sample pairs), with 30% of the score on inference cost and outputs around 1 MP accepted. The lens dataset is 23,000+ photos from customers who consented to training. AutoHDR is crowdsourcing profile-free lens correction and metadata-free grouping. A third-party claim that it uses a 'proprietary ViT' is unsupported. The roadmap includes per-photographer style fine-tuning and photo-to-video.",
+   "observations": [
+    "'trained on over a million professionally edited images ... invested over $1 million in training data' (https://www.autohdr.com/).",
+    "'the AI was trained specifically on JPEG inputs' (https://faq.autohdr.com/shoot-jpeg-or-raw-for-better-photos).",
+    "'we train these models from scratch. We have these complex pipelines' (participant transcript; the speaker's identity is inferred) (https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md).",
+    "577 pairs of unedited photo and professional human edit; scoring 70% quality and 30% inference cost; about 1 MP accepted (https://github.com/zerolatent/pixel-sorcery).",
+    "The lens dataset is 23,000+ customer photos with training consent, sampled across cameras, lenses and formats (https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md).",
+    "The iOS app mentions models trained for interiors, exteriors and twilights (https://apps.apple.com/es/app/autohdr-ai-real-estate-camera/id6758221284?l=en-GB).",
+    "A vendor blog claims blind tests show viewers often cannot tell AI edits from human ones; no study details (https://www.autohdr.com/blog/proof-in-the-pixels-why-blind-tests-show-ai-real-estate-photo-editing-matches-human-work).",
+    "A third party claims a 'Proprietary Vision Transformer (ViT)' (https://www.stork.ai/en/autohdr).",
+    "Hackathon entrants modelled the target look with a 3D LUT plus bilateral grid ('HybridGrid', 33^3 LUT with 6 bases and a 16\u00d716\u00d78 grid). This is how participants approached it, not AutoHDR's own method (https://github.com/Suineryc/autohdr).",
+    "Homedeck, another real-estate editing vendor, open-sourced a bilateral-grid exposure fusion model for 3 exposures (https://github.com/homedeck/Deep-Fusion)."
+   ],
+   "inferences": [
+    "INFERENCE: The base HDR edit is probably a compact supervised model trained on pairs of customer input and outsourced editor output. Ample paired data and the cost objective favour it over a large diffusion model, while generative models are kept for twilight, staging, fire and re-edit.",
+    "INFERENCE: The 'over a million edited images' are probably outputs from AutoHDR's photography business or outsourcing partners, paired with the matching customer brackets.",
+    "INFERENCE: The ViT claim cannot be checked and may be speculation by the aggregator."
+   ],
+   "unknowns": [
+    "The architecture and inference resolution of the HDR model.",
+    "Whether the edit model takes the bracket stack or a pre-fused image.",
+    "Whether diffusion is used anywhere in the base edit.",
+    "The exact provenance and licensing of training data.",
+    "Whether there is human QA on outputs beyond escalations."
+   ],
+   "sources": [
+    "https://www.autohdr.com/",
+    "https://faq.autohdr.com/shoot-jpeg-or-raw-for-better-photos",
+    "https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md",
+    "https://github.com/zerolatent/pixel-sorcery",
+    "https://apps.apple.com/es/app/autohdr-ai-real-estate-camera/id6758221284?l=en-GB",
+    "https://www.stork.ai/en/autohdr",
+    "https://github.com/Suineryc/autohdr",
+    "https://github.com/homedeck/Deep-Fusion"
+   ]
+  }
+ ],
+ "parameters": [
+  {
+   "name": "Brackets accepted per angle",
+   "values": "1 to 10 ('as many as ten'); listing FAQ: any mix of 1/3/5/7/9, no cap per listing",
+   "source_url": "https://faq.autohdr.com/how-many-brackets-does-autohdr-support"
+  },
+  {
+   "name": "Recommended brackets per angle",
+   "values": "3 by default; 5 for very bright markets (FL, CA, desert) if window views fail",
+   "source_url": "https://faq.autohdr.com/3-or-5-brackets"
+  },
+  {
+   "name": "EV spacing",
+   "values": "at least 2 stops (\u00b12 EV); 1 EV described as too narrow (flat/washed out)",
+   "source_url": "https://faq.autohdr.com/colors-not-realistic-accurate"
+  },
+  {
+   "name": "Frames actually fused",
+   "values": "3 ('built around 3-bracket processing'; AI selects best 3 of N)",
+   "source_url": "https://faq.autohdr.com/why-only-3-of-5-exposures-used"
+  },
+  {
+   "name": "Bracket roles",
+   "values": "dark = window view; mid = neutral exposure and colour reference; bright = shadow detail",
+   "source_url": "https://faq.autohdr.com/brackets-for-handheld-real-estate"
+  },
+  {
+   "name": "Shooting order / white balance",
+   "values": "middle exposure first (WB locks to first frame); auto WB; avoid Cloudy/Shade/Tungsten presets",
+   "source_url": "https://faq.autohdr.com/auto-white-balance-recommended"
+  },
+  {
+   "name": "Tripod",
+   "values": "optional; handheld OK if brackets shot in quick succession",
+   "source_url": "https://knowledge.autohdr.com/sops/recommended-photography-settings"
+  },
+  {
+   "name": "Input file formats",
+   "values": "JPEG; RAW CR2, CR3, ARW, NEF, RAF, DNG, RW2, ORF, PEF, SRW; HEIC; PNG, BMP, GIF, WEBP",
+   "source_url": "https://faq.autohdr.com/what-file-formats-does-autohdr-support"
+  },
+  {
+   "name": "Recommended capture format",
+   "values": "JPEG (model trained on JPEG; 'zero quality difference' vs RAW; faster)",
+   "source_url": "https://faq.autohdr.com/shoot-jpeg-or-raw-for-better-photos"
+  },
+  {
+   "name": "RAW development / lens correction",
+   "values": "RawTherapee + Lensfun profiles (distortion + vignetting), honours embedded DNG correction metadata; RAW only, no correction for JPEG (per FAQ)",
+   "source_url": "https://faq.autohdr.com/lens-corrections-raw-vs-jpeg"
+  },
+  {
+   "name": "Spiro integration upload limits",
+   "values": "JPG only, max 50 MB per file; 30 free credits for new users",
+   "source_url": "https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide"
+  },
+  {
+   "name": "Observed customer group-size distribution (medium package, 2,126 images, 538 groups)",
+   "values": "1: 46 (8.6%); 2: 10 (1.9%); 3: 259 (48.1%); 4: 12 (2.2%); 5: 178 (33.1%); 6: 6; 7: 8; 8-25: 19 groups",
+   "source_url": "https://github.com/cloudspiral/autohdr-angle-grouper/blob/main/datasets/official-medium-v1.json"
+  },
+  {
+   "name": "Observed customer group-size distribution (sample package)",
+   "values": "366 images (advertised 500), 69 groups; 1: 5; 2: 3; 3: 26; 4: 2; 5: 18; 6: 2; 7: 2; 8-25: 11",
+   "source_url": "https://github.com/cloudspiral/autohdr-angle-grouper/blob/main/datasets/official-sample-v1.json"
+  },
+  {
+   "name": "Observed uploaded JPEG resolution",
+   "values": "2794\u00d71865 to 9504\u00d76336 (~61 MP); 38 distinct sizes (sample), 126 (medium); ~4 MB per file",
+   "source_url": "https://github.com/cloudspiral/autohdr-angle-grouper/blob/main/autohdr_codex_plan/RESULTS.md"
+  },
+  {
+   "name": "Observed EXIF presence in grouping data",
+   "values": "31% of groups have EXIF on all frames, 69% on none, 0% mixed; 29% of frames",
+   "source_url": "https://github.com/MatthewDaw/auto_hdr_submission/blob/main/docs/ideation/2026-06-22-simplify-bracket-grouping.md"
+  },
+  {
+   "name": "Observed bracket exposure statistics",
+   "values": "median of per-image median luminance 104.5/255; max dark-clipped fraction 0.951; max bright-clipped fraction 0.937; typical triplet luminances ~52/129/206",
+   "source_url": "https://github.com/cloudspiral/autohdr-angle-grouper/blob/main/datasets/official-sample-v1.json"
+  },
+  {
+   "name": "Grouping method",
+   "values": "vision-based similarity; timestamps not used; no pre-sorting; Deduplication is a separate toggle",
+   "source_url": "https://faq.autohdr.com/does-autohdr-auto-merge-hdr-brackets"
+  },
+  {
+   "name": "Grouping challenge dataset and metric",
+   "values": "packages of 500 / 5,000 / 10,000 images; full set ~276K images (~1.1 TB); test images 1024 px max, UUID names, no metadata; exact group match, no partial credit; ~$50,000 prize; Codabench 15365",
+   "source_url": "https://github.com/AutoHDRHackathon/autohdr-challenge-starter"
+  },
+  {
+   "name": "Grouping challenge compute budget",
+   "values": "CPU-only linux/amd64 Docker, no internet, read-only FS; cpu-large 8 vCPU / 16 GB (30 min); cpu-xlarge 16 vCPU / 32 GB (45 min); README says 60 min; singleton baseline ~25%",
+   "source_url": "https://github.com/AutoHDRHackathon/autohdr-challenge-starter/blob/main/SUBMISSION_GUIDE.md"
+  },
+  {
+   "name": "HDR style models",
+   "values": "Classic ('gold standard', default); Lisa (extra pop, much deeper window pulls); 'Midnight Model' (named on new site); Indoor Model and Outdoor Model ('Whispy' example)",
+   "source_url": "https://faq.autohdr.com/lisa-vs-classic-style-difference"
+  },
+  {
+   "name": "Twilight styles and cost",
+   "values": "midnight blue, twilight pink, golden hour; Default Twilight Model = Pink (example); Virtual Twilight 5 credits generate + 1 download = 6; Twilight model for already-shot dusk singles 5 credits; free regenerate (loop icon)",
+   "source_url": "https://faq.autohdr.com/why-virtual-twilight-costs-5-plus-1"
+  },
+  {
+   "name": "Sky replacement",
+   "values": "3 styles or keep original; ON by default (aerials and exteriors); toggle per upload and in Style Settings; needs at least one bracket with visible sky detail",
+   "source_url": "https://faq.autohdr.com/can-i-upload-drone-aerial-photos"
+  },
+  {
+   "name": "Perspective correction",
+   "values": "ON by default; straightens verticals; slight crop; turn OFF for tall buildings or extreme angles; applies only to new uploads",
+   "source_url": "https://faq.autohdr.com/settings-and-habits-bad-results"
+  },
+  {
+   "name": "Spiro reference account configuration ('what WOW uses')",
+   "values": "Indoor Model Classic; Outdoor Model Whispy; Default Twilight Pink; TV Screen Replacement Blackout; Perspective Correction On; Scale 1x; Distortion 0; Contrast +8 (others 0); Fire Off; Declutter Off; Grass ('Glass') Replacement Off; Sign Removal Off; Filenames Default",
+   "source_url": "https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide"
+  },
+  {
+   "name": "Global Style Settings",
+   "values": "sliders for brightness, contrast, vibrance, white balance 'and more'; tabs Style Settings / Custom Profiles / Interior / Exterior / Defaults; reference-image style calibration",
+   "source_url": "https://knowledge.autohdr.com/sops/style-preferences"
+  },
+  {
+   "name": "Feature toggles",
+   "values": "Declutter (opt-in, +1 credit/photo); Deduplication; Auto Fire (AI-generated, appearance fixed); Auto TV Screen Replacement (Blackout or Custom image on every detected TV; Standard plan enough); Sign Removal; Grass; Perspective; Sky",
+   "source_url": "https://faq.autohdr.com/custom-images-tvs-and-fire"
+  },
+  {
+   "name": "Credit costs",
+   "values": "1 credit per photo (charged on first download per FAQ, or on entering Basic Adjustments or making any edit per KB); AI Re-Edit free for first 3 images per shoot, then 1 credit each; regenerations and re-runs free; Declutter +1; Twilight 5; Virtual Twilight 5+1",
+   "source_url": "https://faq.autohdr.com/ai-re-edit-cost"
+  },
+  {
+   "name": "Pricing plans (pricing page)",
+   "values": "Free 10 photos/mo; Standard 500/mo $265 (~$0.53/photo; $225.25/mo yearly); Enterprise 5,000/mo $2,250 (~$0.45/photo; $2,025/mo yearly) plus auto TV blackout, auto fire, walkthrough reordering, Slack channel; credits roll over; pay-as-you-go top-ups",
+   "source_url": "https://www.autohdr.com/pricing"
+  },
+  {
+   "name": "Pricing (older / third-party)",
+   "values": "Enterprise $960/mo for 2,000 photos ($0.48/photo) (Capterra); blog 'as low as $0.40'; third-party $0.50-1.50/image; $0.80 extra credit (unconfirmed)",
+   "source_url": "https://www.capterra.com/p/10057968/AutoHDR/"
+  },
+  {
+   "name": "Processing time",
+   "values": "~15 min average for ~40 output photos; +20 min wait after last file for Dropbox/Spiro/integrations; website upload not back after 15+ min = likely failed",
+   "source_url": "https://faq.autohdr.com/photo-shoot-processing-time"
+  },
+  {
+   "name": "Dropbox folder convention",
+   "values": "/AutoHDR/<address>/01-RAW-Photos/ (input, exact case and punctuation); /AutoHDR/<address>/04-FINALS-Photos (output)",
+   "source_url": "https://faq.autohdr.com/set-up-dropbox-with-autohdr"
+  },
+  {
+   "name": "Retention",
+   "values": "7 days for uploads and exports, then archived and deleted",
+   "source_url": "https://knowledge.autohdr.com/sops/uploading-photos"
+  },
+  {
+   "name": "Output dimensions/format",
+   "values": "same dimensions and format as uploaded; no MLS or multi-size option (Squoosh suggested); 'Scale' setting with 1x seen",
+   "source_url": "https://faq.autohdr.com/resize-multiple-sizes"
+  },
+  {
+   "name": "File naming / ordering",
+   "values": "default, business name, or shoot name + numbers; room-type walkthrough ordering; custom names for web UI uploads only (as of April 2026)",
+   "source_url": "https://faq.autohdr.com/change-file-naming-and-walkthrough-reorder"
+  },
+  {
+   "name": "Integrations",
+   "values": "Spiro, HD PhotoHub, Tonomo (direct); Aryeo (via Dropbox); Dropbox",
+   "source_url": "https://knowledge.autohdr.com/sops/uploading-photos"
+  },
+  {
+   "name": "Lens correction challenge dataset",
+   "values": "~23,119 pairs ({id}_original.jpg distorted / {id}_generated.jpg corrected; 46,238 files, ~36 GB); 1,000 test images ('<uuid>_g0')",
+   "source_url": "https://github.com/SaitejaGudidevini/AutoHDR/blob/main/CLAUDE.md"
+  },
+  {
+   "name": "Lens correction challenge metric",
+   "values": "40% multi-scale Canny edge F1; 22% Hough line-angle distribution; 18% gradient-orientation histogram; 15% SSIM; 5% pixel MAE; hard-fail = 0; submission zip of {image_id}.jpg \u2264500 MB; scoring 5-10 min per 1,000",
+   "source_url": "https://bounty.autohdr.com/"
+  },
+  {
+   "name": "Lens hackathon details",
+   "values": "Austin TX, Feb 20-22, 2026; prizes $5K / $2.5K / $500 plus interviews ($120K-$180K); submissions assigned to AutoHDR; data non-commercial",
+   "source_url": "https://github.com/SaitejaGudidevini/AutoHDR/blob/main/CLAUDE.md"
+  },
+  {
+   "name": "Edit-model hackathon (Dec 2025)",
+   "values": "577 pairs unedited\u2192professional human edit ({id}_src.jpg/{id}_tar.jpg, s3://hackathon-dec12/autohdr-real-estate-577/); judging 70% quality / 30% inference cost; ~1024 px (~1 MP) acceptable",
+   "source_url": "https://github.com/zerolatent/pixel-sorcery"
+  },
+  {
+   "name": "Training data claims",
+   "values": ">1 million professionally edited images; >$1M invested in training data; lens set 23,000+ consented customer photos",
+   "source_url": "https://www.autohdr.com/"
+  },
+  {
+   "name": "Volume / market claims",
+   "values": "93,000 photos/day; 15% of US listings (10% earlier in same talk; 25% in job posts; ~10% WTTJ); 5,000+ businesses",
+   "source_url": "https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md"
+  },
+  {
+   "name": "Human-editor baseline (founder)",
+   "values": "~1 day and $0.85/photo; AutoHDR ~30 min at ~half cost",
+   "source_url": "https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md"
+  },
+  {
+   "name": "iOS capture app",
+   "values": "'AutoHDR: AI Real Estate Camera' by HDR Vision LLC; free; ~22 MB; iOS 26+",
+   "source_url": "https://apps.apple.com/es/app/autohdr-ai-real-estate-camera/id6758221284?l=en-GB"
+  },
+  {
+   "name": "Independent review volume",
+   "values": "Trustpilot 3.5/5 from 3 reviews; Capterra 0; G2 0",
+   "source_url": "https://fr-be.trustpilot.com/review/autohdr.com"
+  },
+  {
+   "name": "Support / escalation",
+   "values": "delivery@autohdr.com; feature requests at autohdr.canny.io; failed shoots monitored around the clock",
+   "source_url": "https://faq.autohdr.com/troubleshoot-dropbox-upload-issues"
+  },
+  {
+   "name": "[Reference, not AutoHDR] Homedeck Deep-Fusion (real-estate vendor fusion model)",
+   "values": "exposure_count=3; bilateral grid 64\u00d764\u00d732; 1\u00d71-conv guide + grid_sample slicing (CPU-capable); v2: per-exposure 512 px, 16 bins, softmax weights; Mertens contrast and saturation losses; Apache-2.0",
+   "source_url": "https://github.com/homedeck/Deep-Fusion"
+  },
+  {
+   "name": "[Reference, not AutoHDR] Homedeck Deep-Edit / Deep-Chroma",
+   "values": "ResNet-34 at 512\u00d7512; Deep-Edit 10 outputs (2 tone-curve points, temperature, tint, 6 selective colour) with fixed shadows 0.8 and highlights -0.9; Deep-Chroma 17 outputs (4+9 (3\u00d73 CAT)+4)",
+   "source_url": "https://github.com/homedeck"
+  },
+  {
+   "name": "[Reference] OpenCV MergeMertens / enfuse defaults",
+   "values": "OpenCV contrast 1.0, saturation 1.0, exposure 0.0; well-exposedness exp(-(x-0.5)^2/0.08); pyramid levels floor(log2(min(W,H))). enfuse: exposure 1.0, saturation 0.2, contrast 0, optimum 0.5, width 0.2, levels up to 29",
+   "source_url": "https://raw.githubusercontent.com/opencv/opencv/4.x/modules/photo/include/opencv2/photo.hpp"
+  },
+  {
+   "name": "[Reference] OpenCV AlignMTB defaults",
+   "values": "max_bits=6 (~63 px), exclude_range=4, cut=true; translation-only",
+   "source_url": "https://raw.githubusercontent.com/opencv/opencv/4.x/modules/photo/include/opencv2/photo.hpp"
+  },
+  {
+   "name": "[Reference] HDRNet / Image-adaptive 3D LUT",
+   "values": "HDRNet: net_input 256, luma_bins 8, spatial_bin 16, GPU-only slice op, Apache-2.0. 3D-LUT: 3 basis LUTs 33^3, CNN input 256\u00d7256, <600K params, <2 ms per 4K on GPU, CPU kernel available, Apache-2.0",
+   "source_url": "https://github.com/HuiZeng/Image-Adaptive-3DLUT"
+  },
+  {
+   "name": "[Reference] darktable ashift auto-perspective constants",
+   "values": "rotation \u00b110\u00b0, lens shift \u00b11.0, shear \u00b10.2, min line 5 px, RANSAC 400 runs / 60% elimination, Nelder-Mead 400 iterations, default focal 28 mm, LSD gamma 0.45; docs suggest correcting verticals to 80-90%; GPL-3",
+   "source_url": "https://raw.githubusercontent.com/darktable-org/darktable/master/src/iop/ashift.c"
+  },
+  {
+   "name": "[Reference] ADE20K classes for window and sky masks",
+   "values": "wall 1, sky 3, floor 4, ceiling 6, windowpane 9, curtain 19, lamp 37, blind/screen 64, light source 83; CSAIL models BSD-3; MobileNetV2dilated+C1 34.84 mIoU at 17.2 fps (Titan Xp)",
+   "source_url": "https://raw.githubusercontent.com/CSAILVision/semantic-segmentation-pytorch/master/data/object150_info.csv"
+  },
+  {
+   "name": "[Reference] Lensfun distortion models",
+   "values": "poly3 (k1), poly5 (k1,k2), ptlens (a,b,c), ACM; libraries LGPL-3; database CC BY-SA 3.0",
+   "source_url": "https://raw.githubusercontent.com/lensfun/lensfun/master/include/lensfun/lensfun.h.in"
+  }
+ ],
+ "output_characteristics": [
+  "[Vendor] Each detected bracket set (camera angle) produces one edited image. Single exposures and aerials produce one image each. Deduplication, when on, drops near-duplicate angles, so there can be fewer finals than inputs.",
+  "[Vendor] Outputs have the same pixel dimensions and format as the upload, with no MLS or multi-size variants. [Inferred] Perspective correction crops slightly, so the output is either a little smaller or resized back to the input size. RAW uploads probably come back as JPEG. This has not been measured.",
+  "[Vendor] Converging verticals are straightened by default and the frame is cropped slightly, which can cut details at the top and bottom edges. Tall-building or steep upward shots can look wrong unless the correction is turned off.",
+  "[Vendor] Lens distortion and vignetting are corrected only for RAW uploads with a Lensfun profile. JPEG uploads keep whatever correction the camera applied (the knowledge base contradicts this). New or unprofiled lenses can keep a 'fisheye look'.",
+  "[Vendor] Windows show the exterior view taken from the darkest selected bracket. Classic gives a moderate window pull; Lisa gives a 'much deeper' pull (darker, more visible exterior) and more 'pop'. If the darkest bracket is blown out, the windows stay blown out.",
+  "[Vendor] Interiors aim to match professional real-estate editor output. Bracketed results 'often look close to the flambient style'. Brackets 1 EV apart give flat, washed-out results.",
+  "[Vendor] White balance is neutralised using the mid bracket as the colour reference and kept consistent across the gallery. Global brightness, contrast, vibrance and white-balance offsets from the account's Style Settings are applied (for example, Contrast +8 in one studio's setup).",
+  "[Vendor] Exterior and aerial skies are replaced by default with one of 3 sky styles unless turned off. Where no bracket has sky detail, the new sky can bleed into the roofline. Cloud-covered mountains can be treated as sky.",
+  "[Vendor] If enabled, these are baked into the file: TVs blacked out or showing a custom image, AI-generated fire in fireplaces, greener or replaced lawns, and removal of clutter, wires, signs, photographers and cameras.",
+  "[Third-party] At screen size the output looks good, but at 100% fine texture and detail can look soft or 'mushy'.",
+  "[Vendor] Handheld sets with large camera movement show ghosting or transparency (double content) in blended areas. Motion blur inside a frame is kept.",
+  "[Vendor] Twilight outputs have a dusk sky in midnight blue, pink or golden hour. Some keep daylight shadows on the facade and look like a darkened daytime shot. Each regenerate gives a different result.",
+  "[Vendor] Gallery previews are compressed and watermarked until a credit is spent. Downloads are the full-quality finals, named by default or with a business or shoot name plus numbers, optionally ordered by room type.",
+  "[Unknown] Colour space and ICC profile, JPEG quality, bit depth, EXIF and GPS retention, halo behaviour and saturation levels have no source and no measurement."
+ ],
+ "technique_hypotheses": [
+  {
+   "stage": "Ingest / RAW development",
+   "hypothesis": "RAW files are developed by RawTherapee (CLI) with Lensfun profiles into 8-bit sRGB JPEGs, which then take the same path as JPEG uploads. JPEG uploads skip lens correction.",
+   "rationale": "The FAQ names RawTherapee and Lensfun and says JPEGs are not corrected. The model is 'trained on JPEG inputs', and AutoHDR says RAW gives 'zero quality difference'.",
+   "how_to_verify_black_box": "Shoot one scene (straight-line grid plus a flat grey wall) as RAW and as in-camera JPEG with lens correction off, and upload both as single exposures. Measure line curvature and corner falloff in each output. Repeat with a lens missing from the Lensfun database. Inspect output EXIF Software and ProcessingSoftware tags for RawTherapee strings. Compare the RAW-path output with a local RawTherapee default render plus Lensfun."
+  },
+  {
+   "stage": "Bracket grouping",
+   "hypothesis": "Frames are clustered by content only, using exposure-invariant structural features (edge or gradient descriptors or embeddings) and a global similarity threshold, with no EXIF time, EV or sequence constraints.",
+   "rationale": "The FAQ says grouping is 'vision-based' and 'timestamps don't affect it'. Failures run both ways: re-shot angles merge, flash and ambient split. The public challenge provides no metadata and runs CPU-only.",
+   "how_to_verify_black_box": "Build controlled test shoots and count outputs: (a) the same shoot with EXIF stripped and filenames shuffled; (b) different rooms given identical timestamps; (c) one room shot from viewpoints panned 3\u00b0, 5\u00b0, 10\u00b0 and 20\u00b0 apart, to find the threshold; (d) the same angle with a door open and closed; (e) ambient plus flash frames of one angle; (f) synthetic brackets from one image at \u00b12 and \u00b14 EV, to see when very dark frames split off. Use 'View Inputs' to check which frames were grouped."
+  },
+  {
+   "stage": "Frame selection (3 of N)",
+   "hypothesis": "A rule based on exposure coverage (or a learned scorer) keeps the darkest frame with an unclipped window, a mid frame, and a bright frame that lifts the shadows.",
+   "rationale": "The FAQ says the AI picks the 3 that look cleanest and most natural, and describes fixed dark, mid and bright roles.",
+   "how_to_verify_black_box": "Upload 5- and 7-frame sets in which each frame carries a unique digital marker (a small coloured patch in a mid-grey area, scaled so it survives that frame's exposure). Check which markers appear in the output and use 'View Inputs'. Vary which frames are clipped and how many EV the darkest frame sits below the mid frame, then see which frame contributes the window."
+  },
+  {
+   "stage": "Alignment / deghosting",
+   "hypothesis": "Global parametric registration (translation, affine or homography) of the selected frames to the mid frame, with no dense optical flow and no explicit moving-object rejection.",
+   "rationale": "Large camera movement produces 'transparency' and double content that is fixed afterwards with AI Re-Edit. The FAQ only claims handheld alignment.",
+   "how_to_verify_black_box": "Create synthetic brackets from one sharp source with known translations (2-60 px), rotations (0.5-3\u00b0) and perspective shifts. Measure edge doubling and residual misalignment in the output. Add a moving object (a person) to one frame only and check whether it ends up semi-transparent, removed, or kept whole. Test parallax with near and far objects in a handheld sequence."
+  },
+  {
+   "stage": "HDR merge / tone (Classic, Lisa)",
+   "hypothesis": "A learned, display-referred fusion and edit model: a low-resolution network predicts per-pixel exposure weights and/or local affine colour transforms (bilateral grid or image-adaptive 3D LUT family), which are applied at full resolution. It is trained on pairs of customer input and professional editor output, and it does not build a radiance map or apply a global tone map.",
+   "rationale": "The model is JPEG-trained, takes a fixed 3-frame input, and AutoHDR weights inference cost at 30% in its hackathon. Homedeck's open-sourced real-estate fusion model uses this design, and the look imitates human editors.",
+   "how_to_verify_black_box": "(a) Build brackets from a linear 16-bit RAW by exact exposure scaling and a camera curve, with a grey ramp and ColorChecker in the scene. Fit the input-to-output mapping in different regions to see whether it is local or global. (b) Feed physically inconsistent brackets, for example a patch with different content in the dark frame only, to map where each frame is weighted. (c) Shoot step-edge targets (bright window next to a dark wall) and measure overshoot or undershoot width to detect halos. (d) Process the same set with Classic and Lisa and compare histograms, local contrast (RMS of a high-pass) and mean luminance in window regions."
+  },
+  {
+   "stage": "Window pull",
+   "hypothesis": "Window regions take their pixels from the darkest selected bracket through a semantic (windowpane) or highlight-based mask with feathered edges. The content is real, not generated.",
+   "rationale": "'only as good as the window view in your darkest bracket'. A blown darkest frame stays blown, and Lisa 'deeper window pulls' suggests a tunable weight.",
+   "how_to_verify_black_box": "Place a printed high-frequency pattern or text outside a window that is legible only in the dark frame, and check it appears geometrically exact in the output. Replace the window content in the dark frame only with a synthetic checkerboard and see whether it carries through. Measure the transition width at mullions and partly drawn blinds. Clip the window in every frame and check whether a view is invented."
+  },
+  {
+   "stage": "White balance / colour",
+   "hypothesis": "A global white-balance correction (temperature and tint or a 3\u00d73 adaptation matrix) is estimated from the mid reference frame by a learned predictor, then global style offsets are applied. Mixed light gets little local correction.",
+   "rationale": "The FAQ says the mid frame is the colour reference and that cameras lock WB to the first frame. A global WB slider exists, and gallery consistency is marketed.",
+   "how_to_verify_black_box": "Shoot a grey card in each lighting zone of a room lit by tungsten and daylight, and measure \u0394E to neutral per zone in the output. Digitally add a cast (+500 K or a green tint) to the mid frame only, then to the dark or bright frame only, to see which frame drives output colour. Reorder the frames to test dependence on the first frame. Process several angles of one room and measure white-balance spread across the gallery."
+  },
+  {
+   "stage": "Perspective correction",
+   "hypothesis": "Automatic keystone correction for verticals: lines are detected, vertical vanishing points or gravity are estimated, a homography is applied, the image is cropped to the largest valid rectangle, and it may be resized back to the input size.",
+   "rationale": "The FAQ says it straightens verticals, crops slightly, and fails on tall buildings and extreme angles. 'Scale' and 'Distortion' settings exist.",
+   "how_to_verify_black_box": "Use scenes or synthetic renders with known camera pitch (0\u00b0, 5\u00b0, 10\u00b0, 15\u00b0) and roll. Measure the residual angle of verticals with a Hough transform: is correction full, or partial (80-90%)? Compare field of view and pixel size of input and output to get the crop percentage and detect any resize back. Check whether horizontals are corrected too, and test scenes with few vertical lines."
+  },
+  {
+   "stage": "Lens correction (production vs future)",
+   "hypothesis": "Production corrects only RAW files that match a Lensfun profile. A learned, profile-free corrector trained on about 23K profile-corrected pairs is in development or being adopted.",
+   "rationale": "The FAQ and the founder's talk describe profiles added by hand for new lenses. The Kaggle challenge scores edge and line straightness.",
+   "how_to_verify_black_box": "Upload JPEGs with strong uncorrected barrel distortion (ultra-wide, in-camera correction off) and measure line curvature over time. If JPEG distortion starts being corrected, a learned model has shipped. Do the same with RAW from an unprofiled lens."
+  },
+  {
+   "stage": "Denoise / sharpening / resolution",
+   "hypothesis": "The edit model runs at reduced resolution (about 1 MP) and is transferred to full resolution through guided upsampling or a LUT or grid, with no detail-restoration step, which causes softness. Alternatively, there is explicit denoising.",
+   "rationale": "Users report softness at 100%. The hackathon accepted about 1 MP outputs, and inference cost is a priority.",
+   "how_to_verify_black_box": "Include a slanted-edge (ISO 12233) chart and a dead-leaves texture chart. Compute MTF50 and texture acutance for inputs and outputs. Add calibrated Gaussian noise to the inputs and measure the output noise power spectrum. Compare tripod and handheld sets to separate misalignment blur from processing blur. Check for ringing or upsampling artifacts at about a 1 MP grid scale."
+  },
+  {
+   "stage": "Sky replacement",
+   "hypothesis": "Sky segmentation followed by compositing from a small fixed library (3 styles), with colour harmonisation. The result is deterministic.",
+   "rationale": "There are 3 named styles plus 'keep original', a default-on toggle, roof bleed when the sky is clipped, and cloud-covered mountains treated as sky.",
+   "how_to_verify_black_box": "Upload the same exterior twice and diff the sky pixels: identical skies point to a library, varying skies to a generator. Look for repeated cloud patterns across unrelated properties in public examples. Check matting at tree branches and roof edges for halos. Reproduce roof bleed with a set whose sky is clipped in every frame, against a control set with one sky-exposed frame."
+  },
+  {
+   "stage": "Virtual twilight",
+   "hypothesis": "A generative image-to-image model (diffusion-like), conditioned on a style label, applied to the processed single daytime exterior. Its output is stochastic.",
+   "rationale": "Free regenerate gives different results, strong daylight shadows survive, it costs 5 credits against 1 for a standard edit, and it works on photos edited elsewhere.",
+   "how_to_verify_black_box": "Regenerate N times on one exterior and compute per-pixel variance and edge SSIM against the daytime input. Check for hallucinated changes to architecture, text or plants, and for added window glow or turned-on lights. Test facades with hard shadows. Measure output resolution and the noise or texture signature against the daytime edit."
+  },
+  {
+   "stage": "Declutter / removal / AI Re-Edit",
+   "hypothesis": "Object detection or segmentation followed by generative inpainting for declutter and removal, plus prompt-conditioned image editing for AI Re-Edit.",
+   "rationale": "Text prompts ('Open the pool'), a mask-plus-prompt AutoFill tool, a FAQ about removed lamps and fixtures, and free regenerations.",
+   "how_to_verify_black_box": "Stage known objects (cables, a yard sign, a tripod reflected in a mirror, lamps). Check what is removed and how plausible the fill is. Diff the decluttered output against the non-decluttered one to see whether pixels outside the removed regions are bit-identical (local inpainting) or changed (global regeneration). Repeat runs to measure how much the results vary."
+  },
+  {
+   "stage": "TV / fire / grass add-ons",
+   "hypothesis": "TV: screen detection plus a perspective-warped composite (deterministic). Fire: generative inpainting inside a detected firebox. Grass: lawn segmentation plus recolouring or texture synthesis.",
+   "rationale": "A custom image appears 'on every TV detected'. 'The fire effect is generated by its AI' and its appearance cannot be changed. A FAQ exists about toning down AI grass.",
+   "how_to_verify_black_box": "Upload a custom TV image with a fine grid and measure the homography fit and edge blending on angled TVs. Regenerate or re-upload to compare fire pixels between runs. Measure hue and saturation shift and texture change in lawn regions, and check for spill onto shrubs or pavement."
+  },
+  {
+   "stage": "Interior/exterior/aerial routing",
+   "hypothesis": "A scene classifier sends each image to the Indoor model, the Outdoor model ('Whispy') or the aerial path, and decides whether sky replacement runs.",
+   "rationale": "The settings have separate Indoor and Outdoor models and Interior and Exterior tabs. Single exposures get 'exterior or interior processing depending on the shot', and aerials are detected automatically.",
+   "how_to_verify_black_box": "Upload ambiguous scenes (covered porch, sunroom, interior dominated by a window, low drone shot) and compare tone and colour signatures against known interior and exterior outputs. Note whether sky replacement fires."
+  },
+  {
+   "stage": "Output encoding",
+   "hypothesis": "Output is 8-bit sRGB JPEG at a fixed quality, with EXIF possibly stripped or rewritten.",
+   "rationale": "MLS norms, the RAW-to-JPEG step, and 'same format' language. No vendor statement.",
+   "how_to_verify_black_box": "Run exiftool and ImageMagick identify on downloaded finals. Estimate JPEG quality from the quantization tables, and record chroma subsampling, ICC profile, EXIF and GPS retention, and pixel dimensions against the inputs, for JPEG, RAW and HEIC uploads."
+  }
+ ],
+ "example_image_urls": [
+  "https://www.tryautohdr.com/gallery",
+  "https://www.youtube.com/shorts/oxmMyzgeyS8",
+  "https://www.youtube.com/watch?v=F_JYpN3ashE",
+  "https://stagerai.com/alternatives/auto-hdr"
+ ],
+ "contradictions": [
+  "Lens correction for JPEG uploads: the FAQ says JPEG files get no lens correction, which happens only in the RAW-to-JPEG step (https://faq.autohdr.com/lens-corrections-raw-vs-jpeg). A knowledge-base snippet says 'Lens profile corrections are applied automatically to every upload and cannot be disabled' (https://knowledge.autohdr.com/sops/recommended-photography-settings, low confidence, attribution uncertain).",
+  "When a credit is charged: the FAQ says on first download, at 1 credit per photo (https://faq.autohdr.com/why-do-downloaded-photos-look-different-from-preview). The knowledge base says when the user enters Basic Adjustments or makes any edit (https://knowledge.autohdr.com/sops/uploading-photos).",
+  "Pricing: the pricing page shows Enterprise at $2,250 for 5,000 photos/mo (https://www.autohdr.com/pricing). Capterra lists Enterprise at $960 for 2,000 photos (https://www.capterra.com/p/10057968/AutoHDR/). The blog says 'as low as $0.40' per image, third parties say $0.50 to $1.50, and one listing cites $0.80 per extra credit (unconfirmed).",
+  "Turnaround: the FAQ says about 15 minutes per 40 photos plus a 20-minute integration wait (https://faq.autohdr.com/photo-shoot-processing-time). The blog says under 5 minutes, third parties say 20 to 30 minutes (https://www.photofounder.com/blog/autohdr-vs-imagen-ai), and the founder says '30 minutes' (https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md).",
+  "Market share: 25% of US listings in job postings (https://remotejobs.org/companies/autohdr), about 10% on Welcome to the Jungle, and 15% from the founder in February 2026, who also said 10% earlier in the same talk (https://github.com/SaitejaGudidevini/AutoHDR/blob/main/voice.md).",
+  "Virtual staging: AutoHDR's homepage and knowledge base list it (https://www.autohdr.com/; https://knowledge.autohdr.com/sops). Stager AI says AutoHDR does not offer it, and Imagen says staging needs a second tool (https://stagerai.com/alternatives/auto-hdr; https://imagen-ai.com/valuable-tips/imagen-vs-autohdr/). Both are competitors.",
+  "Bracket limits: 'as many as ten' (https://faq.autohdr.com/how-many-brackets-does-autohdr-support) against 'as many as you want', 1/3/5/7/9 (https://faq.autohdr.com/how-many-brackets-per-listing). Customer data shows groups of up to 25 frames, which are repeated sets of one angle (https://github.com/cloudspiral/autohdr-angle-grouper/blob/main/datasets/official-medium-v1.json). Up to 10 frames are accepted but only 3 are fused.",
+  "Grouping signal: the integrations worker guessed EXIF time gaps and EV sequence. The vendor says timestamps are not used (https://faq.autohdr.com/does-autohdr-auto-merge-hdr-brackets), and only about 31% of groups in the customer data carry EXIF.",
+  "Grouping challenge time limit: the README says 60 min, while SUBMISSION_GUIDE and submission.yaml say 30 min (cpu-large) and 45 min (cpu-xlarge) (https://github.com/AutoHDRHackathon/autohdr-challenge-starter/blob/main/SUBMISSION_GUIDE.md).",
+  "Grouping dataset: the advertised 500-image sample package holds 366 images, and the training packages are not resized to the advertised 1024 px maximum; only the hidden test set is (https://github.com/cloudspiral/autohdr-angle-grouper/blob/main/autohdr_codex_plan/RESULTS.md).",
+  "Output size: 'same dimensions and format they were uploaded in' (https://faq.autohdr.com/resize-multiple-sizes) against perspective correction that 'applies a slight crop' (https://faq.autohdr.com/settings-and-habits-bad-results), plus a 'Scale' setting that implies other output sizes.",
+  "Free AI Re-Edits: 'first three images per shoot' (https://faq.autohdr.com/ai-re-edit-cost) against 'first several photos of your shoot' (https://faq.autohdr.com/contact-about-glare-or-editing-issue).",
+  "TV and fire plan tier: the pricing page lists auto TV blackout and auto fire add-ins as Enterprise features (https://www.autohdr.com/pricing). The FAQ says Standard is enough for a custom TV image (https://faq.autohdr.com/custom-images-tvs-and-fire), and one third-party listing says Standard includes 'Auto TVs and Fire'.",
+  "Free credits: the free plan gives 10 photos/month (https://faq.autohdr.com/can-i-pay-as-you-go-without-a-plan), while Spiro's guide says new users get 30 free credits (https://support.spiro.media/en/articles/10750271-autohdr-setup-and-configuration-guide). The knowledge base also mentions a 'Basic' plan that the pricing page does not list.",
+  "Upload formats: direct upload accepts RAW and many formats (https://faq.autohdr.com/what-file-formats-does-autohdr-support), while the Spiro integration requires JPG of at most 50 MB.",
+  "Twilight cost: the 'Twilight model' for already-shot dusk photos costs 5 credits (https://faq.autohdr.com/can-i-upload-single-exposure-photos), while Virtual Twilight costs 5 plus 1 = 6 (https://faq.autohdr.com/why-virtual-twilight-costs-5-plus-1). These are probably two different products, not a true conflict.",
+  "Model framing: the FAQ says the pipeline is 'built around 3-bracket processing' (https://faq.autohdr.com/why-only-3-of-5-exposures-used), while the December 2025 hackathon framed the edit as one unedited image in, one human edit out (https://github.com/zerolatent/pixel-sorcery). It is unresolved whether fusion happens before or inside the edit model.",
+  "Style names: the homepage offers to 'select three styles or maintain the original'. The product worker read this as sky styles, the settings worker as HDR style presets. Documented models are Classic and Lisa, plus a 'Midnight Model' and an Outdoor 'Whispy', each mentioned once.",
+  "Architecture: a third party claims a 'proprietary Vision Transformer' (https://www.stork.ai/en/autohdr). No primary source supports it, and the founder says only 'we train these models from scratch' in 'complex pipelines'.",
+  "Identity: the GitHub account github.com/AutoHDR hosts unrelated academic face-normal repos and is not the company. The company's code is under AutoHDRHackathon and AutoHDR2025. The founder's talk transcript names no speaker, so attributing it to Matt Gia is an inference."
+ ]
+}
