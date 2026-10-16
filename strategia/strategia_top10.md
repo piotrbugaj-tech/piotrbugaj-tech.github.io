@@ -164,7 +164,21 @@ Playbook profili (potwierdzone dla Divisare): załóż konto autora z bio, lokal
 
 ### 3.2 Nagrody i konkursy (daty, opłaty i źródła: `nagrody_eventy.md`)
 
-<!-- UZUPEŁNIĆ: nagrody po researchu -->
+Zasada: konkurs ma wartość tylko wtedy, gdy laureaci dostają zasięg u Twoich klientów (architekci, marki, hotele) albo kuratorski prestiż (wystawa, książka). Większość „międzynarodowych nagród fotograficznych" to pay-to-play z setkami laureatów; omijaj je. Research potwierdził w tej sesji opłaty i terminy części konkursów (status w `nagrody_eventy.md`: potwierdzone / orientacyjnie / niezweryfikowane); 11 luk czeka na dokończenie.
+
+| Konkurs | Opłata | Termin 2026/27 | Wartość dla Ciebie | Decyzja |
+|---|---|---|---|---|
+| **Sony World Photography Awards 2027** (Series: Architecture & Design; Open: Architecture) | bezpłatne (potwierdzone) | Series: 12.01.2027, 16:00 GMT (potwierdzone); Open: 5.01.2027 (wg agregatora) | Wysoka: zero kosztu, największy zasięg medialny z całej listy, shortlista trafia do prasy ogólnej | **Zgłoś** serię 5–10 spójnych kadrów (najlepsze z 9 realizacji po uzyskaniu credits albo seria „Warsztat/Obiekty"); wpisz 12.01 do kalendarza już dziś |
+| **Architectural Photography Awards** (WAF / Sto) | niezweryfikowane (poprzednie edycje reklamowane jako bezpłatne) | 2026 prawdopodobnie zamknięta; 2027 orientacyjnie lato (nabór) → wystawa na WAF | Wysoka: jedyny duży konkurs stricte fotografii architektury z publicznością architektów (Ghinițoiu wygrał 2019) | **Zaplanuj** na lato 2027 z serią „Warszawski modernizm z ludźmi"; zasady sprawdź w maju 2027 |
+| **architekturbild** (Europejska Nagroda Fotografii Architektury, af architekturbild e.V.) | niezweryfikowane | biennale; edycja 2027: nabór orientacyjnie koniec 2026 – I kw. 2027 | Wysoka: prestiż kuratorski, wystawa w DAM Frankfurt, publikacja książkowa; jedyna „europejska" w nazwie | **Sprawdź nabór** w grudniu 2026; zgłaszać tylko serię tematyczną |
+| **Hasselblad Masters** (Architecture) | bezpłatne (potwierdzone, edycja 2026) | edycja 2026 zamknięta 28.02.2026; następny cykl nieogłoszony | Średnia/Wysoka: prestiż w branży foto, nagroda sprzętowa + 5 000 EUR, mniejszy zasięg u architektów | Monitoruj ogłoszenie cyklu; zgłoś, jeśli otworzy się w 2027 |
+| **Architizer Vision Awards** (fotografia architektury) | 375 USD (potwierdzone dla extended deadline 2026) | 2027: orientacyjnie wiosna–lipiec | Średnia/Wysoka: zasięg wśród biur architektonicznych, ale płatne i wielu laureatów | Rok 2, tylko z serią, która ma już publikację |
+| **Dezeen Awards, Frame Awards, AHEAD, Architizer A+** | płatne; zgłaszają pracownie, hotele, marki | Dezeen: brak kategorii fotograficznej; Frame 2026: zwycięzcy 22.10.2026; AHEAD Europe: gala 26.11.2026 Londyn (potwierdzone) | Pośrednia: Twoje zdjęcia trafiają do jury i do mediów ze zgłoszeniem klienta; Frame wymaga credits fotografa przy każdym zdjęciu | **Dostarczaj klientom pakiet pod zgłoszenia** (kadry, credits, tekst) i proś o wpisanie nazwiska; przejrzyj shortlistę AHEAD przed 26.11 i napisz do pracowni z CEE |
+| **Arcaid Images Awards** | – | nieaktywny (ostatnia potwierdzona edycja 2017) | – | Nie zgłaszaj; pomyłka w wielu poradnikach |
+| **IPA, PX3, TIFA, Global Photography Awards, Fine Art Photography Awards, AMP Photography, LensCulture, Siena** | płatne (PX3 2026: 20–40 EUR non-pro; Fine Art 2027: 19–29 USD; AMP: 42 EUR pro; Siena: 1 zdjęcie bezpłatnie) | cyklicznie | Niska: publiczność fotograficzna lub pay-to-play; brak zasięgu u architektów i marek | Pomiń. Wyjątek: Siena jako tani test serii, bez wpisywania do bio |
+| **Konkursy polskie** | – | – | Dedykowanego profesjonalnego konkursu fotografii architektury nie znaleziono (status: niezweryfikowane wyczerpująco); „Życie w Architekturze" i Nagroda Architektoniczna Polityki nagradzają budynki, nie zdjęcia | Twoje nazwisko ma być w zgłoszeniach pracowni (credits), nie w osobnym konkursie |
+
+Budżet nagród: 2 zgłoszenia rocznie (Sony + APA lub architekturbild), koszt bliski zeru; czas: 1 dzień na przygotowanie serii i tekstu. Wszystko inne to zakup dyplomu.
 
 ### 3.3 Biura PR, agencje, redaktorzy, syndykacja
 
@@ -186,7 +200,28 @@ Playbook profili (potwierdzone dla Divisare): załóż konto autora z bio, lokal
 
 ### 3.5 Targi i wydarzenia (daty i źródła: `nagrody_eventy.md`)
 
-<!-- UZUPEŁNIĆ: eventy po researchu -->
+Zasada: targi są dla relacji, nie dla sprzedaży; bez zina (24 strony, 3 serie) i 10 spotkań umówionych 3 tygodnie wcześniej wyjazd jest turystyką. Limit: 3 wyjazdy zagraniczne i 2 krajowe w 2027. Daty poniżej są w większości „orientacyjnie" (regularny cykl; dokładne dni na stronach oficjalnych, których nie dało się pobrać w tej sesji); jedyna potwierdzona to gala AHEAD.
+
+| Priorytet | Wydarzenie | Kiedy | Status daty | Po co jechać | Przygotowanie |
+|---|---|---|---|---|---|
+| 1 | **Salone del Mobile + Euroluce + Fuorisalone**, Mediolan | kwiecień 2027 (2.–3. tydzień) | orientacyjnie | Euroluce (lata nieparzyste) = największe zagęszczenie marek oświetleniowych w Europie; showroomy w Brerze; instalacje marek w hotelach | 10–15 spotkań z markami z listy (Brokis, Lasvit, AQForm, Vibia, Northern, e15, Frama) umówionych w marcu; zine; 2 dni w Brerze, 1 dzień Rho |
+| 1 | **3daysofdesign**, Kopenhaga | czerwiec 2027 (3. tydzień) | orientacyjnie | Najbardziej kameralne targi: brand managerowie HAY, Muuto, Audo, Frama, Woud, Vipp w swoich showroomach, bez stoisk | Spotkania z 5 markami nordyckimi z listy; wizyta w Vipp Guesthouses i Hotel Sanders (cele hotelowe) |
+| 1 | **Stockholm Furniture Fair**, Sztokholm | luty 2027 (1.–2. tydzień) | orientacyjnie | Marki nordyckie realizują sesje w całej Europie; pitch „lokalny fotograf w CEE"; Note Design Studio na miejscu | 5 spotkań (Northern, Massproductions, Wästberg, Note); Ett Hem jako cel hotelowy |
+| 1 (PL) | **4 Design Days + Property Design Awards**, Katowice | styczeń–luty 2027 | orientacyjnie / niezweryfikowane | Inwestor + architekt + hotel w jednym miejscu; najtańszy dostęp do polskiego rynku hotelowego (Arche, PURO, Mistovia jest z Katowic) | Lista 10 osób do spotkania z `klienci_50.md`; wydruk 3 case studies |
+| 1 (PL) | **Arena Design / Meble Polska**, Poznań | luty–marzec 2027 | orientacyjnie | Producenci eksportowi (Noti, Paged, Comforty, Nobonobo, Profim); możliwa rola wystawcy-projektanta | Zgłoś obiekt CNC do strefy designu (regulamin: sprawdź w XI 2026); spotkania z działami marketingu |
+| 2 (PL) | **Warsaw Home & Living**, Nadarzyn | październik 2027 (edycja 2026 prawdopodobnie minęła) | orientacyjnie | Kilkadziesiąt polskich marek w jeden dzień; redakcje PL (Label, Design Alive, Whitemad) na miejscu | Zine + 5 spotkań z redakcjami |
+| 2 | **Independent Hotel Show**, Amsterdam / Londyn | marzec 2027 (Amsterdam) / październik 2027 (Londyn) | orientacyjnie | Właściciele hoteli niezależnych = klient końcowy; w Amsterdamie mniejsza konkurencja fotografów | Mini-portfolio hotelowe (seria „Pokój hotelowy 24 h"); Amsterdam łączony ze Studio Modijefsky i Framework |
+| 2 | **Designblok**, Praga | październik 2027 | orientacyjnie | Czeskie marki oświetleniowe i meblowe (Brokis, Lasvit, TON, Master & Master) 5 h od Warszawy | 4 spotkania; łączyć z The Julius Prague |
+| 2 | **AHEAD Europe, gala**, Londyn | 26.11.2026 | potwierdzone | Nie jedź: przejrzyj shortlistę po publikacji i napisz do pracowni z CEE, które się na niej znajdą | 1 h w tygodniu publikacji shortlisty |
+| 2 | **Sleep + Eat**, Londyn | listopad 2026 (połowa) | orientacyjnie | Studia projektujące hotele, pokoje konceptowe | Tylko, jeśli masz już 3 case studies hotelowe; inaczej 2027 |
+| 3 | **Clerkenwell Design Week**, Londyn | maj 2027 (3.–4. tydzień) | orientacyjnie | Marki kontraktowe, showroomy | Rok 2 |
+| 3 | **Maison&Objet**, Paryż | styczeń 2027 (3. tydzień); wrzesień 2027 | orientacyjnie | Sektor Hospitality/Contract; marki francuskie | Rok 2; Experimental Group i CHZON jako cele |
+| 3 | **ORGATEC**, Kolonia | 20–23.10.2026 (lata parzyste) | orientacyjnie | Polskie marki biurowe wystawiają masowo (Profim/Flokk, Noti kontrakt) | Za 4 dni: jedź tylko, jeśli masz już umówione 3 spotkania; inaczej 2028 |
+| 3 | **Łódź Design Festival**, **Gdynia Design Days** | maj 2027 / lipiec 2027 | orientacyjnie | Jako wystawca-projektant (obiekt CNC) i networking z markami PL; nabory zwykle kilka miesięcy wcześniej [unverified] | Zgłoszenie obiektu: sprawdź regulaminy w XII 2026 |
+| 3 | **Open House Warszawa** | termin 2026/27 niezweryfikowany | niezweryfikowane | Pretekst do kontaktu z biurami i deweloperami (zaproponuj fotografowanie obiektów festiwalu) | Mail do organizatora z ofertą dokumentacji |
+| – | imm cologne 2027 (status po odwołaniu edycji 2026 niepewny), Dutch Design Week, Vienna Design Week, Budapest Design Week, Biennale w Wenecji 2027 (portfolio, nie klienci), World Architecture Festival 2026 (miasto niezweryfikowane; wystawa APA) | – | – | Niski priorytet dla Twoich klientów | – |
+
+Kalendarz miesięczny X 2026 → X 2027 z terminami konkursów i wydarzeń jest w `nagrody_eventy.md` (sekcja „Kalendarz 12 miesięcy"). Wpisz go do kalendarza w tym tygodniu (działanie 7 z sekcji 5).
 
 ### 3.6 SEO i strona
 
@@ -450,5 +485,6 @@ Do dokończenia (kolejna wiadomość w tej sesji odnawia limit wyszukiwań):
 1. `media.md`: 13 wierszy „nie sprawdzono" (Casa Vogue, Living, Interni, BauNetz, Schöner Wohnen, Dear, Architizer, Archello, Label, Design Alive, Architektura-murator, Whitemad, Magazif) + 4 „unverified" (AD, Elle Decoration Polska, Abitare, Cereal) + ukryte adresy Divisare photo reports i Sight Unseen.
 2. `klienci_50.md`: adresy ogólne (office@/press@/formularz) 17 pracowni i 15 hoteli z oficjalnych stron; credits dla Mistovia, Owsiany, Mesura, Note, Mobius; projekty 2024–26 dla 6 pracowni EU; 5 marek „unverified" (Chors, TON, Javorina, Frama, Woud).
 3. `fotografowie_uzupelnienie.md`: VIEW Pictures, Taverne, GAP Interiors, Narratives, TAKE Agency, reprezentacja na salvalopez.com (Rocafort / Artist Management), nazwa agencji Guerry (podana wcześniej jako „FAB PICS" nie została odnaleziona).
-4. Audyt: Core Web Vitals, wizualna ocena zdjęć, indeksacja, pozostałe podstrony live.
-5. Konkurencja PL do zmapowania przed pozycjonowaniem (nazwiska z credits w researchu, bez weryfikacji ich ofert): Pion Studio, Oni Studio, Mood Authors, Yassen Hristov, Juliusz Sokołowski, Karolina Bąk, Paweł Ulatowski, Piotr Maciaszek, Kasia Gatkowska, Patryk Lewiński.
+4. `nagrody_eventy.md`: 11 luk (zasady i opłata APA 2027, miasto WAF 2026, temat/termin/opłata architekturbild 2027, opłaty IPA i TIFA, dokładne daty targów 2027: Salone/Euroluce, Maison&Objet, Stockholm, 3daysofdesign, Clerkenwell, Arena Design, Łódź, Gdynia, Open House Warszawa, Independent Hotel Show, Sleep + Eat; status imm cologne 2027; konferencje hotelowe PL).
+5. Audyt: Core Web Vitals, wizualna ocena zdjęć, indeksacja, pozostałe podstrony live.
+6. Konkurencja PL do zmapowania przed pozycjonowaniem (nazwiska z credits w researchu, bez weryfikacji ich ofert): Pion Studio, Oni Studio, Mood Authors, Yassen Hristov, Juliusz Sokołowski, Karolina Bąk, Paweł Ulatowski, Piotr Maciaszek, Kasia Gatkowska, Patryk Lewiński.
