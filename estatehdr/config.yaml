@@ -38,8 +38,10 @@ align:
   # (log. iloraz wiarygodności > auto_llr, czyli > 20:1) i modele różnią się w rogu o > auto_min_px
   # (pełna rozdzielczość). Sama homografia z ECC bywa fałszywa (przepalenia, szum, ruchome obiekty);
   # perspektywa jest globalna, ruchomy obiekt lokalny: dowód liczony też w siatce auto_grid x auto_grid
-  # pól kadru - bez najkorzystniejszego pola nadal > auto_llr i żadne pole nie przemawia za modelem
-  # afinicznym silniej niż auto_llr (raport: align[].model_select.cell_llr);
+  # pól kadru - pola, w których dopasowania przesuwają się wzdłuż różnicy modeli dużo bardziej niż
+  # w reszcie kadru (ruchomy obiekt, za którym homografia częściowo podąża), są pomijane, a reszta
+  # dowodu musi przekraczać auto_llr także bez najkorzystniejszego pola
+  # (raport: align[].model_select: llr_rest, local_cells, cell_llr, cell_beta);
   # oba etapy ECC liczą się w modelu wybranym dla klatki (raport: align[].model)
   model: auto
   auto_llr: 3.0

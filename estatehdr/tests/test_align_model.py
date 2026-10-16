@@ -102,7 +102,7 @@ def test_auto_ignores_moving_object(M, region, shift):
     info, e = _align(M, "auto", region=region, shift=shift)
     assert info["model"] == "affine", info
     sel = info["model_select"]
-    assert sel["llr_rest"] <= 3.0 or sel["cell_llr_min"] <= -3.0, sel  # the regional test rejected it
+    assert sel["llr_rest"] <= 3.0, sel  # the regional test rejected it
     _, e_aff = _align(M, "affine", region=region, shift=shift)
     assert np.allclose(e, e_aff), (e.mean(), e_aff.mean())  # auto = the affine result on the static scene
 
