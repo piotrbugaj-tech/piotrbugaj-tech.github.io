@@ -1,0 +1,63 @@
+{
+ "what": "tryb jednej klatki na 104 gotowych zdjęciach portfolio (config.yaml po kalibracji), porównanie wyniku z wejściem",
+ "ok": 104,
+ "failed": 0,
+ "seconds": 501.9,
+ "workers": 2,
+ "metrics": {
+  "ssim": {
+   "median": 0.967,
+   "mean": 0.947,
+   "p10": 0.885,
+   "p90": 0.979
+  },
+  "ms_ssim": {
+   "median": 0.948,
+   "mean": 0.937,
+   "p10": 0.904,
+   "p90": 0.965
+  },
+  "grad_ssim": {
+   "median": 0.94,
+   "mean": 0.91,
+   "p10": 0.8,
+   "p90": 0.959
+  },
+  "dE_ref": {
+   "median": 4.568,
+   "mean": 4.897,
+   "p10": 3.464,
+   "p90": 6.347
+  },
+  "wall_dE_auto": {
+   "median": 2.092,
+   "mean": 2.485,
+   "p10": 1.461,
+   "p90": 3.686
+  },
+  "median_luma": {
+   "median": 0.685,
+   "mean": 0.671,
+   "p10": 0.566,
+   "p90": 0.745
+  },
+  "clipped_excl_%": {
+   "median": 0.318,
+   "mean": 0.512,
+   "p10": 0.005,
+   "p90": 1.149
+  },
+  "crushed_%": {
+   "median": 0.102,
+   "mean": 0.12,
+   "p10": 0.005,
+   "p90": 0.27
+  },
+  "vert_med_deg": {
+   "median": 0.189,
+   "mean": 0.422,
+   "p10": 0.063,
+   "p90": 0.846
+  }
+ }
+}
