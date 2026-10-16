@@ -1,71 +1,66 @@
 {
  "machine": "4 rdzenie CPU, bez GPU (OpenCL niedostępny), 15 GB RAM",
  "series": {
-  "3x24Mpx": {
+  "3x24Mpx JPEG": {
    "frames": 3,
    "width": 6000,
    "height": 4000,
-   "seconds": 79.3,
-   "peak_rss_gb": 2.25,
+   "seconds": 79.4,
+   "peak_rss_gb": 2.26,
    "timings": {
-    "load": 3.546,
-    "align": 22.24,
-    "merge": 11.739,
-    "lens": 2.416,
-    "windows": 0.668,
-    "white_balance": 3.105,
-    "tonemap": 26.317,
-    "denoise": 0.201,
-    "modules": 0.0,
-    "geometry": 5.944,
-    "export": 3.009
-   },
-   "peak_rss_gb_after_stage": {
-    "load": 0.44,
-    "align": 0.94,
-    "merge": 1.47,
-    "lens": 1.47,
-    "windows": 1.47,
-    "white_balance": 1.47,
-    "tonemap": 2.25,
-    "denoise": 2.25,
-    "modules": 2.25,
-    "geometry": 2.25,
-    "export": 2.25
+    "load": 3.1,
+    "align": 21.1,
+    "merge": 12.3,
+    "lens": 2.6,
+    "windows": 0.6,
+    "white_balance": 3.7,
+    "tonemap": 25.8,
+    "denoise": 0.2,
+    "modules": 0.6,
+    "geometry": 6.5,
+    "export": 2.8
    },
    "device": "cpu"
   },
-  "3x60Mpx": {
+  "3x60Mpx JPEG": {
    "frames": 3,
    "width": 9504,
    "height": 6336,
-   "seconds": 136.8,
-   "peak_rss_gb": 2.71,
+   "seconds": 147.2,
+   "peak_rss_gb": 2.73,
    "timings": {
-    "load": 3.268,
-    "align": 21.582,
-    "merge": 34.539,
-    "lens": 2.783,
-    "windows": 0.672,
-    "white_balance": 4.884,
-    "tonemap": 42.492,
-    "denoise": 0.327,
-    "modules": 0.0,
-    "geometry": 18.241,
-    "export": 7.709
+    "load": 4.1,
+    "align": 21.6,
+    "merge": 33.5,
+    "lens": 3.1,
+    "windows": 0.8,
+    "white_balance": 7.5,
+    "tonemap": 45.1,
+    "denoise": 0.4,
+    "modules": 0.8,
+    "geometry": 22.7,
+    "export": 7.3
    },
-   "peak_rss_gb_after_stage": {
-    "load": 0.74,
-    "align": 1.24,
-    "merge": 2.71,
-    "lens": 2.71,
-    "windows": 2.71,
-    "white_balance": 2.71,
-    "tonemap": 2.71,
-    "denoise": 2.71,
-    "modules": 2.71,
-    "geometry": 2.71,
-    "export": 2.71
+   "device": "cpu"
+  },
+  "3x60Mpx TIFF 16-bit": {
+   "frames": 3,
+   "width": 9504,
+   "height": 6336,
+   "seconds": 148.6,
+   "peak_rss_gb": 3.31,
+   "timings": {
+    "load": 5.0,
+    "align": 21.9,
+    "merge": 33.5,
+    "lens": 2.9,
+    "windows": 0.8,
+    "white_balance": 5.6,
+    "tonemap": 43.3,
+    "denoise": 0.3,
+    "modules": 0.7,
+    "geometry": 20.0,
+    "export": 7.2
    },
    "device": "cpu"
   }

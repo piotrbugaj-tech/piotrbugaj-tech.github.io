@@ -59,10 +59,18 @@ def load(cfg_path, preset):
     return C.load_config(cfg_path, preset)
 
 
-def run(cfg_path, preset, inp, out, gt_root):
-    shutil.rmtree(out, ignore_errors=True)
-    cfg = load(cfg_path, preset)
-    run_batch(inp, out, cfg)
+def _done(out):
+    try:
+        with open(os.path.join(out, "report.json"), encoding="utf-8") as fh:
+            return json.load(fh).get("complete", True)
+    except (OSError, ValueError):
+        return False
+
+
+def run(cfg_path, preset, inp, out, gt_root, reuse=False):
+    if not (reuse and _done(out)):
+        shutil.rmtree(out, ignore_errors=True)
+        run_batch(inp, out, load(cfg_path, preset))
     gt_map = synthetic_gt_map(gt_root, out) if gt_root else None
     q = evaluate_output_dir(out, gt_map)
     with open(os.path.join(out, "quality.json"), "w", encoding="utf-8") as fh:
@@ -78,6 +86,7 @@ def main():
     ap.add_argument("--after", default=None)
     ap.add_argument("--preset", default="neutral")
     ap.add_argument("--work", default="output/compare_configs")
+    ap.add_argument("--reuse", action="store_true", help="re-evaluate finished outputs in --work instead of re-running")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     md = ["# Pełny pipeline przed / po kalibracji", "",
@@ -85,8 +94,8 @@ def main():
           "Ten sam kod, różnią się tylko parametry.", ""]
     summary = {}
     for preset in [p.strip() for p in a.preset.split(",") if p.strip()]:
-        qb = run(a.before, preset, a.input, os.path.join(a.work, preset, "before"), a.synthetic_gt)
-        qa = run(a.after, preset, a.input, os.path.join(a.work, preset, "after"), a.synthetic_gt)
+        qb = run(a.before, preset, a.input, os.path.join(a.work, preset, "before"), a.synthetic_gt, a.reuse)
+        qa = run(a.after, preset, a.input, os.path.join(a.work, preset, "after"), a.synthetic_gt, a.reuse)
         md += section(preset, qb, qa, summary)
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     with open(a.out, "w", encoding="utf-8") as fh:

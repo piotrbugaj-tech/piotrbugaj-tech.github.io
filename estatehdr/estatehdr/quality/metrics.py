@@ -215,32 +215,68 @@ def lpips_distance(a: np.ndarray, b: np.ndarray) -> float | None:
         return None
 
 
-def register(src: np.ndarray, ref: np.ndarray, max_side: int = 1600) -> tuple[np.ndarray, np.ndarray]:
-    """Warp src onto ref (homography from SIFT matches on luminance) for pairwise metrics.
-    Returns (warped_src, valid_mask) in ref geometry."""
+def _homography(src: np.ndarray, ref: np.ndarray, max_side: int, thr: float):
     a, sa = resize_max(src, max_side)
     b, sb = resize_max(ref, max_side)
-    ga = np.clip((a @ LUMA) * 255, 0, 255).astype(np.uint8)
-    gb = np.clip((b @ LUMA) * 255, 0, 255).astype(np.uint8)
-    ga = cv2.createCLAHE(2.0, (8, 8)).apply(ga)
-    gb = cv2.createCLAHE(2.0, (8, 8)).apply(gb)
+    ga = cv2.createCLAHE(2.0, (8, 8)).apply(np.clip((a @ LUMA) * 255, 0, 255).astype(np.uint8))
+    gb = cv2.createCLAHE(2.0, (8, 8)).apply(np.clip((b @ LUMA) * 255, 0, 255).astype(np.uint8))
     sift = cv2.SIFT_create(5000)
     ka, da = sift.detectAndCompute(ga, None)
     kb, db = sift.detectAndCompute(gb, None)
-    h, w = ref.shape[:2]
     if da is None or db is None or len(ka) < 8 or len(kb) < 8:
-        return cv2.resize(src, (w, h)), np.ones((h, w), bool)
+        return None
     m = cv2.BFMatcher(cv2.NORM_L2).knnMatch(da, db, k=2)
     good = [x for x, y in (p for p in m if len(p) == 2) if x.distance < 0.75 * y.distance]
     if len(good) < 8:
-        return cv2.resize(src, (w, h)), np.ones((h, w), bool)
+        return None
     pa = np.float32([ka[g.queryIdx].pt for g in good]) / sa
     pb = np.float32([kb[g.trainIdx].pt for g in good]) / sb
-    Hm, _ = cv2.findHomography(pa, pb, cv2.RANSAC, 3.0)
-    if Hm is None:
+    Hm, _ = cv2.findHomography(pa, pb, cv2.RANSAC, thr)
+    return Hm
+
+
+def _structure_score(src: np.ndarray, ref: np.ndarray, Hm) -> float:
+    """Correlation of gradient magnitudes after warping (tone-independent agreement), at 512 px.
+    Hm maps full-resolution src pixels to ref pixels (None = identity)."""
+    s = 512.0 / max(ref.shape[:2])
+    S = np.diag([s, s, 1.0])
+    rs = cv2.resize(ref, None, fx=s, fy=s, interpolation=cv2.INTER_AREA)
+    src_s = cv2.resize(src, None, fx=s, fy=s, interpolation=cv2.INTER_AREA)
+    Hs = S @ (np.eye(3) if Hm is None else Hm) @ np.linalg.inv(S)
+    h, w = rs.shape[:2]
+    wsrc = cv2.warpPerspective(src_s, Hs, (w, h), flags=cv2.INTER_LINEAR)
+    valid = cv2.warpPerspective(np.ones(src_s.shape[:2], np.uint8), Hs, (w, h)) > 0
+    valid = cv2.erode(valid.astype(np.uint8), np.ones((5, 5), np.uint8)).astype(bool)
+    if valid.mean() < 0.3:
+        return -1.0
+
+    def gm(x):
+        y = (x @ LUMA).astype(np.float32)
+        return np.hypot(cv2.Sobel(y, cv2.CV_32F, 1, 0), cv2.Sobel(y, cv2.CV_32F, 0, 1))
+    a, b = gm(wsrc)[valid], gm(rs)[valid]
+    return float(np.corrcoef(a, b)[0, 1]) if a.std() > 0 and b.std() > 0 else -1.0
+
+
+def register(src: np.ndarray, ref: np.ndarray, max_side: int = 1600) -> tuple[np.ndarray, np.ndarray]:
+    """Warp src onto ref (homography from SIFT matches on luminance) for pairwise metrics.
+    Several candidates (resolutions, RANSAC thresholds; repetitive textures such as window grids
+    or floor boards can fool one of them) are scored by structural agreement and the best is
+    used.  Returns (warped_src, valid_mask) in ref geometry."""
+    h, w = ref.shape[:2]
+    cands = []
+    for side, thr in ((max_side, 3.0), (1000, 3.0), (700, 5.0)):
+        Hm = _homography(src, ref, min(side, max_side), thr)
+        if Hm is not None and np.all(np.isfinite(Hm)):
+            cands.append(Hm)
+    best, best_score = None, _structure_score(src, ref, None) if src.shape[:2] == ref.shape[:2] else -1.0
+    for Hm in cands:
+        sc = _structure_score(src, ref, Hm)
+        if sc > best_score + 1e-6:
+            best, best_score = Hm, sc
+    if best is None:
         return cv2.resize(src, (w, h)), np.ones((h, w), bool)
-    warped = cv2.warpPerspective(src, Hm, (w, h), flags=cv2.INTER_LINEAR)
-    valid = cv2.warpPerspective(np.ones(src.shape[:2], np.uint8), Hm, (w, h), flags=cv2.INTER_NEAREST) > 0
+    warped = cv2.warpPerspective(src, best, (w, h), flags=cv2.INTER_LINEAR)
+    valid = cv2.warpPerspective(np.ones(src.shape[:2], np.uint8), best, (w, h), flags=cv2.INTER_NEAREST) > 0
     valid = cv2.erode(valid.astype(np.uint8), np.ones((7, 7), np.uint8)).astype(bool)
     return warped, valid
 

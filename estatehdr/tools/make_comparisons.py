@@ -47,6 +47,7 @@ def main():
     ap.add_argument("--out", default="reports/comparisons")
     ap.add_argument("--work", default="output/comparisons")
     ap.add_argument("--width", type=int, default=560)
+    ap.add_argument("--reuse", action="store_true", help="re-evaluate finished outputs in --work instead of re-running")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     tables = {p: {} for p in PRESETS}
@@ -62,9 +63,15 @@ def main():
                      if os.path.splitext(f)[0] in PORTFOLIO_PICK]
         for preset in PRESETS:
             out = os.path.join(a.work, preset, set_name)
-            shutil.rmtree(out, ignore_errors=True)
-            cfg = load_config(None, preset, overrides)
-            rep = run_batch(None if files else folder, out, cfg, files=files)
+            rep = None
+            if a.reuse and os.path.exists(os.path.join(out, "report.json")):
+                with open(os.path.join(out, "report.json"), encoding="utf-8") as fh:
+                    rep = json.load(fh)
+                rep = rep if rep.get("complete", True) else None
+            if rep is None:
+                shutil.rmtree(out, ignore_errors=True)
+                cfg = load_config(None, preset, overrides)
+                rep = run_batch(None if files else folder, out, cfg, files=files)
             gt_map = synthetic_gt_map(gt_root, out) if gt_root else None
             q = evaluate_output_dir(out, gt_map, max_side=2048)
             for s in rep["series"]:
