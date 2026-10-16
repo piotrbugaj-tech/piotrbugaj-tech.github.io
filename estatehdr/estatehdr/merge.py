@@ -17,6 +17,7 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
+from . import accel
 from .imgutil import chmax, chmin, luminance
 
 log = logging.getLogger(__name__)
@@ -197,7 +198,7 @@ def _frame_strip(f, y0, y1, W):
         if sy1 <= sy0:
             sy0, sy1 = 0, img.shape[0]
         T2 = np.array([[1, 0, 0], [0, 1, -sy0], [0, 0, 1]], np.float64)
-        sub = cv2.warpPerspective(img[sy0:sy1], T2 @ Hs, (W, y1 - y0),
+        sub = accel.cv(cv2.warpPerspective, img[sy0:sy1], T2 @ Hs, (W, y1 - y0),
                                   flags=cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP, borderMode=cv2.BORDER_REPLICATE)
     if f.lut is not None:
         return f.lut[sub]

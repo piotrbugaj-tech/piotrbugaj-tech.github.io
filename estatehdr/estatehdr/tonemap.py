@@ -23,6 +23,7 @@ import cv2
 import numpy as np
 from scipy.interpolate import PchipInterpolator
 
+from . import accel
 from .imgutil import (LUMA, box, chmax, chmin, guided_filter, linear_to_srgb, luminance, resize_max, resize_rows,
                       row_strips, srgb_to_linear)
 
@@ -190,7 +191,8 @@ def tone_map(radiance: np.ndarray, cfg: dict, window_mask: np.ndarray | None = N
             # areas clipped even in the darkest frame carry no information: clean white with a
             # soft edge instead of jagged, colour-fringed plateaus (blur padded across strips)
             a0, a1 = max(0, r0 - cpad), min(H, r1 + cpad)
-            c = cv2.GaussianBlur(np.ascontiguousarray(clipped[a0:a1], np.float32), (0, 0), csig)[r0 - a0:r1 - a0]
+            c = accel.cv(cv2.GaussianBlur, np.ascontiguousarray(clipped[a0:a1], np.float32), (0, 0),
+                         csig)[r0 - a0:r1 - a0]
             c = np.clip((c - 0.25) / 0.5, 0, 1)
             c = (c * c * (3 - 2 * c))[..., None]
             o = o * (1 - c) + c

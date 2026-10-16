@@ -35,8 +35,9 @@ def load_rgb(path: str, max_side: int | None = None) -> np.ndarray:
 
 
 def evaluate_image(img: np.ndarray, reference: np.ndarray | None = None, labels: np.ndarray | None = None,
-                   unrecoverable_frac: float = 0.0) -> dict:
-    """img/reference: sRGB float [0,1]; labels (synthetic GT) in reference geometry."""
+                   unrecoverable_frac: float = 0.0, window_unrecoverable_pct: float | None = None) -> dict:
+    """img/reference: sRGB float [0,1]; labels (synthetic GT) in reference geometry.
+    window_unrecoverable_pct: % of the window view clipped even in the darkest frame (GT)."""
     out = {"histogram": M.histogram_stats(img), "verticality": M.verticality(img),
            "noise_sigma": M.noise_sigma(img), "sharpness": M.sharpness(img)}
     h = out["histogram"]
@@ -55,6 +56,10 @@ def evaluate_image(img: np.ndarray, reference: np.ndarray | None = None, labels:
             out["neutrality_walls_gt"] = M.neutrality(warped, walls)
             win = (lab == WINDOW_LABEL) & valid
             out["windows_gt"] = M.window_metrics(warped, win, reference)
+            if window_unrecoverable_pct is not None and out["windows_gt"].get("clipped_pct") is not None:
+                out["windows_gt"]["unrecoverable_pct"] = window_unrecoverable_pct
+                out["windows_gt"]["clipped_recoverable_pct"] = max(
+                    0.0, out["windows_gt"]["clipped_pct"] - window_unrecoverable_pct)
             out["halo_windows"] = M.halo_index(warped, (lab == WINDOW_LABEL))
             lamps = (lab == LAMP_LABEL)
             lamps = cv2.dilate(lamps.astype(np.uint8), np.ones((25, 25), np.uint8)).astype(bool)
@@ -75,10 +80,13 @@ def summarize(res: dict) -> dict:
          "sharpness": res["sharpness"]}
     if "neutrality_walls_gt" in res:
         s["wall_dE_gt"] = res["neutrality_walls_gt"].get("delta_e_mean")
+        s["wall_L_gt"] = res["neutrality_walls_gt"].get("L_median")
     if "windows_gt" in res:
         w = res["windows_gt"]
-        s["win_L"] = w.get("L_mean")
+        s["win_L"] = w.get("L_mean_unclipped", w.get("L_mean"))
         s["win_clip_%"] = w.get("clipped_pct")
+        if "clipped_recoverable_pct" in w:
+            s["win_clip_recov_%"] = w["clipped_recoverable_pct"]
         s["win_detail_ratio"] = w.get("detail_ratio_vs_ref")
     if "halo_windows" in res:
         s["halo_dL"] = res["halo_windows"].get("halo_dL")
@@ -90,6 +98,27 @@ def summarize(res: dict) -> dict:
         s["dE_ref"] = r["de_mean"]
         s["lpips"] = r["lpips"]
     return s
+
+
+def window_unrecoverable(gt_dir: str, frame_paths: list[str]) -> float | None:
+    """% of the GT window area clipped in the darkest frame of the series (capture geometry)."""
+    lp = os.path.join(gt_dir, "labels_capture.png")
+    if not os.path.exists(lp) or not frame_paths:
+        return None
+    lab = cv2.imread(lp, cv2.IMREAD_GRAYSCALE)
+    win = lab == WINDOW_LABEL
+    if win.sum() < 50:
+        return None
+    from ..io.metadata import read_metadata
+    from ..io.reader import decode
+    metas = [read_metadata(p) for p in frame_paths]
+    evs = [m.exposure_value for m in metas]
+    if any(e is None for e in evs):
+        return None
+    m = metas[int(np.argmin(evs))]
+    d = decode(m.path, m.orientation)
+    im = cv2.resize(d.as_float(), (lab.shape[1], lab.shape[0]), interpolation=cv2.INTER_AREA)
+    return float(100 * (im.max(-1)[win] >= 0.98).mean())
 
 
 def evaluate_output_dir(out_dir: str, gt_map: dict | None = None, pairs_dir: str | None = None,
@@ -106,7 +135,12 @@ def evaluate_output_dir(out_dir: str, gt_map: dict | None = None, pairs_dir: str
             continue
         img = load_rgb(s["outputs"][size]["path"], max_side)
         ref = labels = None
+        win_unrec = None
         if gt_map and s["name"] in gt_map:
+            try:
+                win_unrec = window_unrecoverable(gt_map[s["name"]], s.get("files", []))
+            except Exception:
+                win_unrec = None
             gdir = gt_map[s["name"]]
             rp = os.path.join(gdir, "reference_ideal.png")
             if os.path.exists(rp):
@@ -118,7 +152,7 @@ def evaluate_output_dir(out_dir: str, gt_map: dict | None = None, pairs_dir: str
             if cand:
                 ref = load_rgb(os.path.join(pairs_dir, sorted(cand)[0]), max_side)
         unrec = float(s.get("merge", {}).get("darkest_clipped_frac", 0.0) or 0.0)
-        res = evaluate_image(img, ref, labels, unrec)
+        res = evaluate_image(img, ref, labels, unrec, win_unrec)
         res["summary"] = summarize(res)
         results[s["name"]] = res
     return results

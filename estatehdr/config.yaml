@@ -7,7 +7,7 @@ preset: neutral
 runtime:
   workers: auto            # liczba równoległych serii: auto = wg CPU i pamięci
   memory_limit_gb: auto    # budżet RAM dla całego batcha (auto = 75% dostępnej)
-  device: auto             # auto | cpu | gpu (gpu: CuPy / ONNX CUDA, jeśli zainstalowane)
+  device: auto             # auto | cpu | gpu: GPU przez OpenCL (OpenCV T-API) dla remapu, warpów i filtrów; bez OpenCL -> CPU
   opencv_threads: auto
   analysis_max_side: 1600  # rozdzielczość analizy (maski, transformacje, tone mapping bazowy)
 
@@ -71,8 +71,8 @@ white_balance:
   target_cct: 6000         # docelowa biel (K); ~6000 = lekko ciepła neutralna
   max_global_shift: 0.45
   mixed_light_strength: 0.85
-  max_local_shift: 0.7     # max lokalna zmiana chromatyczności (log)
-  grid: 48
+  max_local_shift: 1.6     # max lokalna zmiana chromatyczności (log); żarówka 2700 K vs dzień wymaga ~1.2
+  grid: 64
   field_smooth: 0.015
   local_lo_percentile: 10
   max_locus_dist: 0.35
@@ -133,6 +133,15 @@ single_image:
   key_range: [-0.05, 0.20] # dopuszczalne odchylenie klucza od tonemap.target_key
   wb_strength: 0.4         # mnożnik siły WB (globalnego i lokalnego)
   compress_shadows_min: 0.8
+
+night:                     # nocne exteriory: ciemne, gładkie niebo u góry kadru (z radiancji po merge)
+  enabled: true
+  max_top_luma: 0.05       # mediana górnych 25% kadru, gdy źródła światła (p99.5) = biel
+  max_top_ratio: 0.6       # ... względem mediany całego kadru
+  max_top_texture: 0.15    # ... i gładkość log-luminancji (niebo, a nie ciemny sufit z detalami)
+  target_key: 0.32         # niski klucz: noc zostaje nocą
+  compress_shadows: 0.9
+  wb_strength: 0.5         # sztuczne światło nocą jest z natury kolorowe
 
 sharpen:
   enabled: true

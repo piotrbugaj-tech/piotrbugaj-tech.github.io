@@ -21,6 +21,7 @@ import math
 import cv2
 import numpy as np
 
+from . import accel
 from .imgutil import LUMA, resize_max
 
 log = logging.getLogger(__name__)
@@ -386,7 +387,7 @@ def correct(img: np.ndarray, cfg: dict, meta=None) -> tuple[np.ndarray, dict]:
         Xd, Yd = _undistorted_to_distorted(Xn, Yn, k1) if abs(k1) > 0 else (Xn, Yn)
         mx = (Xd * Rn + cx).astype(np.float32)
         my = (Yd * Rn + cy).astype(np.float32)
-        out[r0:r1] = cv2.remap(img, mx, my, cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
+        out[r0:r1] = accel.cv(cv2.remap, img, mx, my, cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
     out = np.clip(out, 0, 1)
     log.info("geometry: k1=%.3f, pitch %.2f°, roll %.2f°, crop %.1f%%", k1,
              info.get("verticals", {}).get("pitch_deg", 0), info.get("verticals", {}).get("roll_deg", 0), 100 * crop_frac)

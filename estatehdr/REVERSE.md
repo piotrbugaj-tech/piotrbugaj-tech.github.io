@@ -215,9 +215,28 @@ Mapowanie na presety (decyzja w DECISIONS.md D-07): `neutral` ≈ Classic, `airy
 
 ## 7. Weryfikacja hipotez (pomiary na naszych danych)
 
-> Sekcję uzupełniam w trakcie faz 3–7. Pełne liczby są w `reports/`.
+Pomiary wykonał `tools/verify_hypotheses.py` (wyniki w `reports/verification.json`) na scenach syntetycznych
+2400×1600 z prawdą referencyjną oraz na danych publicznych. Hipotez o samym AutoHDR nie da się potwierdzić
+bez konta i par (granice z KROKU 0). Weryfikuję więc, czy **nasze odpowiedniki** tych technik działają tak,
+jak wymaga opis produktu, i co z tego wynika dla hipotez.
 
-(uzupełniane w fazach 3–7: patrz niżej)
+| Hipoteza / etap | Eksperyment (nasze dane) | Wynik | Wniosek |
+|---|---|---|---|
+| Grupowanie bez EXIF (E14) | Te same 6 serii syntetycznych z EXIF i po usunięciu EXIF (re-zapis PNG); 104 pojedyncze zdjęcia portfolio | Z EXIF 6/6 serii dokładnie, bez EXIF 6/6. Portfolio: 0 fałszywych połączeń (po regule skoku jasności ≥ 0.4 EV) | Grupowanie wyłącznie wizualne jest wykonalne. Kluczowy sygnał to skok ekspozycji między prawie identycznymi kadrami: prawdziwe brackety mają ≥ 1 EV i podobieństwo ≥ 0.83, różne zdjęcia ≤ 0.3 EV i ≤ 0.63 |
+| „3 z N” (E03, E31) | Merge 3 skrajnych / 3 środkowych / wszystkich klatek (kuchnia 7, salon 5), błąd radiancji vs GT | Mediana \|błąd log2\|: wszystkie 0.008–0.011, 3 skrajne 0.014–0.018, 3 środkowe 0.012. Zakres dynamiki: 3 środkowe tracą 1.2–1.7 EV (8.4 i 9.3 zamiast 10.1 i 10.5 EV) | Wybór 3 klatek przez AutoHDR jest tani i wystarczający tylko wtedy, gdy obejmują skrajne ekspozycje. Szum cieni jest najniższy przy 3 skrajnych (najjaśniejsza klatka dominuje cienie). Merge wszystkich daje najmniejszy błąd tonalny, dlatego D-04 |
+| Wyrównanie (E05) | Homografie vs GT; seria z ręki (przesunięcie do 10 px) i ze statywu | Średni błąd 0.22–0.45 px, maks. 0.47–1.02 px | Globalna homografia + ECC wystarcza dla statywu i lekkiego drżenia ręki (SPEC ≤ 0.6/0.8 px średnio, w maksimum raz 1.02) |
+| Duchy (E05) | Sypialnia z poruszającym się obiektem | 3.2% kadru oznaczone jako duch, w wyniku obiekt w jednym położeniu | Odrzucanie ruchu względem klatki referencyjnej działa. AutoHDR według E05 tego nie robi |
+| Window pull z ciemnej klatki (E04, E07) | Okna GT: przepalenie w najciemniejszej klatce vs w wyniku | Salon: 13.4% nieodzyskiwalne → 12.0% białe w wyniku. Sypialnia: 43.1% → 42.1%. Kuchnia: 0 → 0. Odzyskiwalne przepalenia 0%, L* widoku 74–76, detal 1.04–1.09× GT, halo −2.8…+0.7 L* | Zgodnie z hipotezą jakość okna zależy od ciemnej klatki: gdy ona jest przepalona, okna nie da się odzyskać (AutoHDR wtedy też daje biel albo generuje treść). Reszta widoku jest odtwarzana bez halo |
+| WB globalny z klatki środkowej (E06) vs lokalny | ΔE ścian (maska GT) w scenach z żarówkami 2700–3200 K i światłem dziennym 5200/8000 K | Sam WB globalny: ΔE ścian 6.3–8.6. Z polem lokalnym i poprawionym doborem powierzchni: 3.1–3.9 (patrz kalibracja) | Pojedynczy WB z klatki środkowej nie zneutralizuje mieszanego światła. Opisy AutoHDR o „neutralnych ścianach” wymagają korekty lokalnej |
+| Perspektywa (E18) | Znane pochylenie kamery (−7°, 5°, −9°) i przechył | Korekta pochylenia 6.98° / −5.56° / 9.51° (błąd 0.02–0.56°), przechyłu −1.13° / 0.82° / −0.47° (błąd ≤ 0.07°). Mediana odchylenia pionów po korekcie 0.05–0.16°, crop 2.3–3.8% | Pipeline linie → punkt zbiegu → obrót kamery → crop → powrót do wymiarów odtwarza opisany wynik („lekki crop”, te same wymiary) |
+| Obiektyw bez profilu (E13, E30) | k1 vs GT (0.06 / 0.04 / 0.08), CA vs GT (0.12%) | k1: 0.059 / 0.040 / 0.063 (błąd ≤ 0.017). CA po poprawce estymatora: sR 1.0009–1.0011, sB 0.9986–0.9989 (prawda 1.0012 / 0.9988) | Korekcję obiektywu da się zrobić bez profilu, także dla JPEG, a więc tam, gdzie AutoHDR według E13 jej nie robi |
+| Odszumianie (brak danych o AutoHDR) | 6 pojedynczych, zaszumionych RAW z HDR+ | σ szumu (Immerkaer) przed → po: 0.017→0.013, 0.039→0.029, 0.016→0.012, 0.018→0.014, 0.022→0.016, 0.037→0.024 (−20…−35%) | Odszumianie jest umiarkowane, żeby nie „plastikować”. W trybie jednej klatki ograniczeniem pozostaje szum cieni |
+| Niebo (E22) | Maska nieba vs etykiety GT; 14 exteriorów HDR+; 104 wnętrza portfolio | IoU 0.936 (syntetyczne). Wykryte 12/14 exteriorów (pominięte 2 zachody słońca), fałszywe na wnętrzach 1/104 | Wymiana nieba z biblioteki stylów wymaga przede wszystkim dobrej maski. Najtrudniejsze są chmury o silnej teksturze tuż nad dachem i zachody słońca |
+| Twilight (E23) | — | Deterministyczny relighting (D-11), bez wariancji między uruchomieniami | Hipotezy o modelu generatywnym AutoHDR nie da się sprawdzić bez konta. Nasza wersja jest powtarzalna, ale mniej „fotograficzna” |
+
+Wniosek ogólny: zachowania opisane w materiałach publicznych da się odtworzyć technikami jawnymi i
+mierzalnymi. Największa różnica to jakość „AI” w trudnych przypadkach (twilight, chmury, deklaracja „wykrywa i
+usuwa obiekty”), gdzie AutoHDR ma modele uczone na ponad 1 mln par, a my pracujemy bez modeli.
 
 ---
 

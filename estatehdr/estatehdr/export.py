@@ -7,6 +7,7 @@ import os
 import cv2
 import numpy as np
 
+from . import accel
 from .imgutil import LUMA, row_strips
 from .io import writer
 
@@ -26,7 +27,7 @@ def output_sharpen(img: np.ndarray, amount: float, radius: float, threshold: flo
     for r0, r1 in row_strips(h, w, 4_000_000):
         a0, a1 = max(0, r0 - pad), min(h, r1 + pad)
         y = img[a0:a1] @ LUMA
-        blur = cv2.GaussianBlur(y, (0, 0), sig)
+        blur = accel.cv(cv2.GaussianBlur, y, (0, 0), sig)
         detail = y - blur
         detail = np.sign(detail) * np.maximum(np.abs(detail) - threshold, 0)
         ys = y + amount * detail

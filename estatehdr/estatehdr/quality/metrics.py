@@ -107,8 +107,12 @@ def window_metrics(img: np.ndarray, mask: np.ndarray, reference: np.ndarray | No
     inner = cv2.erode(mask.astype(np.uint8), np.ones((5, 5), np.uint8)).astype(bool)
     if inner.sum() < 20:
         inner = mask
+    clipped = np.round(img * 255).max(-1) >= 254
+    keep = mask & ~clipped
     out = {"pixels": int(mask.sum()), "L_mean": float(lab[..., 0][mask].mean()),
-           "clipped_pct": float(100 * (np.round(img * 255).max(-1)[mask] >= 254).mean()),
+           # view brightness without the clipped pixels (they carry no information)
+           "L_mean_unclipped": float(lab[..., 0][keep].mean()) if keep.sum() >= 20 else None,
+           "clipped_pct": float(100 * clipped[mask].mean()),
            "detail": float(grad[inner].mean())}
     if reference is not None:
         yr = reference @ LUMA

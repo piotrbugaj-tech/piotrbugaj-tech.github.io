@@ -4,6 +4,8 @@ from __future__ import annotations
 import cv2
 import numpy as np
 
+from . import accel
+
 LUMA = np.array([0.2126, 0.7152, 0.0722], np.float32)
 
 
@@ -73,7 +75,7 @@ def resize_rows(small: np.ndarray, W: int, H: int, r0: int, r1: int) -> np.ndarr
 
 def box(img: np.ndarray, r: int) -> np.ndarray:
     k = 2 * r + 1
-    return cv2.boxFilter(img, -1, (k, k), borderType=cv2.BORDER_REFLECT)
+    return accel.cv(cv2.boxFilter, img, -1, (k, k), borderType=cv2.BORDER_REFLECT)
 
 
 def guided_filter(guide: np.ndarray, src: np.ndarray, r: int, eps: float) -> np.ndarray:
@@ -127,7 +129,7 @@ def fast_guided_filter(guide: np.ndarray, src: np.ndarray, r: int, eps: float, s
 def smooth_mask(mask: np.ndarray, sigma: float) -> np.ndarray:
     if sigma <= 0:
         return mask.astype(np.float32)
-    return cv2.GaussianBlur(mask.astype(np.float32), (0, 0), sigma)
+    return accel.cv(cv2.GaussianBlur, mask.astype(np.float32), (0, 0), sigma)
 
 
 def rgb_to_lab(rgb_lin: np.ndarray) -> np.ndarray:

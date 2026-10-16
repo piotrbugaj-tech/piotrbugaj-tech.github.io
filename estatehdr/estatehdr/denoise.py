@@ -15,6 +15,7 @@ import logging
 import cv2
 import numpy as np
 
+from . import accel
 from .imgutil import LUMA, guided_filter
 
 log = logging.getLogger(__name__)
@@ -84,7 +85,7 @@ def _strong(img: np.ndarray, sigma: float, s_l: float, s_c: float) -> np.ndarray
     s8 = np.clip(small * 255 + 0.5, 0, 255).astype(np.uint8)
     hl = float(np.clip(sigma * 255 * 0.5 * s_l, 3, 20))  # noise is halved by the downscale
     hc = float(np.clip(hl * 1.5 * max(s_c, 1.0), 4, 30))
-    d8 = cv2.fastNlMeansDenoisingColored(cv2.cvtColor(s8, cv2.COLOR_RGB2BGR), None, hl, hc, 5, 15)
+    d8 = accel.cv(cv2.fastNlMeansDenoisingColored, cv2.cvtColor(s8, cv2.COLOR_RGB2BGR), None, hl, hc, 5, 15)
     dn = cv2.cvtColor(d8, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
     up = cv2.resize(dn, (w, h), interpolation=cv2.INTER_CUBIC)
     base = cv2.resize(small, (w, h), interpolation=cv2.INTER_CUBIC)

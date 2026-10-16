@@ -34,6 +34,9 @@ def estimate_ca(img: np.ndarray, max_side: int = 2400, rng: float = 0.004, steps
     g = np.log2(small[..., 1] + 1e-4)
 
     def grad(x):
+        # equal pre-smoothing: otherwise the interpolation blur of every non-identity warp biases
+        # the score towards s = 1 (and, at low resolution, the estimate off by ~2x)
+        x = cv2.GaussianBlur(x, (0, 0), 1.0)
         gx = cv2.Sobel(x, cv2.CV_32F, 1, 0, ksize=3)
         gy = cv2.Sobel(x, cv2.CV_32F, 0, 1, ksize=3)
         return np.sqrt(gx * gx + gy * gy)

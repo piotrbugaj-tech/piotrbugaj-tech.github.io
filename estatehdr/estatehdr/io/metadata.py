@@ -14,6 +14,7 @@ from datetime import datetime
 from fractions import Fraction
 
 log = logging.getLogger(__name__)
+logging.getLogger("exifread").setLevel(logging.ERROR)  # "file has no EXIF" is normal, not a warning
 
 RAW_EXTS = {".dng", ".cr2", ".cr3", ".nef", ".nrw", ".arw", ".srf", ".sr2", ".raf", ".orf", ".rw2", ".pef",
             ".srw", ".x3f", ".3fr", ".iiq", ".erf", ".mos", ".mrw", ".rwl", ".kdc", ".dcr"}

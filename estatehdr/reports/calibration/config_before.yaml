@@ -1,0 +1,13 @@
+# Wartości parametrów przed kalibracją (stan z fazy 6, commit 16d8612) - punkt startowy tools/calibrate.py
+white_balance:
+  target_cct: 6000
+  global_strength: 0.9
+  mixed_light_strength: 0.85
+  tint_strength: 0.5
+  max_local_shift: 0.7
+tonemap:
+  target_key: 0.56
+  compress_shadows: 0.7
+  compress_highlights: 0.6
+windows:
+  exterior_target: 0.62

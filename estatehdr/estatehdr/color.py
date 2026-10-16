@@ -77,9 +77,9 @@ def _candidates(img: np.ndarray, exclude: np.ndarray | None, lo_pct: float = 35.
     """Bright, smooth, unclipped interior pixels (analysis resolution)."""
     y = luminance(img)
     ly = np.log2(y + EPS)
-    gx = cv2.Sobel(ly, cv2.CV_32F, 1, 0, ksize=3)
-    gy = cv2.Sobel(ly, cv2.CV_32F, 0, 1, ksize=3)
-    grad = cv2.GaussianBlur(np.sqrt(gx * gx + gy * gy), (0, 0), 2)
+    # texture/edge measure: high-pass of log luminance.  A plain gradient would also reject the
+    # smooth light fall-off on walls next to lamps - exactly where mixed-light correction matters
+    grad = cv2.GaussianBlur(np.abs(ly - cv2.GaussianBlur(ly, (0, 0), 4.0)), (0, 0), 2)
     ok = (chmax(img) < 0.9 * img.max()) & (y > 0)
     if exclude is not None:
         ok &= exclude < 0.3

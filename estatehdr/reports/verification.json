@@ -1,0 +1,240 @@
+{
+ "grouping": {
+  "with_exif": {
+   "series_exact": 6,
+   "of": 6,
+   "groups": 7
+  },
+  "without_exif": {
+   "series_exact": 6,
+   "of": 6,
+   "groups": 7
+  }
+ },
+ "three_of_n": {
+  "kitchen": {
+   "all": {
+    "frames": 7,
+    "median_abs_log2_err": 0.008327722549438477,
+    "shadow_noise_log2": 0.08068772405385971,
+    "dynamic_range_ev": 10.075499534606934
+   },
+   "3_extremes": {
+    "frames": 3,
+    "median_abs_log2_err": 0.013733744621276855,
+    "shadow_noise_log2": 0.07200734317302704,
+    "dynamic_range_ev": 10.118378639221191
+   },
+   "3_central": {
+    "frames": 3,
+    "median_abs_log2_err": 0.0128326416015625,
+    "shadow_noise_log2": 0.08820789307355881,
+    "dynamic_range_ev": 8.415831565856934
+   }
+  },
+  "living_room": {
+   "all": {
+    "frames": 5,
+    "median_abs_log2_err": 0.010474443435668945,
+    "shadow_noise_log2": 0.09688563644886017,
+    "dynamic_range_ev": 10.5158052444458
+   },
+   "3_extremes": {
+    "frames": 3,
+    "median_abs_log2_err": 0.01785564422607422,
+    "shadow_noise_log2": 0.08468533307313919,
+    "dynamic_range_ev": 10.520964622497559
+   },
+   "3_central": {
+    "frames": 3,
+    "median_abs_log2_err": 0.011744260787963867,
+    "shadow_noise_log2": 0.12809647619724274,
+    "dynamic_range_ev": 9.30222225189209
+   }
+  }
+ },
+ "alignment": {
+  "bedroom": [
+   {
+    "frame": "IMG_0005.tif",
+    "true_shift_px": 10.049713791669763,
+    "mean_err_px": 0.2214109305026884,
+    "max_err_px": 0.468704242653098
+   },
+   {
+    "frame": "IMG_0007.tif",
+    "true_shift_px": 4.244803722059691,
+    "mean_err_px": 0.2682021951926524,
+    "max_err_px": 0.6900664372810841
+   }
+  ],
+  "living_room": [
+   {
+    "frame": "IMG_0000.jpg",
+    "true_shift_px": 0.24415022116508028,
+    "mean_err_px": 0.4422655609653837,
+    "max_err_px": 0.8959053544816384
+   },
+   {
+    "frame": "IMG_0001.jpg",
+    "true_shift_px": 1.6028600775262283,
+    "mean_err_px": 0.2926964396967244,
+    "max_err_px": 0.45921197557004906
+   },
+   {
+    "frame": "IMG_0003.jpg",
+    "true_shift_px": 1.0397015050820846,
+    "mean_err_px": 0.3721312812571509,
+    "max_err_px": 0.8202387438817191
+   },
+   {
+    "frame": "IMG_0004.jpg",
+    "true_shift_px": 0.9073944584043221,
+    "mean_err_px": 0.44828416037873026,
+    "max_err_px": 1.022680092252405
+   }
+  ]
+ },
+ "windows": {
+  "living_room": {
+   "unrecoverable_pct": 13.349938263720357,
+   "output_clipped_pct": 11.964209119292962,
+   "recoverable_clipped_pct": 0.0,
+   "view_L": 76.03207397460938,
+   "detail_ratio": 1.0416843891143799,
+   "halo_dL": 0.7006759643554688
+  },
+  "bedroom": {
+   "unrecoverable_pct": 43.05391862401435,
+   "output_clipped_pct": 42.069671013148564,
+   "recoverable_clipped_pct": 0.0,
+   "view_L": 74.3405990600586,
+   "detail_ratio": 1.0887118577957153,
+   "halo_dL": 0.1714019775390625
+  },
+  "kitchen": {
+   "unrecoverable_pct": 0.0,
+   "output_clipped_pct": 0.0,
+   "recoverable_clipped_pct": 0.0,
+   "view_L": 74.56089782714844,
+   "detail_ratio": 1.0554547309875488,
+   "halo_dL": -2.8350143432617188
+  }
+ },
+ "geometry": {
+  "living_room": {
+   "k1_true": 0.06,
+   "k1_est": 0.05901389875134737,
+   "pitch_true": -7.0,
+   "pitch_correction": 6.977869334972235,
+   "roll_true": 1.2,
+   "roll_correction": -1.1284740243767177,
+   "crop_fraction": 0.033319018792329125,
+   "vert_med_deg_after": 0.0989532470703125
+  },
+  "bedroom": {
+   "k1_true": 0.04,
+   "k1_est": 0.04033928582022354,
+   "pitch_true": 5.0,
+   "pitch_correction": -5.557587704031266,
+   "roll_true": -0.8,
+   "roll_correction": 0.8195795143277361,
+   "crop_fraction": 0.02312362854467076,
+   "vert_med_deg_after": 0.0516357421875
+  },
+  "kitchen": {
+   "k1_true": 0.08,
+   "k1_est": 0.06290655478895675,
+   "pitch_true": -9.0,
+   "pitch_correction": 9.50794723942727,
+   "roll_true": 0.5,
+   "roll_correction": -0.470119258869107,
+   "crop_fraction": 0.0384358604341658,
+   "vert_med_deg_after": 0.156402587890625
+  }
+ },
+ "lens_ca": {
+  "living_room": {
+   "ca_true": 0.0012,
+   "scales_est": [
+    1.0002311526112313,
+    0.999675492209204
+   ]
+  },
+  "bedroom": {
+   "ca_true": 0.0012,
+   "scales_est": [
+    1.0008671429309324,
+    0.9990993771827857
+   ]
+  },
+  "kitchen": {
+   "ca_true": 0.0012,
+   "scales_est": [
+    1.0002740254649074,
+    0.9996875629366131
+   ]
+  }
+ },
+ "sky": {
+  "synthetic_iou": 0.9359578317125357
+ },
+ "noise_single_raw": [
+  {
+   "name": "bar_windows",
+   "sigma_before": 0.016883223418928884,
+   "sigma_after": 0.013015125511841683
+  },
+  {
+   "name": "stair_window",
+   "sigma_before": 0.038665899889632475,
+   "sigma_after": 0.028986652979888974
+  },
+  {
+   "name": "modern_interior",
+   "sigma_before": 0.015475862221203006,
+   "sigma_after": 0.012085668840936767
+  },
+  {
+   "name": "library",
+   "sigma_before": 0.017585897078968214,
+   "sigma_after": 0.014181447810565484
+  },
+  {
+   "name": "piano_room",
+   "sigma_before": 0.022088655142230466,
+   "sigma_after": 0.0158701511395125
+  },
+  {
+   "name": "church",
+   "sigma_before": 0.036670732317422926,
+   "sigma_after": 0.02441559427178415
+  }
+ ],
+ "lens_ca_after_fix": {
+  "living_room": {
+   "sR": 1.0009140523243514,
+   "sB": 0.9986077498581085,
+   "true": [
+    1.0012,
+    0.9988
+   ]
+  },
+  "bedroom": {
+   "sR": 1.001073634890966,
+   "sB": 0.9988618861159598,
+   "true": [
+    1.0012,
+    0.9988
+   ]
+  },
+  "kitchen": {
+   "sR": 1.0010166851014826,
+   "sB": 0.9987558301328615,
+   "true": [
+    1.0012,
+    0.9988
+   ]
+  }
+ }
+}

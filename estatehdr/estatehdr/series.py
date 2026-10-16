@@ -229,26 +229,31 @@ def load_series(name: str, metas: list[FrameMeta], cfg: dict) -> Series:
             f.small = sc
 
     ref = choose_reference([f.small for f in frames])
-    # relative exposures: EXIF ratios verified against pixel ratios
-    for i, f in enumerate(frames):
-        if i == ref:
-            f.exposure = 1.0
-            continue
-        r_pix, n = pixel_exposure_ratio(frames[ref].small, f.small)
-        r_exif = exif_exp[i] / exif_exp[ref] if exif_exp else None
-        if r_exif is not None and r_pix is not None and abs(np.log2(r_exif / r_pix)) > 0.4:
-            warnings.append(f"{f.meta.name}: EXIF exposure ratio {r_exif:.3f} disagrees with pixels {r_pix:.3f}; using pixels")
-            f.exposure = r_pix
-        elif r_exif is not None:
-            f.exposure = r_exif
+    # relative exposures along the brightness order: each step (adjacent frames, most pixels in
+    # common) uses the EXIF ratio, unless the pixels clearly disagree (> 0.4 EV on >= 2000 px)
+    if have_ev:
+        order = sorted(range(len(frames)), key=lambda i: evs[i])
+    else:
+        order = sorted(range(len(frames)), key=lambda i: float(np.mean(frames[i].small)))
+    cum = {order[0]: 1.0}
+    for a, b in zip(order[:-1], order[1:]):
+        r_pix, n = pixel_exposure_ratio(frames[a].small, frames[b].small)
+        r_exif = exif_exp[b] / exif_exp[a] if exif_exp else None
+        if r_exif is not None:
+            step = r_exif
+            if r_pix is not None and n >= 2000 and abs(np.log2(r_exif / r_pix)) > 0.4:
+                warnings.append(f"{frames[b].meta.name}: EXIF exposure ratio {r_exif:.3f} disagrees with "
+                                f"pixels {r_pix:.3f}; using pixels")
+                step = r_pix
         elif r_pix is not None:
-            f.exposure = r_pix
+            step = r_pix
         else:
             # nothing reliable in common (e.g. extreme brackets): fall back to mean brightness
-            ma = max(float(np.mean(frames[ref].small)), 1e-6)
-            mb = max(float(np.mean(f.small)), 1e-6)
-            f.exposure = mb / ma
-            warnings.append(f"{f.meta.name}: exposure estimated from mean brightness")
+            step = max(float(np.mean(frames[b].small)), 1e-6) / max(float(np.mean(frames[a].small)), 1e-6)
+            warnings.append(f"{frames[b].meta.name}: exposure estimated from mean brightness")
+        cum[b] = cum[a] * step
+    for i, f in enumerate(frames):
+        f.exposure = cum[i] / cum[ref]
     s = Series(name=name, frames=frames, ref=ref, crf=crf_info, warnings=warnings)
     log.info("[%s] %d frame(s), ref=%s, exposures=%s, crf=%s", name, len(frames), frames[ref].meta.name,
              ", ".join(f"{np.log2(f.exposure):+.2f}EV" for f in frames), crf_info.get("model"))
