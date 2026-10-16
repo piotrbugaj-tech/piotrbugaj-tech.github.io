@@ -25,7 +25,7 @@ import numpy as np
 
 from .config import Config
 from .grouping import Group
-from .imgutil import luminance, resize_max
+from .imgutil import linear_to_srgb, luminance, resize_max, srgb_to_linear
 
 log = logging.getLogger(__name__)
 
@@ -33,12 +33,18 @@ log = logging.getLogger(__name__)
 class StageTimer:
     def __init__(self):
         self.times = {}
+        self.rss = {}
         self._t = time.time()
 
     def mark(self, name: str):
         now = time.time()
         self.times[name] = round(now - self._t, 3)
         self._t = now
+        try:
+            import resource
+            self.rss[name] = round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (1 << 20), 2)
+        except Exception:
+            pass
 
 
 def process_group(group: Group, cfg: Config, out_dir: str, progress=None, extra_masks: dict | None = None) -> dict:
@@ -82,6 +88,15 @@ def _process(group: Group, cfg: Config, out_dir: str, result: dict, progress, ex
     result["crf"] = s.crf
     result["reference"] = s.frames[s.ref].meta.name
     result["exposures_ev"] = [round(float(np.log2(f.exposure)), 2) for f in s.frames]
+    single = len(s.frames) == 1
+    scfg = cfg.get("single_image", {})
+    own_key = None
+    developed = single and s.frames[0].decoded.encoding == "srgb"
+    if developed and scfg.get("key_from_input", True):
+        # display key of the photographer's own rendering (median display luminance)
+        im, _ = resize_max(s.frames[0].decoded.as_float(), 800)
+        own_key = float(linear_to_srgb(np.float32(np.median(luminance(srgb_to_linear(im))))))
+        result["input_key"] = round(own_key, 3)
     timer.mark("load")
     _p(progress, 0.15, "wyrównanie")
     if len(s.frames) > 1:
@@ -92,8 +107,8 @@ def _process(group: Group, cfg: Config, out_dir: str, result: dict, progress, ex
     result["merge"] = m.stats
     rad = m.radiance
     clipped_full = m.clipped
+    m.radiance = None  # later stages work in place: do not keep the original buffer alive
     ref_meta = s.frames[s.ref].meta
-    single = len(s.frames) == 1
     # free the decoded frames early (they are the largest objects)
     for f in s.frames:
         f.decoded.image = None
@@ -129,7 +144,14 @@ def _process(group: Group, cfg: Config, out_dir: str, result: dict, progress, ex
     _p(progress, 0.55, "balans bieli")
     try:
         from . import color
-        rad, result["white_balance"] = color.white_balance(rad, rad_small, win, cfg)
+        wb_cfg = cfg
+        if developed:
+            f = float(scfg.get("wb_strength", 0.5))
+            w = dict(cfg.get("white_balance", {}))
+            w["global_strength"] = float(w.get("global_strength", 0.9)) * f
+            w["mixed_light_strength"] = float(w.get("mixed_light_strength", 0.6)) * f
+            wb_cfg = {**cfg, "white_balance": w}
+        rad, result["white_balance"] = color.white_balance(rad, rad_small, win, wb_cfg)
         rad_small, _ = resize_max(rad, side)
     except ImportError:
         pass
@@ -138,6 +160,22 @@ def _process(group: Group, cfg: Config, out_dir: str, result: dict, progress, ex
     # --- tone mapping -------------------------------------------------------------
     _p(progress, 0.62, "tone mapping")
     tcfg = dict(cfg.get("tonemap", {}))
+    if single:
+        # one exposure: lifting deep shadows mostly amplifies noise -> lift less when it is noisy
+        from .denoise import estimate_sigma
+        lin_small = np.clip(rad_small / max(float(np.percentile(luminance(rad_small), 99)), 1e-6), 0, 1)
+        sig_lin = estimate_sigma(np.sqrt(luminance(lin_small)))
+        result["single_noise"] = round(float(sig_lin), 4)
+        if sig_lin > 0.01:
+            tcfg["compress_shadows"] = max(float(tcfg.get("compress_shadows", 0.7)),
+                                           float(np.clip(0.7 + 8 * (sig_lin - 0.01), 0.7, 0.9)))
+    if own_key is not None:
+        tk = float(tcfg.get("target_key", 0.56))
+        lo, hi = scfg.get("key_range", [-0.08, 0.2])
+        tcfg["target_key"] = float(np.clip(own_key, tk + float(lo), tk + float(hi)))
+        tcfg["compress_shadows"] = max(float(tcfg.get("compress_shadows", 0.7)),
+                                       float(scfg.get("compress_shadows_min", 0.75)))
+        result["single_key_target"] = round(tcfg["target_key"], 3)
     wmask = wweight = exclude = None
     if win is not None:
         wmask, wweight, exclude = win.mask, windows.pull_weights(win), windows.exclusion(win)
@@ -150,9 +188,9 @@ def _process(group: Group, cfg: Config, out_dir: str, result: dict, progress, ex
         extra.append((pw, float(cfg.get("windows", {}).get("sun_patch_target", 0.88)), 1.0, "sun_patch"))
     img = tonemap.tone_map(rad, tcfg, window_mask=wmask, window_weight=wweight, exclude_small=exclude,
                            window_cfg=cfg.get("windows", {}), analysis_side=side, debug=dbg, extra_pulls=extra,
-                           clipped=clipped_full)
+                           clipped=clipped_full, inplace=True)
     result["tonemap"] = {k: round(float(v), 4) for k, v in dbg.items()}
-    del rad
+    del rad, clipped_full, m
     gc.collect()
     timer.mark("tonemap")
 
@@ -188,6 +226,7 @@ def _process(group: Group, cfg: Config, out_dir: str, result: dict, progress, ex
     result["outputs"] = export.export_all(img, group, ref_meta, cfg, out_dir, result)
     timer.mark("export")
     result["timings"] = timer.times
+    result["peak_rss_gb_after_stage"] = timer.rss
     _p(progress, 1.0, "gotowe")
 
 

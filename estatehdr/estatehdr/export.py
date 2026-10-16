@@ -7,33 +7,46 @@ import os
 import cv2
 import numpy as np
 
-from .imgutil import LUMA
+from .imgutil import LUMA, row_strips
 from .io import writer
 
 log = logging.getLogger(__name__)
 
 
 def output_sharpen(img: np.ndarray, amount: float, radius: float, threshold: float) -> np.ndarray:
-    """Unsharp mask on luminance with overshoot clamping (no bright/dark halos)."""
+    """Unsharp mask on luminance with overshoot clamping (no bright/dark halos).
+    Row strips with a margin, so the result equals a whole-image pass without full-size temporaries."""
     if amount <= 0:
         return img
-    y = img @ LUMA
-    blur = cv2.GaussianBlur(y, (0, 0), max(0.3, radius))
-    detail = y - blur
-    detail = np.sign(detail) * np.maximum(np.abs(detail) - threshold, 0)
-    ys = y + amount * detail
-    # clamp to local min/max (3x3) to avoid halos
+    sig = max(0.3, radius)
+    pad = int(np.ceil(4 * sig)) + 3
+    h, w = img.shape[:2]
+    out = np.empty_like(img, dtype=np.float32)
     k = np.ones((3, 3), np.uint8)
-    lo = cv2.erode(y, k)
-    hi = cv2.dilate(y, k)
-    ys = np.clip(ys, lo - 0.02, hi + 0.02)
-    out = img + (ys - y)[..., None]
-    return np.clip(out, 0, 1).astype(np.float32)
+    for r0, r1 in row_strips(h, w, 4_000_000):
+        a0, a1 = max(0, r0 - pad), min(h, r1 + pad)
+        y = img[a0:a1] @ LUMA
+        blur = cv2.GaussianBlur(y, (0, 0), sig)
+        detail = y - blur
+        detail = np.sign(detail) * np.maximum(np.abs(detail) - threshold, 0)
+        ys = y + amount * detail
+        # clamp to local min/max (3x3) to avoid halos
+        ys = np.clip(ys, cv2.erode(y, k) - 0.02, cv2.dilate(y, k) + 0.02)
+        d = (ys - y)[r0 - a0:r1 - a0]
+        out[r0:r1] = np.clip(img[r0:r1] + d[..., None], 0, 1)
+    return out
 
 
 def export_all(img: np.ndarray, group, ref_meta, cfg, out_dir: str, result: dict) -> dict:
     ecfg = cfg.get("export", {})
     scfg = cfg.get("sharpen", {})
+    try:
+        from .denoise import estimate_sigma
+        from .imgutil import resize_max
+        sig = estimate_sigma(resize_max(img, 2000)[0] @ LUMA)
+    except Exception:
+        sig = 0.0
+    result["output_noise_sigma"] = round(float(sig), 5)
     os.makedirs(out_dir, exist_ok=True)
     preset = cfg.get("preset", "neutral")
     desc = f"EstateHDR {preset}; merged {len(group.frames)} frame(s)"
@@ -47,7 +60,9 @@ def export_all(img: np.ndarray, group, ref_meta, cfg, out_dir: str, result: dict
             scale = im.shape[1] / w0
             amt = float(scfg.get("amount", 0.35)) * float(size.get("sharpen", 1.0))
             rad = float(scfg.get("radius_px", 1.0)) * max(0.6, scale ** 0.5)
-            im = output_sharpen(im, amt, rad, float(scfg.get("threshold", 0.01)))
+            # never sharpen the noise: threshold follows the residual noise level
+            thr = max(float(scfg.get("threshold", 0.01)), 2.5 * sig)
+            im = output_sharpen(im, amt, rad, thr)
         im8 = writer.to_uint8(im)
         fname = tmpl.format(name=group.name, size=name, preset=preset) + ".jpg"
         path = os.path.join(out_dir, fname)

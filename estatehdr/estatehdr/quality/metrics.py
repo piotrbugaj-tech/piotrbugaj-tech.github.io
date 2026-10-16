@@ -9,7 +9,7 @@ import math
 import cv2
 import numpy as np
 
-from ..imgutil import LUMA, delta_e2000, resize_max, rgb_to_lab, srgb_to_linear
+from ..imgutil import chmax, chmin, LUMA, delta_e2000, resize_max, rgb_to_lab, srgb_to_linear
 
 
 def to_float(img8: np.ndarray) -> np.ndarray:
@@ -22,8 +22,8 @@ def histogram_stats(img: np.ndarray, bins: int = 32) -> dict:
     any8 = np.round(img * 255)
     hist, _ = np.histogram(y, bins=bins, range=(0, 1))
     return {
-        "clipped_pct": float(100 * (any8.max(-1) >= 254).mean()),
-        "clipped_all_channels_pct": float(100 * (any8.min(-1) >= 254).mean()),
+        "clipped_pct": float(100 * (chmax(any8) >= 254).mean()),
+        "clipped_all_channels_pct": float(100 * (chmin(any8) >= 254).mean()),
         "crushed_pct": float(100 * (y8 <= 1).mean()),
         "mean_luma": float(y.mean()),
         "p1": float(np.percentile(y, 1)), "p50": float(np.percentile(y, 50)), "p99": float(np.percentile(y, 99)),

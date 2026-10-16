@@ -17,6 +17,8 @@ input:
   raw:
     highlight_mode: clip   # clip | blend | ignore (LibRaw)
     use_camera_wb: true
+    demosaic: dht          # dht | ahd | aahd | vng | linear
+    fbdd_single: true      # redukcja szumu FBDD przed demozaikowaniem dla pojedynczych klatek RAW
 
 grouping:
   mode: auto               # auto | fixed | single
@@ -25,6 +27,8 @@ grouping:
   min_similarity: 0.35     # podobieństwo treści (korelacja rang gradientów)
   ev_tolerance: 0.2
   focal_tolerance: 0.05
+  noexif_min_ev_step: 0.4      # bez EXIF: minimalna różnica jasności między klatkami bracketu
+  noexif_min_similarity: 0.6   # bez EXIF: minimalne podobieństwo treści klatek bracketu
 
 align:
   enabled: true
@@ -32,7 +36,7 @@ align:
   features: 4000
   ecc: true
   fine_ecc: true
-  fine_max_side: 3200
+  fine_max_side: 2600
   max_shift_frac: 0.08
   still_px: 0.25
 
@@ -44,6 +48,7 @@ deghost:
 
 merge:
   strip_rows: 1024
+  black_bias_max: 0.05     # neutralizacja kolorowego przesunięcia czerni (fioletowe cienie RAW)
   sat_lo: 0.82
   sat_hi: 0.97
 
@@ -82,6 +87,7 @@ geometry:
   min_lines: 6
   distortion: auto         # auto | off
   max_k1: 0.18
+  min_k1: 0.03             # mniejsze |k1| mieści się w błędzie estymacji - nie korygujemy
   crop: true
   max_crop: 0.15           # jeśli kadr byłby większy, korekcja pionów jest osłabiana
   default_focal_35mm: 24
@@ -121,6 +127,12 @@ denoise:
   chroma: 1.0
 single_image:
   denoise_boost: 1.6       # tryb pojedynczego zdjęcia: mocniejsze odszumianie
+  # pojedynczy, już wywołany plik (JPEG): fotograf ustalił ekspozycję i balans bieli -
+  # klucz tonalny bierzemy z obrazu (w granicach), a WB działa słabiej
+  key_from_input: true
+  key_range: [-0.05, 0.20] # dopuszczalne odchylenie klucza od tonemap.target_key
+  wb_strength: 0.4         # mnożnik siły WB (globalnego i lokalnego)
+  compress_shadows_min: 0.8
 
 sharpen:
   enabled: true

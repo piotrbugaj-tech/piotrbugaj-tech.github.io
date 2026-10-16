@@ -16,7 +16,7 @@ import logging
 import cv2
 import numpy as np
 
-from .imgutil import luminance, resize_max
+from .imgutil import chmax, chmin, luminance, resize_max
 
 log = logging.getLogger(__name__)
 
@@ -94,7 +94,7 @@ def estimate_vignetting(img: np.ndarray, max_side: int = 800) -> tuple[float, fl
     gy = cv2.Sobel(ly, cv2.CV_32F, 0, 1, ksize=3) / 8.0 * R
     gr = (gx * dx + gy * dy) / r
     gmag = np.hypot(gx, gy)
-    valid = (y > np.percentile(y, 5)) & (small.max(-1) < 0.9 * small.max()) & (gmag < np.percentile(gmag, 50)) & (r > 0.15)
+    valid = (y > np.percentile(y, 5)) & (chmax(small) < 0.9 * small.max()) & (gmag < np.percentile(gmag, 50)) & (r > 0.15)
     bins = np.linspace(0.15, 1.0, 12)
     corners = []
     fits = []

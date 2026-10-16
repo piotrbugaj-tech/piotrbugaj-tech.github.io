@@ -7,6 +7,17 @@ import numpy as np
 LUMA = np.array([0.2126, 0.7152, 0.0722], np.float32)
 
 
+def chmax(img: np.ndarray, keepdims: bool = False) -> np.ndarray:
+    """Per-pixel max over the colour channels (much faster than img.max(-1) in numpy)."""
+    m = np.maximum(np.maximum(img[..., 0], img[..., 1]), img[..., 2])
+    return m[..., None] if keepdims else m
+
+
+def chmin(img: np.ndarray, keepdims: bool = False) -> np.ndarray:
+    m = np.minimum(np.minimum(img[..., 0], img[..., 1]), img[..., 2])
+    return m[..., None] if keepdims else m
+
+
 def luminance(img: np.ndarray) -> np.ndarray:
     return (img @ LUMA).astype(np.float32)
 
@@ -35,6 +46,29 @@ def resize_to(img: np.ndarray, shape_hw, interp=cv2.INTER_LINEAR) -> np.ndarray:
     if img.shape[0] == h and img.shape[1] == w:
         return img
     return cv2.resize(img, (w, h), interpolation=interp)
+
+
+def row_strips(h: int, w: int, target_px: int = 6_000_000):
+    """(r0, r1) row ranges for strip-wise processing of a full-resolution image."""
+    rows = max(16, target_px // max(w, 1))
+    for r0 in range(0, h, rows):
+        yield r0, min(h, r0 + rows)
+
+
+def resize_rows(small: np.ndarray, W: int, H: int, r0: int, r1: int) -> np.ndarray:
+    """Rows r0:r1 of ``cv2.resize(small, (W, H), INTER_LINEAR)`` without building the full map
+    (same half-pixel convention and border clamping as OpenCV)."""
+    sh = small.shape[0]
+    sy = np.clip((np.arange(r0, r1, dtype=np.float64) + 0.5) * (sh / H) - 0.5, 0, sh - 1)
+    y0 = np.floor(sy).astype(np.int64)
+    y1 = np.minimum(y0 + 1, sh - 1)
+    lo, hi = int(y0.min()), int(y1.max()) + 1
+    rows = cv2.resize(np.ascontiguousarray(small[lo:hi]), (W, hi - lo), interpolation=cv2.INTER_LINEAR)
+    if rows.ndim < small.ndim:
+        rows = rows[..., None]
+    f = (sy - y0).astype(np.float32).reshape((-1, 1) + (1,) * (small.ndim - 2))
+    a = rows[y0 - lo]
+    return a + (rows[y1 - lo] - a) * f
 
 
 def box(img: np.ndarray, r: int) -> np.ndarray:

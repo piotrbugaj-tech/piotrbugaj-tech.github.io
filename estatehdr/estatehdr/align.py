@@ -13,14 +13,14 @@ import logging
 import cv2
 import numpy as np
 
-from .imgutil import luminance
+from .imgutil import chmax, chmin, luminance
 
 log = logging.getLogger(__name__)
 
 
 def _norm_log(img: np.ndarray, exposure: float, lo: float, hi: float):
     y = luminance(img) / max(exposure, 1e-9)
-    valid = (img.max(-1) < 0.92) & (luminance(img) > 0.004)
+    valid = (chmax(img) < 0.92) & (luminance(img) > 0.004)
     ly = np.log2(np.maximum(y, 1e-6))
     g = np.clip((ly - lo) / (hi - lo), 0, 1)
     return (g * 255).astype(np.uint8), valid
@@ -111,7 +111,7 @@ def estimate_transform(ref_small: np.ndarray, ref_exp: float, mov_small: np.ndar
                     "affine": cv2.MOTION_AFFINE}.get(model, cv2.MOTION_HOMOGRAPHY)
             if mode != cv2.MOTION_HOMOGRAPHY:
                 warp = warp[:2]
-            crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 60, 1e-5)
+            crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 30, 1e-5)
             _, warp = cv2.findTransformECC(ga, gb, warp, mode, crit, vb.astype(np.uint8) * 255, 5)
             if warp.shape[0] == 2:
                 warp = np.vstack([warp, [0, 0, 1]])
@@ -166,7 +166,7 @@ def _mtb(ref_small, ref_exp, mov_small, mov_exp) -> np.ndarray:
 def _tile_signal(img_lin: np.ndarray, exposure: float):
     """Exposure-normalised log luminance of a linear tile and its validity mask."""
     y = luminance(img_lin)
-    valid = (img_lin.max(-1) < 0.92) & (y > 0.003)
+    valid = (chmax(img_lin) < 0.92) & (y > 0.003)
     ly = np.log2(np.maximum(y / max(exposure, 1e-9), 1e-6)).astype(np.float32)
     return ly, valid
 
@@ -310,7 +310,7 @@ def ecc_refine(ref_img, ref_exp, mov_img, mov_exp, H: np.ndarray, model: str) ->
     warp = (H / H[2, 2]).astype(np.float32)
     if mode != cv2.MOTION_HOMOGRAPHY:
         warp = warp[:2]
-    crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 50, 1e-6)
+    crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 30, 1e-5)
     try:
         _, warp = cv2.findTransformECC(ga, gb, warp, mode, crit, vb.astype(np.uint8) * 255, 3)
     except cv2.error:

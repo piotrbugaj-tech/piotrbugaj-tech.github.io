@@ -94,10 +94,21 @@ def resize_long_edge(img: np.ndarray, long_edge: int) -> np.ndarray:
 
 
 def to_uint8(img: np.ndarray) -> np.ndarray:
-    """Float display-referred sRGB [0,1] -> uint8 with light dithering (avoids banding in skies/walls)."""
+    """Float display-referred sRGB [0,1] -> uint8 with light dithering (avoids banding in skies/walls).
+    Works in row strips so a 60 Mpx image needs no full-size float temporaries."""
     rng = np.random.default_rng(12345)
-    noise = (rng.random(img.shape[:2], dtype=np.float32) - 0.5)[..., None] * (1.0 / 255.0)
-    return np.clip(np.round((img + noise) * 255.0), 0, 255).astype(np.uint8)
+    h, w = img.shape[:2]
+    out = np.empty(img.shape, np.uint8)
+    rows = max(16, 4_000_000 // max(w, 1))
+    for r0 in range(0, h, rows):
+        r1 = min(h, r0 + rows)
+        noise = (rng.random((r1 - r0, w), dtype=np.float32) - 0.5) * (1.0 / 255.0)
+        x = img[r0:r1] + (noise[..., None] if img.ndim == 3 else noise)
+        x *= 255.0
+        np.round(x, out=x)
+        np.clip(x, 0, 255, out=x)
+        out[r0:r1] = x
+    return out
 
 
 def write_jpeg(path: str, img8: np.ndarray, quality: int, exif: bytes | None, progressive: bool = True,

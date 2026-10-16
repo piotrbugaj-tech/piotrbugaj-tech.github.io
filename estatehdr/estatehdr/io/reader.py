@@ -38,13 +38,18 @@ def _decode_raw(path: str, half: bool, raw_cfg: dict) -> Decoded:
     hl = {"clip": rawpy.HighlightMode.Clip, "ignore": rawpy.HighlightMode.Ignore,
           "blend": rawpy.HighlightMode.Blend}.get(str(raw_cfg.get("highlight_mode", "clip")).lower(),
                                                  rawpy.HighlightMode.Clip)
+    algo = {"ahd": rawpy.DemosaicAlgorithm.AHD, "dht": rawpy.DemosaicAlgorithm.DHT,
+            "aahd": rawpy.DemosaicAlgorithm.AAHD, "vng": rawpy.DemosaicAlgorithm.VNG,
+            "linear": rawpy.DemosaicAlgorithm.LINEAR}.get(str(raw_cfg.get("demosaic", "dht")).lower(),
+                                                         rawpy.DemosaicAlgorithm.DHT)
+    fbdd = rawpy.FBDDNoiseReductionMode.Full if raw_cfg.get("fbdd") else rawpy.FBDDNoiseReductionMode.Off
     try:
         with rawpy.imread(path) as r:
             rgb = r.postprocess(gamma=(1, 1), no_auto_bright=True, output_bps=16,
                                 use_camera_wb=bool(raw_cfg.get("use_camera_wb", True)),
                                 output_color=rawpy.ColorSpace.sRGB, highlight_mode=hl,
-                                half_size=half, user_sat=None,
-                                demosaic_algorithm=None if half else rawpy.DemosaicAlgorithm.AHD)
+                                half_size=half, user_sat=None, fbdd_noise_reduction=fbdd,
+                                demosaic_algorithm=None if half else algo)
     except Exception as exc:  # LibRaw errors are of several types
         raise DecodeError(f"RAW decode failed: {exc}") from exc
     return Decoded(rgb, "linear", 65535.0)

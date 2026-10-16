@@ -135,10 +135,15 @@ def group_frames(metas: list[FrameMeta], cfg: dict | None = None) -> list[Group]
     if mode == "single":
         return [Group(os.path.splitext(m.name)[0], [m]) for m in metas]
     thumbs = [thumbnail(m) for m in metas]
+    # EXIF-based rules are applied per pair of frames, so a folder mixing camera files with
+    # EXIF-less files (exports, screenshots) still groups the camera files by exposure/time
     evs = [m.exposure_value for m in metas]
-    have_ev = sum(e is not None for e in evs) >= 0.8 * len(metas)
-    if not have_ev:
-        evs = [estimate_brightness_ev(t) for t in thumbs]
+    # without EXIF a bracket is recognised by a clear brightness step between near-identical
+    # frames (measured: true brackets >= 1 EV / similarity >= 0.83, different photos of the same
+    # property <= 0.3 EV / <= 0.63)
+    bevs = [estimate_brightness_ev(t) if e is None else None for t, e in zip(thumbs, evs)]
+    nx_step = float(cfg.get("noexif_min_ev_step", 0.4))
+    nx_sim = float(cfg.get("noexif_min_similarity", 0.6))
 
     groups: list[list[int]] = [[0]]
     reasons = []
@@ -155,17 +160,24 @@ def group_frames(metas: list[FrameMeta], cfg: dict | None = None) -> list[Group]
             reason = "orientation"
         elif a.focal_length and b.focal_length and abs(a.focal_length - b.focal_length) > focal_tol * a.focal_length:
             reason = "focal"
-        elif have_exif_time and a.timestamp is not None and b.timestamp is not None and \
-                (b.timestamp - a.timestamp - (a.exposure_time or 0.0)) > max_gap:
+        elif (evs[i - 1] is None) != (evs[i] is None):
+            # frames of one camera bracket carry the same kind of metadata
+            reason = "metadata"
+        elif a.timestamp_source == "exif" and b.timestamp_source == "exif" and \
+                a.timestamp is not None and b.timestamp is not None and \
+                abs(b.timestamp - a.timestamp) - (a.exposure_time or 0.0) > max_gap:
             reason = "time-gap"
-        elif mode != "fixed" and have_ev and evs[i] is not None and \
+        elif mode != "fixed" and evs[i] is not None and \
                 any(evs[j] is not None and abs(evs[j] - evs[i]) < ev_tol for j in cur):
             reason = "exposure-repeat"
         elif fixed and len(cur) >= fixed:
             reason = "bracket-size"
+        elif mode != "fixed" and evs[i] is None and bevs[i] is not None and \
+                any(bevs[j] is not None and abs(bevs[j] - bevs[i]) < nx_step for j in cur):
+            reason = "no-exposure-step"
         else:
             sim = rank_similarity(thumbs[i - 1], thumbs[i])
-            if sim < min_sim:
+            if sim < (min_sim if evs[i] is not None else nx_sim):
                 reason = f"content({sim:.2f})"
         if reason:
             groups.append([i])
@@ -190,7 +202,7 @@ def group_frames(metas: list[FrameMeta], cfg: dict | None = None) -> list[Group]
             grp.warnings.append(f"incomplete series: {len(g)} of {fixed} frames")
         elif common > 1 and len(g) not in (1, common):
             grp.warnings.append(f"series has {len(g)} frames, most series have {common}")
-        if not have_ev:
+        if len(frames) > 1 and any(f.exposure_value is None for f in frames):
             grp.warnings.append("no EXIF exposure data - exposures estimated from pixels")
         out.append(grp)
     log.info("grouped %d frames into %d series (sizes: %s)", len(metas), len(out),

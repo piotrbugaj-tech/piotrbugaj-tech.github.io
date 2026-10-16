@@ -127,8 +127,14 @@ def run_batch(input_dir: str | None, out_dir: str, cfg: Config, groups_file: str
                                  "result": r})
     order = {g.name: i for i, g in enumerate(groups)}
     results.sort(key=lambda r: order.get(r["name"], 0))
+    try:
+        import resource
+        peak = max(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss, resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss)
+        peak_gb = round(peak / (1 << 20), 2)  # ru_maxrss is in KiB on Linux
+    except Exception:
+        peak_gb = None
     report = {
-        "input": input_dir, "output": out_dir, "preset": cfg.get("preset"),
+        "input": input_dir, "output": out_dir, "preset": cfg.get("preset"), "peak_rss_gb": peak_gb,
         "series": results, "unreadable": failures,
         "ok": sum(r["status"] == "ok" for r in results),
         "failed": sum(r["status"] != "ok" for r in results) + len(failures),

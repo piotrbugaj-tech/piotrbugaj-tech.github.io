@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 import cv2
 import numpy as np
 
-from .imgutil import luminance, resize_max, srgb_to_linear, linear_to_srgb
+from .imgutil import chmax, chmin, luminance, resize_max, srgb_to_linear, linear_to_srgb
 from .io.metadata import FrameMeta
 from .io.reader import Decoded, decode
 
@@ -89,7 +89,7 @@ def _pairs_inconsistency(smalls, exposures, lut_fn, n_codes, maxv) -> float:
             a = lut[np.clip((smalls[i] * (n_codes - 1)).round().astype(np.int32), 0, n_codes - 1)]
             b = lut[np.clip((smalls[j] * (n_codes - 1)).round().astype(np.int32), 0, n_codes - 1)]
             ya, yb = a.mean(-1), b.mean(-1)
-            ok = (smalls[i].max(-1) < 0.92) & (smalls[j].max(-1) < 0.92) & (ya > 0.004) & (yb > 0.004)
+            ok = (chmax(smalls[i]) < 0.92) & (chmax(smalls[j]) < 0.92) & (ya > 0.004) & (yb > 0.004)
             if ok.sum() < 100:
                 continue
             d = np.log2(ya[ok] / exposures[i]) - np.log2(yb[ok] / exposures[j])
@@ -124,7 +124,7 @@ def fit_crf(codes_small: list[np.ndarray], exposures: list[float], samples: int 
 def pixel_exposure_ratio(a: np.ndarray, b: np.ndarray) -> tuple[float | None, int]:
     """Robust ratio exposure(b)/exposure(a) from linear analysis images."""
     ya, yb = luminance(a), luminance(b)
-    ok = (a.max(-1) < 0.9) & (b.max(-1) < 0.9) & (ya > 0.01) & (yb > 0.01)
+    ok = (chmax(a) < 0.9) & (chmax(b) < 0.9) & (ya > 0.01) & (yb > 0.01)
     n = int(ok.sum())
     if n < 100:
         return None, n
@@ -137,7 +137,7 @@ def choose_reference(smalls: list[np.ndarray], brightness: list[float] | None = 
     scores = []
     for s in smalls:
         y = luminance(s)
-        scores.append(float(((y > 0.02) & (s.max(-1) < 0.9)).mean()))
+        scores.append(float(((y > 0.02) & (chmax(s) < 0.9)).mean()))
     if brightness is None:
         brightness = [float(np.median(luminance(s))) for s in smalls]
     order = np.argsort(brightness)
@@ -159,8 +159,11 @@ def load_series(name: str, metas: list[FrameMeta], cfg: dict) -> Series:
     analysis_side = int(rcfg.get("analysis_max_side", 1600))
     frames: list[Frame] = []
     warnings = []
+    raw_cfg = dict(icfg.get("raw", {}))
+    if len(metas) == 1 and raw_cfg.get("fbdd_single", True):
+        raw_cfg["fbdd"] = True  # a single exposure has no merge to average noise away
     for m in metas:
-        d = decode(m.path, m.orientation, raw_cfg=icfg.get("raw", {}))
+        d = decode(m.path, m.orientation, raw_cfg=raw_cfg)
         frames.append(Frame(m, d))
     # all frames must share one size (portrait/landscape mixes are separate series)
     shapes = {f.shape[:2] for f in frames}

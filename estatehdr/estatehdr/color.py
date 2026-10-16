@@ -21,7 +21,7 @@ import math
 import cv2
 import numpy as np
 
-from .imgutil import luminance
+from .imgutil import chmax, chmin, luminance, resize_rows, row_strips
 
 log = logging.getLogger(__name__)
 EPS = 1e-6
@@ -80,7 +80,7 @@ def _candidates(img: np.ndarray, exclude: np.ndarray | None, lo_pct: float = 35.
     gx = cv2.Sobel(ly, cv2.CV_32F, 1, 0, ksize=3)
     gy = cv2.Sobel(ly, cv2.CV_32F, 0, 1, ksize=3)
     grad = cv2.GaussianBlur(np.sqrt(gx * gx + gy * gy), (0, 0), 2)
-    ok = (img.max(-1) < 0.9 * img.max()) & (y > 0)
+    ok = (chmax(img) < 0.9 * img.max()) & (y > 0)
     if exclude is not None:
         ok &= exclude < 0.3
     if ok.sum() < 100:
@@ -90,7 +90,7 @@ def _candidates(img: np.ndarray, exclude: np.ndarray | None, lo_pct: float = 35.
     # brighter diffuse surfaces are more likely white walls/ceilings (wood, fabric are darker)
     w = np.clip((ly - lo) / max(hi - lo, 1e-3), 0, 1) ** 2
     # strongly saturated pixels are coloured objects, not white surfaces under coloured light
-    mx, mn = img.max(-1), img.min(-1)
+    mx, mn = chmax(img), chmin(img)
     sat = (mx - mn) / (mx + EPS)
     w = w * np.clip(1.0 - (sat - 0.25) / 0.35, 0.05, 1.0)
     # floors (wood, carpet) are rarely white: fade out the lower part of the frame
@@ -192,6 +192,7 @@ def _apply_gains(img: np.ndarray, du: np.ndarray, dv: np.ndarray) -> np.ndarray:
 
 
 def white_balance(rad: np.ndarray, rad_small: np.ndarray, win, cfg: dict) -> tuple[np.ndarray, dict]:
+    """Global + mixed-light white balance.  ``rad`` is modified in place (and returned)."""
     wcfg = cfg.get("white_balance", {})
     if not wcfg.get("enabled", True):
         return rad, {"enabled": False}
@@ -235,10 +236,11 @@ def white_balance(rad: np.ndarray, rad_small: np.ndarray, win, cfg: dict) -> tup
         wm = cv2.GaussianBlur(win.mask.astype(np.float32), (0, 0), 1.5)[..., None]
         field_small = field_small * (1 - wm) + ext_corr[None, None].astype(np.float32) * wm
         info["exterior_cct"] = float(cct[0])
-    full = cv2.resize(field_small, (W, H), interpolation=cv2.INTER_LINEAR)
-    du = (g[0] + full[..., 0]).astype(np.float32)
-    dv = (g[1] + full[..., 1]).astype(np.float32)
-    out = _apply_gains(rad, du, dv)
+    # apply in place, strip by strip (no full-resolution copies of the image or the field)
+    for r0, r1 in row_strips(H, W):
+        f = resize_rows(field_small, W, H, r0, r1)
+        rad[r0:r1] = _apply_gains(rad[r0:r1], g[0] + f[..., 0], g[1] + f[..., 1])
+    out = rad
     log.info("white balance: CCT %.0fK, global shift %s, local cells %s", info.get("cct", 0), info["global_shift"],
              info.get("local", {}).get("cells"))
     return out, info

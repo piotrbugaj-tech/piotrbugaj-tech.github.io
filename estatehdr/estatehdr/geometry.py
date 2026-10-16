@@ -187,7 +187,10 @@ def plumb_line_cost(chains, k1: float, trim: float = 0.2) -> float:
     return float((costs[keep] * wts[keep]).sum() / wts[keep].sum())
 
 
-def estimate_distortion(gray8: np.ndarray, max_k1: float = 0.18) -> tuple[float, dict]:
+def estimate_distortion(gray8: np.ndarray, max_k1: float = 0.18, min_k1: float = 0.03,
+                        min_gain: float = 0.05) -> tuple[float, dict]:
+    """Radial k1 from plumb lines.  Estimates below ``min_k1`` are within the estimation error
+    (measured |err| <= 0.02 on synthetic scenes) and are not applied."""
     chains = edge_chains(gray8)
     if len(chains) < 6:
         return 0.0, {"accepted": False, "reason": "few straight edges", "chains": len(chains)}
@@ -204,7 +207,7 @@ def estimate_distortion(gray8: np.ndarray, max_k1: float = 0.18) -> tuple[float,
     best = plumb_line_cost(chains, k_best)
     gain = 1.0 - best / max(base, 1e-18)  # fraction of curvature removed
     info = {"k1": k_best, "gain": gain, "chains": len(chains)}
-    if gain < 0.05 or abs(k_best) < 0.01:
+    if gain < min_gain or abs(k_best) < min_k1:
         return 0.0, {**info, "accepted": False}
     return k_best, {**info, "accepted": True}
 
@@ -372,7 +375,7 @@ def correct(img: np.ndarray, cfg: dict, meta=None) -> tuple[np.ndarray, dict]:
     # 1. distortion
     k1 = 0.0
     if gcfg.get("distortion", "auto") == "auto":
-        k1, info["distortion"] = estimate_distortion(g8, float(gcfg.get("max_k1", 0.18)))
+        k1, info["distortion"] = estimate_distortion(g8, float(gcfg.get("max_k1", 0.18)), float(gcfg.get("min_k1", 0.03)))
     if abs(k1) > 0:
         mx, my = undistort_map(ws, hs, k1)
         g8u = cv2.remap(g8, mx, my, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)

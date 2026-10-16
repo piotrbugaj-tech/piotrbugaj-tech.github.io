@@ -17,7 +17,7 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-from .imgutil import luminance, resize_to
+from .imgutil import chmax, chmin, luminance, resize_to
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ def _smooth_step(e0, e1, x):
 def frame_weight(x: np.ndarray, exposure: float, sat_hi: float = 0.97, sat_lo: float = 0.82,
                  dark: float = 0.003) -> np.ndarray:
     """Per-pixel weight (H,W) of one linear frame."""
-    mx = x.max(-1)
+    mx = chmax(x)
     w_sat = 1.0 - _smooth_step(sat_lo, sat_hi, mx)
     w_dark = _smooth_step(0.0, dark, luminance(x))
     return (w_sat * (0.02 + 0.98 * w_dark) * exposure).astype(np.float32)
@@ -72,18 +72,21 @@ def detect_ghosts(series, cfg: dict) -> list[np.ndarray]:
     min_area = float(cfg.get("min_area_frac", 0.0004)) * ref.small.shape[0] * ref.small.shape[1]
     warped = [_warp_small(f, ref.small.shape, scale) for f in frames]
     cur = ref.small / ref.exposure
-    cur_valid = (ref.small.max(-1) < 0.85) & (luminance(ref.small) > 0.01)
+    cur_valid = (chmax(ref.small) < 0.85) & (luminance(ref.small) > 0.01)
     order = sorted([i for i in range(n) if i != series.ref], key=lambda i: abs(np.log2(frames[i].exposure)))
     for i in order:
         x, valid = warped[i]
         e = frames[i].exposure
-        vi = valid & (x.max(-1) < 0.85) & (luminance(x) > 0.01)
+        vi = valid & (chmax(x) < 0.85) & (luminance(x) > 0.01)
         both = vi & cur_valid
-        ri = luminance(x) / e
-        rc = luminance(cur)
-        d = np.abs(np.log2(np.maximum(ri, 1e-7)) - np.log2(np.maximum(rc, 1e-7)))
+        # per-channel log difference: moving objects often have a luminance similar to what they
+        # cover (blue shirt vs. brown headboard) but a different colour
+        floor = 0.004
+        lx = np.log2(np.maximum(x / e, floor / e))
+        lc = np.log2(np.maximum(cur, floor / e))
+        d = np.abs(lx - lc).max(-1)
         # tolerance grows for low signal (noise) - signal measured in each frame's own scale
-        sig = np.minimum(luminance(x), luminance(cur) * e)
+        sig = np.minimum(chmin(x), chmin(cur) * e)
         tol = thr + noise_k / np.sqrt(np.maximum(sig, 1e-4))
         bad = both & (d > tol)
         # clean up: remove speckles, keep blobs, grow a margin
@@ -105,6 +108,26 @@ def detect_ghosts(series, cfg: dict) -> list[np.ndarray]:
     return masks
 
 
+def neutralize_black_bias(rad: np.ndarray, max_frac: float = 0.02) -> tuple[np.ndarray, list]:
+    """Remove a coloured offset in the deepest shadows (sensor noise clipped at zero and then
+    multiplied by white-balance gains leaves a magenta/purple floor).  The darkest pixels of a
+    scene are expected to be neutral; only a small offset relative to the median is removed."""
+    y = luminance(rad[::4, ::4])
+    thr = np.percentile(y, 2)
+    m = y <= thr
+    if m.sum() < 100:
+        return rad, [0.0, 0.0, 0.0]
+    means = rad[::4, ::4][m].mean(0)
+    off = means - means.min()
+    lim = max_frac * float(np.median(y))
+    off = np.minimum(off, lim)
+    if off.max() <= 0:
+        return rad, [0.0, 0.0, 0.0]
+    rad -= off.astype(np.float32)[None, None]
+    np.maximum(rad, 0, out=rad)
+    return rad, off.round(6).tolist()
+
+
 def merge_series(series, cfg: dict) -> MergeResult:
     frames = series.frames
     ref = frames[series.ref]
@@ -118,8 +141,9 @@ def merge_series(series, cfg: dict) -> MergeResult:
     if len(frames) == 1:
         x = ref.linear()
         rad[:] = x
-        clipped = _smooth_step(0.9, 0.99, x.max(-1)).astype(np.float32)
-        return MergeResult(rad, clipped, None, {**stats, "frames": 1})
+        clipped = _smooth_step(0.9, 0.99, chmax(x)).astype(np.float32)
+        rad, off = neutralize_black_bias(rad, float(mcfg.get("black_bias_max", 0.05)))
+        return MergeResult(rad, clipped, None, {**stats, "frames": 1, "black_bias": off})
     darkest = int(np.argmin([f.exposure for f in frames]))
     strip = int(mcfg.get("strip_rows", 1024))
     sat_lo, sat_hi = float(mcfg.get("sat_lo", 0.82)), float(mcfg.get("sat_hi", 0.97))
@@ -148,8 +172,9 @@ def merge_series(series, cfg: dict) -> MergeResult:
         good = den > 1e-12
         out = np.where(good[..., None], num / np.maximum(den, 1e-12)[..., None], dark_val / frames[darkest].exposure)
         rad[y0:y1] = out
-        clipped[y0:y1] = _smooth_step(0.9, 0.99, dark_val.max(-1))
-    stats.update({"frames": len(frames), "darkest_clipped_frac": float((clipped > 0.5).mean()),
+        clipped[y0:y1] = _smooth_step(0.9, 0.99, chmax(dark_val))
+    rad, off = neutralize_black_bias(rad, float(mcfg.get("black_bias_max", 0.05)))
+    stats.update({"frames": len(frames), "darkest_clipped_frac": float((clipped > 0.5).mean()), "black_bias": off,
                   "dynamic_range_ev": float(np.log2(max(np.percentile(luminance(rad[::8, ::8]), 99.9), 1e-6)
                                                     / max(np.percentile(luminance(rad[::8, ::8]), 0.5), 1e-6)))})
     return MergeResult(rad, clipped, union, stats)
