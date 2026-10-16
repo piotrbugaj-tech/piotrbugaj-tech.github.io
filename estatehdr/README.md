@@ -73,8 +73,14 @@ Batch nigdy się nie zatrzymuje na pojedynczym problemie:
 - awaria procesu roboczego (np. brak pamięci) dotyczy tylko serii, która ją wywołała. Pozostałe serie są
   przeliczane ponownie, pojedynczo.
 
-Kody wyjścia: 0 – wszystko w porządku; 1 – w folderze nie ma obsługiwanych zdjęć; 2 – nie ma takiego folderu albo
-któraś seria się nie udała.
+Kody wyjścia:
+- **0**: wszystko w porządku;
+- **1**: w folderze nie ma obsługiwanych zdjęć;
+- **2**: nie ma takiego folderu, błędna opcja (`--preset`, `--config`, `--set`, `--groups`; jednolinijkowy komunikat
+  `błąd: ...`), któraś seria się nie udała albo któryś plik był nieczytelny.
+
+Ostatnia linia na wyjściu to JSON z liczbami `ok`, `failed` (serie z błędem + nieczytelne pliki), `failed_series` i
+`unreadable`. Szczegóły i błędy są też w `estatehdr.log` w folderze wyjściowym, łącznie z logami procesów roboczych.
 
 Fotografowanie RAW+JPEG: pliki o tej samej nazwie w jednym folderze (`IMG_1.CR2` + `IMG_1.JPG`) to jedna klatka,
 używany jest RAW. Serie o tej samej nazwie (np. `IMG_0001` w dwóch podfolderach) dostają przyrostek `_2`, `_3`,
@@ -101,17 +107,17 @@ Zrzuty: [reports/ui/](reports/ui/).
 | Etap | Moduł | Co robi |
 |---|---|---|
 | Grupowanie | `grouping.py` | Reguły per para klatek: aparat, rozmiar, ogniskowa, odstęp czasu, powtórzona ekspozycja z EXIF. Bez EXIF: skok jasności ≥ 0.4 EV i podobieństwo kadru. Ręczna korekta przez `groups.json` lub UI |
-| Linearyzacja | `series.py`, `io/` | RAW (LibRaw, DHT/FBDD), TIFF16 (liniowy vs sRGB rozstrzygany zgodnością z EXIF), JPEG (dopasowanie krzywej odpowiedzi kamery). Ekspozycje z EXIF, weryfikowane pikselami |
+| Linearyzacja | `series.py`, `io/` | RAW (LibRaw, DHT/FBDD, mapy cieniowania obiektywu GainMap z DNG), TIFF16 (liniowy vs sRGB rozstrzygany zgodnością z EXIF), JPEG (dopasowanie krzywej odpowiedzi kamery), konwersja profili ICC innych niż sRGB. Ekspozycje z EXIF, weryfikowane pikselami |
 | Wyrównanie | `align.py` | SIFT + RANSAC, ECC, dokładny etap ECC w wyższej rozdzielczości, walidacja względem identyczności |
 | Merge HDR | `merge.py` | Radiancja liniowa ze wszystkich klatek (wagi SNR), wykrywanie duchów względem klatki referencyjnej, neutralizacja kolorowej czerni RAW. Praca w pasach |
-| Obiektyw | `lens.py` | Aberracja chromatyczna (skala radialna R/B), winieta (tylko przy spójnym profilu albo ręcznie) |
+| Obiektyw | `lens.py` | Aberracja chromatyczna (skala radialna R/B), winieta (symetria gradientów radialnych ze strażnikami przeciw cieniowaniu sceny, albo ręcznie) |
 | Scena nocna | `pipeline.py` | Wykrywa nocny exterior (ciemne, gładkie niebo u góry kadru) i wtedy: bez window pull, niski klucz tonalny, noc zostaje nocą |
 | Okna | `windows.py` | Fizyczna detekcja obszarów poza zakresem wnętrza i klasyfikacja (okno / lampa / plama słońca / niebo) |
-| Balans bieli | `color.py` | Globalny (szare kandydatury → locus Plancka, cel 6000 K) + lokalne pole mieszanego światła + osobna korekta widoków |
-| Tonemapping | `tonemap.py` | Lokalna kompresja (filtr prowadzony, bez halo), window pull rozwiązywany na krzywej, globalna krzywa PCHIP zakotwiczona na percentylach wnętrza, kolor z zachowaniem nasycenia, miękkie wygaszanie świateł |
-| Odszumianie | `denoise.py` | Estymacja szumu (Immerkaer), filtr prowadzony luminancji i chrominancji, NLM dla silnego szumu |
+| Balans bieli | `color.py` | Globalny (szare kandydatury → locus Plancka, cel 7400 K przy sile 0.5, czyli biel w połowie drogi; D-32) + lokalne pole mieszanego światła + osobna korekta widoków |
+| Tonemapping | `tonemap.py` | Lokalna kompresja (filtr prowadzony, bez halo), window pull rozwiązywany na krzywej, globalna krzywa PCHIP zakotwiczona na percentylach wnętrza (z limitem rozciągnięcia czerni dla scen o małym kontraście), próg szumu w logarytmie luminancji, kolor z zachowaniem nasycenia, miękkie wygaszanie świateł |
+| Odszumianie | `denoise.py` | Funkcja poziomu szumu σ(jasność) (Immerkaer w przedziałach jasności), filtr prowadzony luminancji i chrominancji, dla silnego szumu NLM po stabilizacji wariancji. Pojedynczy RAW: słabsze podnoszenie cieni przy głośnych cieniach (D-39) |
 | Moduły | `modules/` | Niebo, zmierzch, usuwanie obiektów (exemplar-based) i trawa, przed geometrią |
-| Geometria | `geometry.py` | Dystorsja metodą plumb-line, piony z punktu zbiegu (LSD + RANSAC), obrót kamery, crop ≤ 15%, powrót do wymiarów wejścia |
+| Geometria | `geometry.py` | Dystorsja metodą plumb-line, piony z punktu zbiegu (LSD + RANSAC), obrót kamery, crop ≤ 15%, powrót do wymiarów wejścia. Szacowana przed modułami, stosowana po nich (D-42) |
 | Eksport | `export.py`, `io/writer.py` | Wyostrzanie z progiem szumu, dithering, sRGB ICC, EXIF z klatki referencyjnej, rozmiary |
 
 Wymagający obliczeniowo kod pełnej rozdzielczości działa w pasach wierszy. Batch używa puli procesów, a liczba
@@ -119,7 +125,7 @@ workerów wynika z budżetu RAM.
 
 ## 5. Presety i parametry
 
-| Preset | Charakter | Najważniejsze różnice (wartości po kalibracji, D-32) |
+| Preset | Charakter | Najważniejsze różnice (wartości po kalibracji, D-32, D-37) |
 |---|---|---|
 | `neutral` (domyślny) | naturalny, jasny wygląd do ogłoszeń (MLS) | klucz tonalny 0.70, kompresja cieni 0.64, widok za oknem ≈ 0.6, biel neutralna przy mieszanym świetle |
 | `airy` | jasny, lekki (high-key) | klucz 0.85, łagodniejsza kompresja lokalna (0.78), jaśniejszy widok za oknem, mniej kontrastu i nasycenia |
@@ -294,11 +300,12 @@ z opisu produktu (SPEC.md, REVERSE.md §5) na scenach syntetycznych z prawdą re
 - ΔE i SSIM do „idealnej edycji” jako regularyzator.
 
 ```bash
-python tools/calibrate.py --input data/synthetic/input --synthetic-gt data/synthetic --preset neutral
+python tools/calibrate.py --input data/synthetic/input --synthetic-gt data/synthetic --preset neutral \
+    --out reports/calibration/moj_przebieg
 python tools/calibrate.py --input data/synthetic/input --synthetic-gt data/synthetic --preset airy \
     --params tonemap.target_key,tonemap.compress_shadows,tonemap.compress_highlights,windows.exterior_target \
-    --bound tonemap.target_key=0.5:0.85                          # preset: tylko parametry tonu, własne granice
-python tools/calibrate.py --input SESJE --pairs WYNIKI_AUTOHDR      # gdy będą pary: 1:1 (ΔE2000, SSIM, LPIPS)
+    --bound tonemap.target_key=0.5:0.85 --out reports/calibration/moj_airy   # tylko parametry tonu, własne granice
+python tools/calibrate.py --input SESJE --pairs WYNIKI_AUTOHDR --out reports/calibration/pary   # pary 1:1
 python tools/compare_configs.py --input data/synthetic/input --synthetic-gt data/synthetic \
     --before reports/calibration/config_before_full.yaml --preset neutral,airy,premium \
     --out reports/calibration/full_pipeline.md                 # pełny pipeline przed / po kalibracji
@@ -387,3 +394,17 @@ Uczciwie, z pomiarami (szczegóły w `reports/`):
 12. **Odszumianie** jest umiarkowane. Po kalibracji jaśniejszy klucz tonalny uwidacznia szum cieni, więc spadek
     σ szumu na pojedynczych RAW wynosi 3–33% (wcześniej 20–35%).
 
+
+## 10. Następne kroki (największy zysk)
+
+1. **Pary „wejście → wynik AutoHDR”.** Nawet 50–100 sesji pozwoli skalibrować presety 1:1:
+   `tools/calibrate.py --pairs` jest gotowe i liczy ΔE2000, SSIM, MS-SSIM, a z LPIPS, jeśli jest zainstalowany.
+   Dziś kalibracja opiera się na opisach i scenach syntetycznych (D-32). Możliwe źródło to publiczny zbiór konkursu
+   grupowania AutoHDR, ale wyłącznie po potwierdzeniu licencji i za zgodą właściciela projektu (D-18).
+2. **Modele uczone na licencjach komercyjnych** (MIT/Apache, z wagami o jasnym pochodzeniu):
+   - segmentacja nieba i okien zamiast reguł (twilight, wymiana nieba, okna z firankami);
+   - odszumianie pojedynczych RAW, które jest dziś najsłabszym punktem trybu jednej klatki.
+3. **Profile obiektywów** dla dystorsji, winiety i CA. Estymacja z obrazu jest ostrożna (winieta we wnętrzach jest
+   świadomie pomijana, D-44). Warunek: baza o licencji pozwalającej na użycie komercyjne albo własna kalibracja
+   z płaskiego kadru, gdzie estymator jest dokładny.
+4. **Pomiar na GPU.** Ścieżka OpenCL jest zgodna z CPU (testy), ale przyspieszenia nie zmierzyłem (brak GPU).
