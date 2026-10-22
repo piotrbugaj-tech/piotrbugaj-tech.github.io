@@ -2,7 +2,7 @@
 
 Data: 16.10.2026 · wersja 1.0 · język: PL (szablony także EN)
 
-Pliki towarzyszące (ten sam katalog): `media.md` (30 redakcji z wymaganiami), `nagrody_eventy.md` (konkursy, targi, kalendarz 12 mies.), `klienci_50.md` (50 celów; części źródłowe: `klienci_marki.md`, `klienci_pracownie.md`, `klienci_hotele.md`), `fotografowie_uzupelnienie.md` (3 fotografów wnętrz/hospitality zamiast Koeniga + agencje). Audyt strony i research 13 fotografów z poprzedniej sesji: `HANDOFF_piotrbugaj_strategia.md` (sekcje 3–4).
+Pliki towarzyszące (ten sam katalog): `media.md` (30 redakcji z wymaganiami), `nagrody_eventy.md` (konkursy, targi, kalendarz 12 mies.), `klienci_50.md` (50 celów; części źródłowe: `klienci_marki.md`, `klienci_pracownie.md`, `klienci_hotele.md`), `fotografowie_uzupelnienie.md` (3 fotografów wnętrz/hospitality zamiast Koeniga + agencje). `maile_drafty.md` (drafty maili z ofertą pierwszych sesji z dużą zniżką). Audyt strony i research 13 fotografów z poprzedniej sesji: `HANDOFF_piotrbugaj_strategia.md` (sekcje 3–4).
 
 Zasady: fakty o stronie pochodzą z audytu live (WebFetch, 16.10.2026) i z kodu podglądu w tym repo (build Astro); fakty rynkowe mają źródła w plikach towarzyszących. Wszystko bez źródła oznaczam **[ocena]** (moja opinia zawodowa) albo **[unverified]**. Nie podaję cen poza publicznymi opłatami konkursowymi. Nie podaję prywatnych kontaktów.
 
@@ -11,7 +11,7 @@ Zasady: fakty o stronie pochodzą z audytu live (WebFetch, 16.10.2026) i z kodu 
 ## Podsumowanie i werdykt
 
 1. **Werdykt:** piotrbugaj.com to porządna lokalna strona usługowa dla właścicieli obiektów (hotel, pensjonat, apartament na wynajem), nie strona kandydata do europejskiej czołówki; dziś nie spełnia żadnego z pięciu kryteriów, po których rynek rozpoznaje top tier: nazwani klienci, publikacje, nagrody, książki/wystawy, reprezentacja.
-2. Największy pojedynczy problem to anonimowość: 9 realizacji bez nazwiska projektanta, marek i roku, czyli zero wartości sieciowej, zero backlinków i zero szans na publikację, bo każda licząca się redakcja wymaga credits.
+2. Największy pojedynczy problem to anonimowość: 9 realizacji powstało dla agencji nieruchomości i nikt (ani Ty, ani agencje) nie zna ich projektantów, więc nie da się ich podpisać pełnymi credits, czyli zero wartości sieciowej, zero backlinków i zero szans na publikację, bo każda licząca się redakcja wymaga credits. Te zdjęcia zostają jako dowód dla właścicieli obiektów; publikacje muszą wyjść z nowych, podpisanych sesji.
 3. „Top 10 fotografów architektury w Europie" w sensie Bossi / Gardiner / Guerra / Hufton+Crow to 10–15 lat relacji ze starchitekturą, książki w Park Books i akwizycje muzealne; w 3 lata z Warszawy to nierealne i nie warto tam celować, bo nie tam są Twoi klienci (marki mebli, pracownie wnętrz, hotele).
 4. Realny i szybszy cel to model Salvy Lópeza (Vitra, Kettal, Arper, Vibia, dwóch agentów regionalnych) i fotografów wnętrz/hospitality: w 3 lata być jednym z kilku nazwisk w Europie Środkowej, które marki, pracownie i hotele podają z nazwy, mierzalnie: 15+ publikacji międzynarodowych, 2–3 shortlisty nagród o realnej wartości redakcyjnej, syndykacja lub agent, 10 klientów z listy 50.
 5. Główna specjalizacja: wnętrza i obiekty designu w kontekście dla marek mebli/oświetlenia i pracowni wnętrz; poboczne: hospitality (otwarcia i renowacje hoteli w PL/CZ/DE/AT) oraz eksperyment foto + CGI dla mebli konfigurowalnych i hoteli przed otwarciem, gdzie Twoje 3D, kod i CNC dają przewagę, której nie ma żaden z fotografów z benchmarku.
@@ -19,7 +19,7 @@ Zasady: fakty o stronie pochodzą z audytu live (WebFetch, 16.10.2026) i z kodu 
 7. Portfolio trzeba przebudować z „284 kadry + 9 anonimowych domów" na 12–15 kuratorskich case studies z pełnymi credits i 4–5 serii self-initiated (obiekty, showroom, pokój hotelowy przez 24 h, modernizm z ludźmi), bo dziś nic na stronie nie mówi marce mebli ani hotelowi „ten człowiek robi dokładnie to, czego potrzebujemy".
 8. Widoczność w tej niszy powstaje w jednym łańcuchu: credits u pracowni → publikacje (Divisare/ArchDaily/Dezeen przez pracownię, Openhouse/Cereal/Sleeper przez własny pitch) → tagowane posty, które marki repostują; targi służą relacjom, nie sprzedaży; TikTok, X, Threads i hashtagi to strata czasu.
 9. System na prokrastynację: jeden stały blok marketingowy w tygodniu (2 h), CRM w arkuszu, pięć szablonów, automatyczny monitor publikacji (napiszesz go w jeden wieczór) i zasada „zero sesji bez planu publikacji"; każda pojedyncza akcja w planie trwa poniżej 30 minut.
-10. Najważniejsze działanie na dziś: napisać do autorów 9 istniejących realizacji o zgodę na podpisanie ich nazwiskiem (pracownia, rok, marki mebli i oświetlenia); jedna wiadomość odblokowuje credits, publikacje, backlinki i pierwszą listę marek do cold maili.
+10. Najważniejsze działanie na dziś: wysłać pierwsze oferty sesji z dużą zniżką do 3 pracowni (Mistovia, Colombe, Wiercinski), w zamian za pełne credits, zgodę na portfolio i pomoc przy zgłoszeniu do redakcji; drafty są w `maile_drafty.md`. To jedyna droga do pierwszych podpisanych projektów.
 
 ---
 
@@ -30,7 +30,7 @@ Zasady: fakty o stronie pochodzą z audytu live (WebFetch, 16.10.2026) i z kodu 
 | Obszar | Stan | Wobec top 10 |
 |---|---|---|
 | Pozycjonowanie | Title PL „Fotograf wnętrz w Warszawie — naturalne światło"; description o hotelach, apartamentach, restauracjach; schema `ProfessionalService` z `areaServed` = Warszawa, Polska (podgląd) | Lokalny usługodawca. Czołówka pozycjonuje się jako autor/dokumentalista: „Site visits 2008–2026" (Gardiner), podpisy „Architekt / Projekt / Miasto / Rok" (Bossi, Hevia, Delvaux) |
-| Portfolio | 9 realizacji (live) / 3 (podgląd), tytuły opisowe („Dom w marmurze i jasnym dębie"), brak nazwiska projektanta, marek, roku, tekstu, credit-blocku, „opublikowano w" | Anonimowe = niepublikowalne i bez dowodu, kto Cię zatrudnia |
+| Portfolio | 9 realizacji (live) / 3 (podgląd), tytuły opisowe („Dom w marmurze i jasnym dębie"), brak nazwiska projektanta (nieznanego także agencjom, dla których powstały zdjęcia), marek, roku, tekstu, credit-blocku, „opublikowano w" | Bez projektanta = niepublikowalne w redakcjach i bez dowodu, kto Cię zatrudnia; zostają jako dowód dla właścicieli obiektów |
 | „Kadry" | 284 luźnych zdjęć (live) / 66 (podgląd), bez podpisów | Rozmywa kuratorstwo; top tier: 20–30 kadrów na budynek, archiwum z podpisami |
 | Formularz zapytania | 11 kroków; kategorie: Hotel / Pensjonat / Apartament na wynajem / Restauracja / Pracownia / Inne | Brak „marka mebli, oświetlenia, producent" i „architekt wnętrz" jako osobnej ścieżki = brak celu nr 1 z Twojego planu |
 | Copy | Język właściciela obiektu („Płacisz tylko za to, czego naprawdę potrzebujesz") | Poprawne dla SMB; art director marki i redaktor szukają autora, nie wyceny |
@@ -66,7 +66,7 @@ Nikolas Koenig (Nowy Jork) został usunięty z benchmarku; europejscy fotografow
 
 | Kryterium | Top tier (benchmark) | Piotr dziś | Co to zmienia |
 |---|---|---|---|
-| Klienci z nazwy | ZHA, HdM, Siza, BIG; w wnętrzach/meblach Vitra, Kettal, Arper (López) | 0 publicznych | Credits na 9 realizacjach + 10 pierwszych celów z listy 50 |
+| Klienci z nazwy | ZHA, HdM, Siza, BIG; w wnętrzach/meblach Vitra, Kettal, Arper (López) | 0 publicznych | Pierwsze 3 podpisane projekty z sesji z dużą zniżką (`maile_drafty.md`) + 10 pierwszych celów z listy 50 |
 | Publikacje | Divisare 13/13, ArchDaily, Dezeen, designboom; druk: Domus, Record, AR; książki | 0 | Profil Divisare, 1 publikacja na kwartał w roku 1 |
 | Nagrody | APA, Arcaid, Architizer, Laus/BEAU, Sony | 0 | 2 zgłoszenia rocznie tylko tam, gdzie wygrani dostają redakcyjny zasięg (`nagrody_eventy.md`) |
 | Książki / wystawy / dydaktyka | Park Books, Perimeter, Hatje Cantz; galerie; Elisava, UPC | 0 | Zine w roku 1, wystawa w showroomie marki w roku 2, wykład na festiwalu designu w roku 2–3 |
@@ -261,9 +261,9 @@ Założenia: Kadrify finansuje (ok. 10 tys. PLN/mies. z poleceń, wg Twoich dany
 
 | Tygodnie | Kamienie milowe | KPI na koniec |
 |---|---|---|
-| 1–2 | Zgody na credits od autorów 9 realizacji; nowe title/meta/H1 PL+EN; `areaServed` Europa; `og:image` per strona; kategoria „marka mebli/oświetlenia" i „pracownia wnętrz" w formularzu; konto Divisare + 3 photo reports; bio IG po angielsku; osobne konto Kadrify | 9/9 realizacji z credit-blockiem (lub usunięte, jeśli brak zgody); Divisare: 3 projekty |
+| 1–2 | Wysyłka ofert sesji z dużą zniżką do 3 pracowni (`maile_drafty.md`); 9 starych realizacji opisane „typ obiektu, miasto, rok", bez zgłoszeń do redakcji; nowe title/meta/H1 PL+EN; `areaServed` Europa; `og:image` per strona; kategoria „marka mebli/oświetlenia" i „pracownia wnętrz" w formularzu; konto Divisare (photo reports dopiero z podpisanych sesji); bio IG po angielsku; osobne konto Kadrify | 3 oferty wysłane, 9 starych realizacji z opisem typ/miasto/rok; konto Divisare założone |
 | 2–6 | Dwie serie self-initiated (6.4): „Warsztat/Obiekty" (własne meble CNC + 2 obiekty wypożyczone od marek PL) i „Showroom po godzinach" (1 marka z pierwszej piątki); 3 notatki dla grupy docelowej | 2 serie × 15–20 kadrów + tekst EN; 3 teksty |
-| 4–12 | Kadencja outreach: 5 maili/tydz. (3 pracownie + 2 marki z pierwszej dziesiątki), follow-up dzień 5 i 14; pitch 1 istniejącego projektu (z credits) do redakcji PL; 1 zgłoszenie do konkursu wg `nagrody_eventy.md`; rezerwacja Stockholm Furniture Fair (II 2027) i Salone (IV 2027); zgłoszenie obiektu na festiwal designu PL | 40 maili, 8 rozmów, 2 sesje testowe umówione, 1 publikacja PL, 1 zgłoszenie konkursowe, 2 bilety |
+| 4–12 | Kadencja outreach: 5 maili/tydz. (pracownie, marki i hotele z pierwszej dziesiątki, drafty w `maile_drafty.md`), follow-up dzień 5 i 14; po pierwszej sesji pitch podpisanego projektu do redakcji PL; 1 zgłoszenie do konkursu wg `nagrody_eventy.md`; rezerwacja Stockholm Furniture Fair (II 2027) i Salone (IV 2027); zgłoszenie obiektu na festiwal designu PL | 40 maili, 8 rozmów, 2 sesje umówione, 1 podpisany projekt, 1 publikacja PL, 1 zgłoszenie konkursowe, 2 bilety |
 | 8–12 | Narzędzie nr 1 (monitor publikacji PL/CEE → cotygodniowy digest) i pipeline IPTC; szablon interaktywnego case study | Narzędzie działa, 1 case study w nowym formacie online |
 
 ### 4.2 12 miesięcy (do 10.2027): pierwsze dowody
@@ -307,16 +307,16 @@ Projektuję go pod jedną obserwację: unikasz zadań otwartych („zrób market
 
 | # | Działanie | Wpływ | Wysiłek | Czas |
 |---|---|---|---|---|
-| 1 | Napisz do autorów 9 realizacji (projektant/pracownia) z prośbą o zgodę na podpisanie: nazwa pracowni, rok, marki mebli i oświetlenia w kadrze; przy okazji zapytaj, kto u nich zwykle zleca sesje | bardzo wysoki | niski | 45 min |
+| 1 | Wyślij oferty sesji z dużą zniżką do 3 pracowni (Mistovia, Colombe, Wiercinski); drafty gotowe w `maile_drafty.md`, w zamian pełne credits, zgoda na portfolio i pomoc przy zgłoszeniu do redakcji | bardzo wysoki | niski | 45 min |
 | 2 | Zmień title, description, H1 (PL+EN) na „fotograf architektury i wnętrz, Warszawa / Europa"; `areaServed` Europa; `og:image` per strona; usuń `&nbsp;` z meta | wysoki | niski | 1 h |
-| 3 | Załóż konto autora na Divisare (bio, link) i zgłoś 3 najlepsze projekty jako photo reports (po zgodach z pkt 1) | wysoki | średni | 1,5 h |
-| 4 | Wybierz 10 pierwszych celów z `klienci_50.md`, wpisz do arkusza CRM, wyślij 5 maili z szablonów 6.3 (3 pracownie: Mistovia, Colombe, Wiercinski; 2 marki: Tylko, Noti) | wysoki | średni | 1,5 h |
+| 3 | Załóż konto autora na Divisare (bio, link); zgłoszenia photo reports dopiero z pierwszych podpisanych sesji | wysoki | niski | 30 min |
+| 4 | Wpisz 10 pierwszych celów z `klienci_50.md` do arkusza CRM i wyślij 3 kolejne oferty z `maile_drafty.md` (marki Tylko i Nobonobo, hotel Autor Rooms) | wysoki | średni | 1 h |
 | 5 | Zaplanuj serię „Warsztat/Obiekty": termin w kalendarzu, lista 2 marek PL do wypożyczenia obiektu, shot lista, tekst 10 zdań po angielsku | wysoki | średni | 1 h |
 | 6 | Dodaj do formularza kategorie „Marka mebli / oświetlenia / producent" i „Architekt wnętrz / pracownia" jako osobne ścieżki z własnymi pytaniami (licencja dla marki, liczba produktów, showroom) | średni | niski | 1 h |
 | 7 | Wpisz do kalendarza terminy konkursów i wydarzeń z `nagrody_eventy.md` z alertami 6 i 2 tygodnie wcześniej; kup bilet/akredytację na Stockholm Furniture Fair | średni | niski | 30 min |
 | 8 | Instagram: bio EN, 3 przypięte karuzele projektów z credits, 4 posty na 2 tygodnie zaplanowane w Metricool; osobne konto dla Kadrify | średni | niski | 1 h |
 | 9 | Zablokuj w kalendarzu poniedziałki 9–11 jako „Marketing" (powtarzalne) i stwórz arkusz CRM z kolumnami z 4.4 | wysoki | bardzo niski | 15 min |
-| 10 | Pitch najlepszego z 9 projektów (po zgodzie i z credits) do jednej redakcji PL (Whitemad / Label / Design Alive) pakietem z 6.3; zanotuj w CRM datę i follow-up | średni | średni | 1 h |
+| 10 | Zapisz w CRM daty wysyłki ofert i przypomnień (dzień 5 i 14); po pierwszej sesji wyślij podpisany projekt do jednej redakcji PL (Whitemad / Label / Design Alive) pakietem z 6.3 | średni | niski | 30 min |
 
 Łącznie ok. 10 h. Jeśli zrobisz tylko trzy: 1, 9, 4.
 
@@ -434,7 +434,7 @@ Zasady wspólne: jeden projekt na mail, zero BCC, 2 zdania personalizacji na poc
 
 | Typ | Liczba | Skąd | Dla kogo to dowód |
 |---|---|---|---|
-| Wnętrza z nazwaną pracownią (mieszkania, domy) | 5 | Obecne 9 realizacji po uzyskaniu credits + 2 nowe od pracowni z listy | Pracownie, redakcje |
+| Wnętrza z nazwaną pracownią (mieszkania, domy) | 5 | 9 obecnych realizacji nie ma znanego projektanta i zostaje jako dowód dla właścicieli (bez zgłoszeń do redakcji); 5 nowych podpisanych projektów z sesji z dużą zniżką (`maile_drafty.md`) | Pracownie, redakcje |
 | Hospitality (hotel, restauracja, kawiarnia) | 3 | Autor Rooms (rozgrzewka), 1 otwarcie/renowacja z listy, 1 restauracja pracowni z listy | Hotele, Sleeper/HD |
 | Obiekty designu w kontekście (marka) | 3 | Serie self-initiated 1–2 + pierwsza licencja dla marki z kadru | Marki mebli i oświetlenia |
 | Architektura z ludźmi (eksterior/przestrzeń publiczna) | 2 | Seria self-initiated 4 | Konkursy, Divisare, pracownie architektury |
@@ -455,7 +455,7 @@ Zasada przy każdej sesji komercyjnej (także Kadrify): 3 dodatkowe kadry „do 
 
 | P | Poprawka | Dlaczego | Nakład |
 |---|---|---|---|
-| **P0** | Credit-block na każdej realizacji (Pracownia / Projekt / Miasto / Rok / Marki / Stylizacja) + „Opublikowano w"; realizacje bez zgody na credits → poza stroną | Bez credits nie ma publikacji, backlinków ani cold maili do marek | 1 dzień po zgodach |
+| **P0** | Credit-block na każdej nowej realizacji (Pracownia / Projekt / Miasto / Rok / Marki / Stylizacja) + „Opublikowano w"; stare realizacje bez znanego projektanta: podpis „typ obiektu, miasto, rok", bez zgłoszeń do redakcji | Bez credits nie ma publikacji, backlinków ani cold maili do marek | 1 dzień |
 | **P0** | Title / description / H1 PL+EN: „fotograf architektury i wnętrz — Warszawa, cała Europa"; `areaServed` Europa; `sameAs`; `ImageObject` z `creditText` | Pozycjonowanie lokalne „fotograf wnętrz Warszawa" przeczy celowi | 2 h |
 | **P0** | Formularz: osobne ścieżki „Marka mebli / oświetlenia / producent" i „Architekt wnętrz / pracownia" z własnymi pytaniami (licencja dla marki, produkty, showroom; credits, publikacja) | Dziś formularz nie zna Twoich dwóch głównych grup | 2 h |
 | **P1** | Nawigacja dwutorowa w treści: `/dla-pracowni`, `/dla-marek`, `/dla-hoteli` (po 3 case studies, własne CTA) | Trzy grupy kupują inaczej i czytają inne argumenty | 2 dni |
@@ -472,7 +472,7 @@ Zasada przy każdej sesji komercyjnej (także Kadrify): 3 dodatkowe kadry „do 
 
 ## Jedno najważniejsze działanie na dziś
 
-Napisz dziś do autorów 9 realizacji ze strony: jedno zdanie prośby o zgodę na podpisanie (pracownia, projekt, rok) i jedno pytanie, jakie marki mebli i oświetlenia stoją w kadrze. Masz na to 45 minut. Bez tego nie ruszy nic z sekcji 3, 5 i 6.
+Wyślij dziś pierwsze oferty sesji z dużą zniżką do Mistovii, Colombe i Wiercinski Studio (drafty w `maile_drafty.md`). Przed wysyłką uzupełnij stawkę i zakres licencji. Stare 9 realizacji nie ma znanego projektanta, więc zostaje na stronie jako dowód dla właścicieli obiektów, a publikacje wyjdą z nowych, podpisanych sesji. Bez tego nie ruszy nic z sekcji 3, 5 i 6.
 
 ---
 
